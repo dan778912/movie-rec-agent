@@ -75,3 +75,7 @@ Retrieval latency in `run.json` measures search/filter/sort only; model loading 
 - Member 6: confirm direct ingestion of top-50 JSONL and compare P1 to B3 on identical pools/users.
 
 Model sources: [L6 model card](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2), [L12 model card](https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2), [Sentence Transformers API](https://sbert.net/docs/package_reference/sentence_transformer/model.html).
+
+## This local checkout
+
+The current desktop checkout links `.venv`, `data/processed/ml25m-global-v1`, `models/embedding-cache`, `models/hf-cache`, and `outputs/predictions/member5` to artifacts in the current Codex workspace. These ignored local links are convenience only and are not part of Git. To reuse downloaded weights here, set `export HF_HOME="$PWD/models/hf-cache"` before the commands above. Other machines should create their own environment and artifacts using the same commands.
