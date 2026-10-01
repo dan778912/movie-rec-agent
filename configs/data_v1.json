@@ -1,0 +1,14 @@
+{
+  "version": "ml25m-global-v1",
+  "source": "MovieLens 25M (December 2019 release)",
+  "minimum_training_ratings_per_user": 20,
+  "minimum_training_ratings_per_catalog_movie": 5,
+  "positive_rating_at_least": 4.0,
+  "validation_quantile_within_pretest": 0.9,
+  "test_quantile": 0.9,
+  "genome_tags_per_movie": 8,
+  "user_tags_per_movie": 5,
+  "liked_movies_per_profile": 10,
+  "disliked_movies_per_profile": 5,
+  "seed": 20261001
+}
