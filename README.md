@@ -1,6 +1,32 @@
-# MovieLens 25M data and representation pipeline
+# Movie Recommendation Agent
 
 This folder implements the **Member 1** workload from the [team roadmap](Movie_Recommendation_Agent_Roadmap.md): a frozen global temporal split, catalog, canonical movie documents, user profiles, targets, and data checks. It uses Python 3.10+ standard library only. Windows needs the built-in `curl.exe` for TLS downloads.
+
+## Team repository layout
+
+The repository follows Section 8 of the roadmap. Each folder has a README describing its handoff point. The current code implements Member 1's data and profile work; the remaining folders are ready for their owners to add code, configurations, tests, and reports.
+
+| Owner | Folder | Work |
+|---|---|---|
+| Member 1 | `src/data/`, `src/profiles/`, `data/` | Frozen dataset and text representations |
+| Member 2 | `src/evaluation/` | Shared metrics, prediction validation, experiment subsets |
+| Member 3 | `src/baselines/` | Popularity baseline and P1 training-data support |
+| Member 4 | `src/retrieval/` | BM25 retrieval |
+| Member 5 | `src/retrieval/` | Embedding retrieval and candidate pools |
+| Member 6 | `src/reranking/` | P1 and P2 fine-tuning and inference |
+| Phase 2 team | `src/agent/`, `src/app/` | Agent loop and application; assignment follows Phase 1 |
+
+Shared experiment settings belong in `configs/`; model artifact references in `models/`; standard prediction JSONL files in `outputs/predictions/`; generated tables and reports in `outputs/reports/`; unit and smoke tests in `tests/`. Large datasets, model weights, and generated outputs are Git-ignored. Commit code, small configuration files, documentation, and tests. To collaborate, clone the repository, create a branch for your task, and open a pull request into `main` after your checks pass.
+
+The GitHub repository is private. Its owner must invite each teammate as a collaborator before they can clone or push. Once invited, a teammate can start with:
+
+```powershell
+git clone https://github.com/dan778912/movie-rec-agent.git
+cd movie-rec-agent
+git switch -c member-4-bm25  # replace with your task's branch name
+```
+
+Members should commit their own code and tests, then open a pull request for review. The shared processed data is reproduced with the command below; it is not stored in GitHub. Frontend, service, and deployment details will be added by the Phase 2 team after the modeling gate.
 
 From this folder, run the complete pipeline:
 
