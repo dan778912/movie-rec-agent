@@ -1,3 +1,4 @@
+# Member 5: requires Python >=3.12; verified with Python 3.12.14.
 annotated-doc==0.0.5
 anyio==4.15.1
 certifi==2026.7.22

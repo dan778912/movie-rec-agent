@@ -74,7 +74,7 @@ python -m src.retrieval.run_embedding \
   --output outputs/predictions/member5-new-validation
 ```
 
-完成目录不会被覆盖，重跑需要使用新输出目录。完整使用方法见项目 `src/retrieval/README.md`。新机器先用 Python 3.10+ 建立环境并安装 `requirements-embedding.txt`，再生成 Member 1 数据。
+完成目录不会被覆盖，重跑需要使用新输出目录。完整使用方法见项目 `src/retrieval/README.md`。新机器先用已验证的 Python 3.12 建立环境（Member 5 锁定依赖要求至少 3.12）并安装 `requirements-embedding.txt`，再生成 Member 1 数据。
 
 ## 剩余协作项
 
@@ -82,6 +82,16 @@ python -m src.retrieval.run_embedding \
 - [ ] Member 4 提供 BM25 同用户、同划分的预测，才能实际比较 BM25 与 embedding。
 - [ ] 团队确认本次模型配置提案；Member 6 验证候选文件接入并完成 P1 比较。
 
-审查小项保留：测试文件的直接执行入口位于部分测试类之前；本文使用的 discovery 命令执行全部 10 个测试。代码已提供明确保存索引加载接口，避免重复归一化改变分数；诊断评估核对标签、画像和电影文本的原始 manifest 哈希。
+审查小项保留：测试文件的直接执行入口位于部分测试类之前；本文使用的 discovery 命令目前执行全部 16 个测试。代码已提供明确保存索引加载接口，避免重复归一化改变分数；诊断评估核对标签、画像和电影文本的原始 manifest 哈希。
 
 模型资料：[MiniLM L6](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)、[MiniLM L12](https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2)。
+
+## 外部审查修复（2026-10-01）
+
+已修复三项 Important 和两项 Minor：输出目录使用进程锁和独立临时目录，全部完成后原子发布；共享缓存对完整读取、编码、向量及元数据发布加锁，并使用唯一临时文件；安装说明统一为已验证的 Python 3.12，入口拒绝低于 3.12 的解释器；诊断拒绝重复或非法 K；预测校验严格检查必需字段和类型。
+
+输出目录只接受不存在的新路径。锁文件保留用于后续运行协调，缓存锁等待上限为 600 秒；该方案针对本地文件系统，不承诺分布式文件系统锁语义。异常会清理本次临时目录，强制终止进程可能留下临时目录，但不会发布为完整结果。
+
+新增六项回归测试，完整测试 16/16 通过，`pip check` 与 diff 空白检查通过。原交付包十项文件哈希全部一致；全部验证/测试用户通过更严格的预测校验；两模型验证诊断重算完全一致。修复后的 L6 全验证集缓存重跑命中两份缓存，预测、Top 50 候选及索引三个文件 SHA-256 与冻结版本一致。未重新编码模型、下载模型或读取真实测试标签，未执行跨平台安装验证。
+
+原冻结运行记录保留其原始版本信息，补充复现使用修复后的源码；原交付包和实验指标未改写。正式评估器、BM25 比较及 Member 6 消费验收仍待团队完成。

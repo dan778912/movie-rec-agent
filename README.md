@@ -1,6 +1,6 @@
 # Movie Recommendation Agent
 
-This repository implements **Member 1** data preparation and **Member 5** embedding retrieval from the [team roadmap](Movie_Recommendation_Agent_Roadmap.md). The data pipeline uses Python 3.10+ standard library only. Embedding experiments have separate dependencies in `requirements-embedding.txt`; see the [retrieval guide](src/retrieval/README.md). Windows needs the built-in `curl.exe` for data downloads.
+This repository implements **Member 1** data preparation and **Member 5** embedding retrieval from the [team roadmap](Movie_Recommendation_Agent_Roadmap.md). The data pipeline uses Python 3.10+ standard library only. Embedding experiments use Python 3.12 (locked dependencies require >=3.12) and have separate dependencies in `requirements-embedding.txt`; see the [retrieval guide](src/retrieval/README.md). Windows needs the built-in `curl.exe` for data downloads.
 
 ## Team repository layout
 

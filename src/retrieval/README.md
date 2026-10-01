@@ -4,10 +4,10 @@ Member 4 owns BM25 (B2). Member 5's implementation below supplies B3 and immutab
 
 ## Member 5 setup
 
-Use Python 3.10+ (this run used Python 3.12). From the repository root:
+Use **Python 3.12** (verified with 3.12.14). The locked NumPy, SciPy and NetworkX require Python >=3.12; Python 3.10/3.11 cannot install this lock. Newer interpreters/platforms have not been tested. From the repository root:
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-embedding.txt
 python -m unittest discover -s tests -v
@@ -33,7 +33,7 @@ python -m src.retrieval.diagnostics \
   --output outputs/reports/embedding-L6-validation.json
 ```
 
-Repeat with `configs/embedding-all-MiniLM-L12-v2.json` and a different output directory. The CLI refuses to overwrite a completed run. Reuse the same cache directory for repeat runs and test export. A matching corrupt cache fails visibly; remove only that cache entry before rebuilding.
+Repeat with `configs/embedding-all-MiniLM-L12-v2.json` and a different output directory. The CLI reserves the output name with a process lock before encoding. A concurrent run using that name fails immediately. Each run writes to a private sibling staging directory and atomically publishes it only after all files validate. Any pre-existing output directory, including an empty/partial one, is refused. Failed runs remove only their own staging directory; a forcibly killed process may leave an orphan staging directory. Reuse the same cache directory for repeat runs and test export. A per-entry process lock covers cache lookup, encoding, and vector/metadata publication; concurrent cold starts wait (up to 600 seconds) and reuse the first completed result. A matching corrupt cache fails visibly; remove only that inactive cache entry before rebuilding. Persistent `.lock` files are normal and must not be deleted while jobs run; OS locks are released when a process exits. This coordination targets local filesystems, not distributed/network filesystem locks.
 
 The two immutable model revisions are stored in the config files. Both models use their documented 256-token input limit. `run.json` reports how many canonical texts are truncated, so this loss of later history is visible. Model selection is predeclared in `docs/member5-plan.md`: validation Recall@50, then NDCG@10, then model name. Top-50 is the handoff contract even when reporting recall at 20 and 100.
 

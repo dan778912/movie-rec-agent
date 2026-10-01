@@ -11,15 +11,41 @@ from src.retrieval.embedding import file_hash, read_jsonl, write_json, validate_
 
 
 def validate_predictions(predictions, catalog, histories, k=None, split=None):
+    if k is not None and (type(k) is not int or k <= 0):
+        raise ValueError('k must be a positive integer')
     seen_users = set()
     for row in predictions:
+        if not isinstance(row, dict) or not {'user_id', 'split', 'method', 'recommendations'} <= row.keys():
+            raise ValueError('Prediction is missing required metadata')
         user = row['user_id']
+        if type(user) is not int or user <= 0:
+            raise ValueError('user_id must be a positive integer, not bool or float')
+        if row['split'] not in ('validation', 'test'):
+            raise ValueError('Invalid prediction split')
+        if not isinstance(row['method'], str) or not row['method'].strip():
+            raise ValueError('method must be a nonempty string')
         if user in seen_users or user not in histories:
             raise ValueError(f'Duplicate or unexpected user {user}')
         seen_users.add(user)
         if split is not None and row.get('split') != split:
             raise ValueError('Prediction split mismatch')
         recs = row['recommendations']
+        if not isinstance(recs, list) or not recs:
+            raise ValueError('recommendations must be a nonempty list')
+        for rec in recs:
+            if not isinstance(rec, dict) or not {'movie_id', 'rank', 'score'} <= rec.keys():
+                raise ValueError('Recommendation is missing required fields')
+            if any(type(rec[field]) is not int or rec[field] <= 0 for field in ('movie_id', 'rank')):
+                raise ValueError('movie_id and rank must be positive integers, not bool or float')
+            score = rec['score']
+            if type(score) not in (int, float):
+                raise ValueError('score must be a finite number, not bool')
+            try:
+                finite = math.isfinite(score)
+            except OverflowError:
+                finite = False
+            if not finite:
+                raise ValueError('score must be finite')
         if k is not None and len(recs) != k:
             raise ValueError('Wrong candidate count')
         ids = [r['movie_id'] for r in recs]
@@ -27,13 +53,19 @@ def validate_predictions(predictions, catalog, histories, k=None, split=None):
             raise ValueError('Duplicate, out-of-catalog, or watched recommendation')
         if [r['rank'] for r in recs] != list(range(1, len(recs) + 1)):
             raise ValueError('Ranks must be consecutive starting at 1')
-        if any(not math.isfinite(r['score']) for r in recs):
-            raise ValueError('Nonfinite score')
     if seen_users != set(histories):
         raise ValueError('Missing evaluation users')
 
 
+def validate_ks(ks):
+    if (not isinstance(ks, (tuple, list)) or not ks
+            or any(type(k) is not int or k <= 0 for k in ks)
+            or len(set(ks)) != len(ks)):
+        raise ValueError('ks must be a nonempty sequence of unique positive integers')
+
+
 def evaluate(predictions, targets, catalog, histories, ks=(10, 20, 50, 100)):
+    validate_ks(ks)
     validate_predictions(predictions, catalog, histories)
     if not histories:
         raise ValueError('No evaluation users')
@@ -71,6 +103,7 @@ def evaluate(predictions, targets, catalog, histories, ks=(10, 20, 50, 100)):
 
 
 def diagnose(data: Path, prediction_path: Path, ks=(10, 20, 50, 100)):
+    validate_ks(ks)
     manifest_path = data / 'manifest.json'
     manifest = json.loads(manifest_path.read_text())
     hashes = {}

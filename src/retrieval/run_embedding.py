@@ -7,10 +7,22 @@ import json
 import platform
 import re
 import subprocess
+import shutil
+import tempfile
+import sys
 import time
 from pathlib import Path
 
+
+def check_python_version(version):
+    if tuple(version[:2]) < (3, 12):
+        raise RuntimeError('Member 5 locked dependencies require Python 3.12 or newer; use Python 3.12.')
+
+
+check_python_version(sys.version_info)
+
 import numpy as np
+from filelock import FileLock, Timeout
 from threadpoolctl import threadpool_limits
 
 from src.retrieval.embedding import (ExactIndex, cached_encode, file_hash, fingerprint,
@@ -71,7 +83,7 @@ def validate_config(config):
         raise ValueError('pool_size must be <= top_k')
 
 
-def run(config, data: Path, output: Path, cache: Path, split: str, encoder=None):
+def _run_staged(config, data: Path, output: Path, cache: Path, split: str, encoder=None):
     started = time.perf_counter()
     validate_config(config)
     if split not in ('validation', 'test'):
@@ -155,8 +167,35 @@ def run(config, data: Path, output: Path, cache: Path, split: str, encoder=None)
               'timing_note': 'Retrieval latency excludes query encoding; separate batch encoding times are reported.',
               'training_seconds': 0, 'api_inference_cost_usd': 0}
     write_json(output / 'run.json', report)
-    print(json.dumps({'output': str(output), 'users': len(profiles), 'cache_hits': hits,
-                      'timings': report['timings']}, indent=2), flush=True)
+    return report
+
+
+def run(config, data: Path, output: Path, cache: Path, split: str, encoder=None):
+    """Reserve an output name before work, then atomically publish a complete directory."""
+    output = output.resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    lock = FileLock(str(output.parent / ('.' + output.name + '.lock')), timeout=0)
+    try:
+        lock.acquire()
+    except Timeout as exc:
+        raise ValueError(f'Output is in use by another run: {output}') from exc
+    try:
+        # Refuse even partial/pre-existing directories; never remove another run's files.
+        if output.exists():
+            raise ValueError('Output already exists; use a new output directory')
+        staging = Path(tempfile.mkdtemp(prefix='.' + output.name + '.staging-', dir=output.parent))
+        try:
+            report = _run_staged(config, data, staging, cache, split, encoder)
+            if output.exists():
+                raise ValueError('Output appeared during run; refusing to replace it')
+            staging.rename(output)
+        finally:
+            if staging.exists():
+                shutil.rmtree(staging)
+    finally:
+        lock.release()
+    print(json.dumps({'output': str(output), 'users': report['users'],
+                      'cache_hits': report['cache_hits'], 'timings': report['timings']}, indent=2), flush=True)
     return report
 
 

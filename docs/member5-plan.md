@@ -8,7 +8,7 @@ Spec: `Movie_Recommendation_Agent_Roadmap.md` sections 4–9 (Member 5), and `DA
 
 ## Decisions made before looking at experiment results
 
-- Python >=3.10; isolated environment; no changes to Member 1's pipeline.
+- Member 5 uses Python 3.12 (locked dependencies require >=3.12); isolated environment; no changes to Member 1's Python 3.10+ data pipeline.
 - Compare sentence-transformers/all-MiniLM-L6-v2 and all-MiniLM-L12-v2, pinned to immutable Hugging Face revisions. Both use their model's 256-token limit, normalized vectors, and identical canonical inputs. Record profile truncation.
 - Evaluate all 4,751 validation profiles. Primary selection: mean in-catalog Recall@50; ties: NDCG@10, then model name. Top-50 remains the contract for Member 6; report recall at 20/50/100 to quantify pool-size tradeoffs.
 - No test-target reading for model selection. Once selected, export validation and test candidate pools for all users, avoiding arbitrary subsets owned by Member 2. Do not calculate final test metrics in this task.
@@ -60,3 +60,5 @@ Write failing tests first for ranking/filtering/ties, insufficient candidates, m
 - Ruling: select a provisional Member 5 model using local validation diagnostics while official evaluator is absent — results explicitly labeled provisional; cost is that official evaluation may require revisiting selection.
 - Deferred minors: discovery is the supported test entry (direct test-file entry precedes later classes); cache keys are semantic model/data/runtime identities, not a promise of cross-hardware/batch/thread bitwise regeneration. These do not invalidate the verified frozen output hashes.
 - Branch retained locally; no push, merge, cloud deployment, or messages to teammates performed.
+
+- External review fix pass (2026-10-01): reproduced output/cache races and diagnostic contract errors before fixes; added six regressions. Output reservation plus staged atomic publication, process-safe cache entry locking, Python 3.12 requirement, unique positive K validation and strict prediction schemas implemented. Full suite 16/16 and pip check pass. Original handoff hashes and both validation diagnostics unchanged; full selected-model cached validation replay matches all three artifact hashes. No test labels opened.

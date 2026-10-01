@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import tempfile
 from pathlib import Path
 
 import numpy as np
+from filelock import FileLock
 
 
 def fingerprint(value) -> str:
@@ -115,6 +117,15 @@ class ExactIndex:
 
 
 def cached_encode(path: Path, key: str, texts: list[str], encode) -> tuple[np.ndarray, bool]:
+    """Serialize readers/builders for one cache entry, including both published files."""
+    path = path.resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Keep the lock file after release: unlinking it can create two lock identities.
+    with FileLock(str(path) + '.lock', timeout=600):
+        return _cached_encode_locked(path, key, texts, encode)
+
+
+def _cached_encode_locked(path: Path, key: str, texts: list[str], encode) -> tuple[np.ndarray, bool]:
     """Different input key rebuilds; matching corrupt cache fails visibly."""
     meta_path = path.with_suffix('.json')
     if path.exists() and meta_path.exists():
@@ -136,9 +147,18 @@ def cached_encode(path: Path, key: str, texts: list[str], encode) -> tuple[np.nd
     if len(vectors) != len(texts):
         raise ValueError('Encoder returned wrong number of vectors')
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix('.tmp')
-    with temp.open('wb') as out:
-        np.savez(out, vectors=vectors)
-    temp.replace(path)
-    write_json(meta_path, {'key': key, 'sha256': file_hash(path), 'shape': list(vectors.shape)})
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=path.name + '.',
+                                     suffix='.tmp', delete=False) as out:
+        temp = Path(out.name)
+        try:
+            np.savez(out, vectors=vectors)
+        except BaseException:
+            out.close()
+            temp.unlink(missing_ok=True)
+            raise
+    try:
+        temp.replace(path)
+        write_json(meta_path, {'key': key, 'sha256': file_hash(path), 'shape': list(vectors.shape)})
+    finally:
+        temp.unlink(missing_ok=True)
     return vectors, False
