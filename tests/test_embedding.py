@@ -129,3 +129,40 @@ class PipelineTests(unittest.TestCase):
             (root / 'movie_documents.jsonl').write_text('changed')
             with self.assertRaises(ValueError):
                 run(config, root, root / 'run3', root / 'cache', 'validation', encoder)
+
+class ReviewRegressionTests(unittest.TestCase):
+    def test_index_reload_preserves_exact_scores_and_rank(self):
+        rng = np.random.default_rng(8)
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'index.npz'
+            for _ in range(30):
+                vectors = rng.normal(size=(2, 384)).astype(np.float32)
+                index = ExactIndex([1, 2], vectors)
+                query = index.vectors.sum(axis=0)
+                with path.open('wb') as out:
+                    np.savez(out, movie_ids=index.ids, vectors=index.vectors)
+                restored = ExactIndex.load(path)
+                np.testing.assert_array_equal(index.vectors, restored.vectors)
+                self.assertEqual(index.search(query, set(), 2), restored.search(query, set(), 2))
+
+    def test_diagnostic_rejects_changed_labels_and_records_provenance(self):
+        from src.retrieval.diagnostics import diagnose
+        from src.retrieval.embedding import file_hash, write_json, write_jsonl
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            write_jsonl(root / 'movie_documents.jsonl', [{'movie_id': 1, 'text': 'a'}, {'movie_id': 2, 'text': 'b'}])
+            write_jsonl(root / 'validation_profiles.jsonl',
+                        [{'user_id': 1, 'text': 'a', 'split': 'validation', 'history_movie_ids': []}])
+            targets = root / 'validation_targets.csv'
+            targets.write_text('user_id,movie_id,in_catalog\n1,1,1\n')
+            inputs = {p.name: file_hash(p) for p in root.iterdir()}
+            write_json(root / 'manifest.json', {'version': 'fixture', 'file_sha256': inputs})
+            prediction_path = root / 'predictions.jsonl'
+            write_jsonl(prediction_path, [{'user_id': 1, 'split': 'validation', 'method': 'embedding',
+                'recommendations': [{'movie_id': 1, 'rank': 1, 'score': 1.0}]}])
+            result = diagnose(root, prediction_path, ks=(1,))
+            self.assertEqual(result['input_sha256']['validation_targets.csv'], inputs['validation_targets.csv'])
+            self.assertEqual(result['prediction_sha256'], file_hash(prediction_path))
+            targets.write_text('user_id,movie_id,in_catalog\n1,2,1\n')
+            with self.assertRaises(ValueError):
+                diagnose(root, prediction_path, ks=(1,))

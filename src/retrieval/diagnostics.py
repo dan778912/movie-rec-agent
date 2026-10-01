@@ -4,9 +4,10 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import json
 from pathlib import Path
 
-from src.retrieval.embedding import read_jsonl, write_json
+from src.retrieval.embedding import file_hash, read_jsonl, write_json, validate_records
 
 
 def validate_predictions(predictions, catalog, histories, k=None, split=None):
@@ -69,6 +70,26 @@ def evaluate(predictions, targets, catalog, histories, ks=(10, 20, 50, 100)):
             'catalog_positive_coverage': in_catalog / total if total else None}
 
 
+def diagnose(data: Path, prediction_path: Path, ks=(10, 20, 50, 100)):
+    manifest_path = data / 'manifest.json'
+    manifest = json.loads(manifest_path.read_text())
+    hashes = {}
+    for name in ('validation_profiles.jsonl', 'movie_documents.jsonl', 'validation_targets.csv'):
+        hashes[name] = file_hash(data / name)
+        if hashes[name] != manifest['file_sha256'].get(name):
+            raise ValueError(f'Diagnostic input differs from frozen manifest: {name}')
+    profiles = validate_records(read_jsonl(data / 'validation_profiles.jsonl'), 'user_id')
+    docs = validate_records(read_jsonl(data / 'movie_documents.jsonl'), 'movie_id')
+    predictions = read_jsonl(prediction_path)
+    histories = {p['user_id']: set(p['history_movie_ids']) for p in profiles}
+    catalog = {d['movie_id'] for d in docs}
+    validate_predictions(predictions, catalog, histories, k=max(ks), split='validation')
+    with (data / 'validation_targets.csv').open() as source:
+        result = evaluate(predictions, list(csv.DictReader(source)), catalog, histories, ks=ks)
+    return {**result, 'input_sha256': hashes, 'prediction_sha256': file_hash(prediction_path),
+            'data_version': manifest['version'], 'manifest_sha256': file_hash(manifest_path)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--data', type=Path, required=True)
@@ -76,14 +97,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     # Intentionally validation-only: no accidental final-test tuning.
-    profiles = read_jsonl(args.data / 'validation_profiles.jsonl')
-    docs = read_jsonl(args.data / 'movie_documents.jsonl')
-    predictions = read_jsonl(args.predictions)
-    histories = {p['user_id']: set(p['history_movie_ids']) for p in profiles}
-    catalog = {d['movie_id'] for d in docs}
-    validate_predictions(predictions, catalog, histories, k=100, split='validation')
-    with (args.data / 'validation_targets.csv').open() as source:
-        result = evaluate(predictions, list(csv.DictReader(source)), catalog, histories)
+    result = diagnose(args.data, args.predictions)
     write_json(args.output, result)
     print(result)
 

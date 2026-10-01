@@ -86,6 +86,18 @@ class ExactIndex:
         self.ids = ids.astype(np.int64)
         self.positions = {int(movie_id): i for i, movie_id in enumerate(self.ids)}
 
+    @classmethod
+    def load(cls, path: Path):
+        """Validate a persisted index without a second floating-point normalization."""
+        with np.load(path, allow_pickle=False) as saved:
+            ids, vectors = saved['movie_ids'], saved['vectors']
+        index = cls(ids, vectors)
+        if vectors.dtype != np.float32 or not np.allclose(
+                np.linalg.norm(vectors, axis=1), 1.0, rtol=1e-6, atol=1e-7):
+            raise ValueError('Persisted index must contain normalized float32 vectors')
+        index.vectors = np.ascontiguousarray(vectors)
+        return index
+
     def search(self, query, watched: set[int], k: int) -> list[dict]:
         if type(k) is not int or k <= 0:
             raise ValueError('k must be a positive integer')
