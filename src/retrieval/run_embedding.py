@@ -59,6 +59,14 @@ def runtime_versions():
     return {name: importlib.metadata.version(name) for name in names}
 
 
+def peak_process_rss_bytes():
+    try:
+        import resource
+    except ImportError:
+        return None  # Windows has no resource module; do not break its existing runner.
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if sys.platform == 'darwin' else 1024)
+
+
 def code_identity():
     root = Path(__file__).resolve().parents[2]
     files = sorted((root / 'src' / 'retrieval').glob('*.py'))
@@ -88,6 +96,8 @@ def _run_staged(config, data: Path, output: Path, cache: Path, split: str, encod
     validate_config(config)
     if split not in ('validation', 'test'):
         raise ValueError('Invalid split')
+    if config.get('encoding_strategy') and split != 'validation':
+        raise ValueError('Long-input experiments are validation-only')
     # All runs have a complete manifest only on success; no silent overwrite of frozen output.
     if (output / 'run.json').exists():
         raise ValueError('Output already completed; use a new output directory')
@@ -105,7 +115,12 @@ def _run_staged(config, data: Path, output: Path, cache: Path, split: str, encod
         raise ValueError('Profile split mismatch')
     versions = runtime_versions()
     start = time.perf_counter()
-    encoder = encoder or SentenceEncoder(config)
+    if encoder is None:
+        if config.get('encoding_strategy'):
+            from src.retrieval.long_input import LongInputEncoder
+            encoder = LongInputEncoder(config)
+        else:
+            encoder = SentenceEncoder(config)
     model_load_seconds = time.perf_counter() - start
     identity = {key: config[key] for key in ('model_id', 'revision', 'max_seq_length', 'device')}
     identity.update({'runtime': versions, 'normalization': 'l2_float32_v1'})
@@ -117,14 +132,19 @@ def _run_staged(config, data: Path, output: Path, cache: Path, split: str, encod
     for kind, records, filename in [('movies', docs, 'movie_documents.jsonl'),
                                      ('profiles', profiles, f'{split}_profiles.jsonl')]:
         texts = [r['text'] for r in records]
-        key = fingerprint({'encoder': identity, 'input_sha256': inputs[filename]})
+        extra_identity = encoder.cache_identity(kind) if hasattr(encoder, 'cache_identity') else {}
+        key = fingerprint({'encoder': {**identity, **extra_identity}, 'input_sha256': inputs[filename]})
         path = cache / f'{kind}-{key}.npz'
+        if hasattr(encoder, 'describe'):
+            truncation[kind] = encoder.describe(texts, kind)
         start = time.perf_counter()
-        vectors[kind], hits[kind] = cached_encode(path, key, texts, encoder.encode)
+        encode = (lambda values: encoder.encode_kind(values, kind)) if hasattr(encoder, 'encode_kind') else encoder.encode
+        vectors[kind], hits[kind] = cached_encode(path, key, texts, encode)
         timings[kind + '_encode_or_cache_seconds'] = time.perf_counter() - start
         cache_files[kind] = str(path.resolve())
-        lengths = encoder.token_lengths(texts)
-        truncation[kind] = {'records': len(lengths),
+        if not hasattr(encoder, 'describe'):
+            lengths = encoder.token_lengths(texts)
+            truncation[kind] = {'records': len(lengths),
                             'truncated': sum(n > config['max_seq_length'] for n in lengths),
                             'max_tokens_before_truncation': max(lengths),
                             'token_limit': config['max_seq_length']}
@@ -157,6 +177,8 @@ def _run_staged(config, data: Path, output: Path, cache: Path, split: str, encod
               'input_sha256': inputs, 'output_sha256': hashes, 'cache_files': cache_files,
               'cache_hits': hits, 'truncation': truncation, 'runtime': versions,
               'platform': platform.platform(), 'python': platform.python_version(),
+              'peak_process_rss_bytes': peak_process_rss_bytes(),
+              'memory_note': 'Process lifetime high-water RSS; includes model, tensors and outputs. Run each experiment in a fresh process.',
               'code': code_identity(), 'error_count': 0, 'index': 'exact_numpy_cosine_float32',
               'timings': {**timings, 'model_load_seconds': model_load_seconds,
                           'retrieval_total_seconds': sum(durations),

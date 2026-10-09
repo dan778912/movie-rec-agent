@@ -79,3 +79,34 @@ Model sources: [L6 model card](https://huggingface.co/sentence-transformers/all-
 ## This local checkout
 
 The current desktop checkout links `.venv`, `data/processed/ml25m-global-v1`, `models/embedding-cache`, `models/hf-cache`, and `outputs/predictions/member5` to artifacts in the current Codex workspace. These ignored local links are convenience only and are not part of Git. To reuse downloaded weights here, set `export HF_HOME="$PWD/models/hf-cache"` before the commands above. Other machines should create their own environment and artifacts using the same commands.
+
+## Additional long-input validation experiments
+
+See the [long-input results report](../../docs/member5-long-input-results.md) for the verified Discovery CUDA run, three-model comparison, artifact access, and reproduction commands. The original frozen L6 delivery remains unchanged.
+
+The original L6 selection and handoff remain frozen. See `docs/member5-long-input-plan.md` for the predeclared experiment and execution decisions. These configurations are validation-only: the runner rejects `--split test` before reading data.
+
+```bash
+python -m src.retrieval.run_embedding \
+  --data data/processed/ml25m-global-v1 \
+  --config configs/embedding-L6-chunked.json \
+  --split validation --cache models/long-input-cache \
+  --output outputs/predictions/L6-chunked-validation
+
+python -m src.retrieval.run_embedding \
+  --data data/processed/ml25m-global-v1 \
+  --config configs/embedding-Qwen3-0.6B-full-mps.json \
+  --split validation --cache models/long-input-cache \
+  --output outputs/predictions/Qwen3-full-validation
+
+python -m src.retrieval.diagnostics \
+  --data data/processed/ml25m-global-v1 \
+  --predictions outputs/predictions/Qwen3-full-validation/predictions.jsonl \
+  --output outputs/reports/Qwen3-full-validation.json
+```
+
+L6 splits every profile into nonoverlapping 254-content-token chunks, encodes and normalizes them, then normalizes their content-token-weighted mean. Movie encoding stays at the baseline 256-token limit. This changes aggregation as well as retained context.
+
+Qwen uses its pinned model's last-token pooling, left padding, full canonical movie text, and full profiles prefixed by the exact task instruction in the config. Length checks include the prompt and fail before inference if any record exceeds 2048 tokens; they do not silently truncate. The observed maxima were 241 tokens for movies and 660 for profiles. MPS config uses float16 inference, with cached/index vectors normalized as float32. `embedding-Qwen3-0.6B-full.json` instead uses CPU float32. Device and inference dtype separate their caches. MPS requires a compatible Apple device/runtime; CPU is a slower alternative. Models load from pinned Hugging Face revisions through `HF_HOME`; `HF_HUB_OFFLINE=1` is appropriate only after weights are downloaded.
+
+Use a fresh process and unused output directory for each measurement. Encoding times include cache reads when `cache_hits` is true; model loading excludes any separately performed download. `peak_process_rss_bytes` is process lifetime resident-memory high water, not a complete GPU/unified-memory peak. GPU/CPU timings are operational costs on the recorded setup, not a controlled model-only speed comparison. No retrieval Python source should change during a run: its source hashes are recorded at the end. Preserve the exact source and config with results.
