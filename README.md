@@ -1,10 +1,10 @@
 # Movie Recommendation Agent
 
-This folder implements the **Member 1** workload from the [team roadmap](Movie_Recommendation_Agent_Roadmap.md): a frozen global temporal split, catalog, canonical movie documents, user profiles, targets, and data checks. It uses Python 3.10+ standard library only. Windows needs the built-in `curl.exe` for TLS downloads.
+This repository implements the **Member 1** data workload and **Member 4** BM25 retrieval workload from the [team roadmap](Movie_Recommendation_Agent_Roadmap.md). It provides a frozen global temporal split, canonical text representations, and a reproducible keyword-retrieval baseline with validation tuning and reports. Both use the Python 3.10+ standard library only. Windows needs the built-in `curl.exe` for TLS downloads.
 
 ## Team repository layout
 
-The repository follows Section 8 of the roadmap. Each folder has a README describing its handoff point. The current code implements Member 1's data and profile work; the remaining folders are ready for their owners to add code, configurations, tests, and reports.
+The repository follows Section 8 of the roadmap. Each folder has a README describing its handoff point. Member 1's data/profile pipeline and Member 4's BM25 baseline are implemented; the remaining owners can add their modules, configurations, tests, and reports.
 
 | Owner | Folder | Work |
 |---|---|---|
@@ -48,6 +48,18 @@ python -m unittest discover -s tests -v
 ```
 
 The raw dataset and derived artifacts are ignored by Git. **Do not redistribute the raw files or commit them.** The [GroupLens dataset terms](https://files.grouplens.org/datasets/movielens/ml-25m-README.html) allow research use with conditions and prohibit redistribution without separate permission. Cite the MovieLens data source in publications.
+
+## BM25 retrieval — Member 4
+
+After preparing the data, run:
+
+```bash
+python -m src.retrieval.run_bm25 index
+python -m src.retrieval.run_bm25 predict --split validation --output outputs/predictions/bm25_validation.jsonl --report-dir outputs/reports/bm25-validation
+python -m src.retrieval.run_bm25 predict --split test --output outputs/predictions/bm25_test.jsonl --report-dir outputs/reports/bm25-test
+```
+
+The committed configuration was selected using validation only. Test export reads profiles and catalog metadata; it does not read test targets. See [BM25 commands and handoff](src/retrieval/README.md) for tuning, shared user subsets, indexing, and diagnostic reports, and [Member 4's results and failure analysis](docs/member4_bm25_report.md). Shared evaluation/table integration is pending Member 2's evaluator.
 
 ## Frozen decisions
 

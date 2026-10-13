@@ -1,0 +1,987 @@
+{
+  "compute_cost": "Local CPU; no paid compute or API calls.",
+  "configuration": {
+    "b": 0.25,
+    "catalog_sha256": "bf39972971caf93923c01e89b2a2c32775435b8f00a087735b9d613d5488f45b",
+    "dataset_version": "ml25m-global-v1",
+    "documents_sha256": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+    "fields": [
+      "text"
+    ],
+    "grid_sha256": "7c945d8e8776c8564bbd796836bc52cab7b9b9151d5ac9fd57a605cf2b6340d6",
+    "k1": 0.6,
+    "seed": 20261001,
+    "selection_objective": "ndcg@10",
+    "selection_split": "validation",
+    "selection_users": [
+      935,
+      1991,
+      2444,
+      3922,
+      4838,
+      4845,
+      5183,
+      5387,
+      6776,
+      6964,
+      7157,
+      9985,
+      10286,
+      10512,
+      12811,
+      13946,
+      14176,
+      15204,
+      15373,
+      15567,
+      16078,
+      16127,
+      16169,
+      16583,
+      19094,
+      19207,
+      19736,
+      21438,
+      21737,
+      22255,
+      22716,
+      23359,
+      24513,
+      24850,
+      24874,
+      25021,
+      26481,
+      28079,
+      28791,
+      29062,
+      29486,
+      29634,
+      29915,
+      30082,
+      30158,
+      30200,
+      30585,
+      30868,
+      31563,
+      32178,
+      32398,
+      32501,
+      33832,
+      34127,
+      35126,
+      35231,
+      35702,
+      37030,
+      37384,
+      37438,
+      38127,
+      39183,
+      39626,
+      39861,
+      40017,
+      40265,
+      41191,
+      41527,
+      41657,
+      41780,
+      42007,
+      42047,
+      42277,
+      42746,
+      42855,
+      44264,
+      44908,
+      44991,
+      44996,
+      45067,
+      45441,
+      45463,
+      46110,
+      48988,
+      49338,
+      49795,
+      49931,
+      50374,
+      50622,
+      50827,
+      50880,
+      50893,
+      51392,
+      51708,
+      51760,
+      51874,
+      52126,
+      52287,
+      53123,
+      53160,
+      54790,
+      55148,
+      56049,
+      56204,
+      56414,
+      56947,
+      58044,
+      58395,
+      58868,
+      59854,
+      59866,
+      60365,
+      60832,
+      60864,
+      61551,
+      61561,
+      61935,
+      61953,
+      62132,
+      62986,
+      63341,
+      64327,
+      65009,
+      65893,
+      66786,
+      67491,
+      67916,
+      68106,
+      68757,
+      69025,
+      69062,
+      69881,
+      70037,
+      70169,
+      70240,
+      70258,
+      72840,
+      73797,
+      74026,
+      74511,
+      74882,
+      75373,
+      76910,
+      77135,
+      77506,
+      77724,
+      78852,
+      79254,
+      81210,
+      81672,
+      82860,
+      83046,
+      83111,
+      83430,
+      83840,
+      84232,
+      84778,
+      85790,
+      85844,
+      86527,
+      86640,
+      86876,
+      87166,
+      87338,
+      87595,
+      88028,
+      89672,
+      90527,
+      91034,
+      91450,
+      92660,
+      92760,
+      93438,
+      93689,
+      93781,
+      94072,
+      94446,
+      94787,
+      95139,
+      95882,
+      96942,
+      97089,
+      97355,
+      97896,
+      97991,
+      99537,
+      99631,
+      100193,
+      100257,
+      100525,
+      101007,
+      101056,
+      101096,
+      102360,
+      102951,
+      103087,
+      103874,
+      104222,
+      104702,
+      105507,
+      106260,
+      107857,
+      108241,
+      108556,
+      108821,
+      108879,
+      110238,
+      110997,
+      111641,
+      111722,
+      111798,
+      111949,
+      112116,
+      113226,
+      114920,
+      116035,
+      118153,
+      118431,
+      123212,
+      123315,
+      123832,
+      123854,
+      124422,
+      124761,
+      124974,
+      125128,
+      125633,
+      125958,
+      126029,
+      126189,
+      126331,
+      126534,
+      126922,
+      127148,
+      128498,
+      129437,
+      129597,
+      129879,
+      130110,
+      130202,
+      131156,
+      131396,
+      132084,
+      132859,
+      133282,
+      133400,
+      133642,
+      134208,
+      134862,
+      134929,
+      136209,
+      136403,
+      137087,
+      138542,
+      138749,
+      139082,
+      139280,
+      139898,
+      140747,
+      141263,
+      141856,
+      141896,
+      142230,
+      142528,
+      143035,
+      143474,
+      144322,
+      145461,
+      145841,
+      147049,
+      147076,
+      147907,
+      148513,
+      148987,
+      149766,
+      150549,
+      151113,
+      151539,
+      151887,
+      152036,
+      152238,
+      152875,
+      152937,
+      153347,
+      154234,
+      154808,
+      155886,
+      155926,
+      156433,
+      156464,
+      158083,
+      158226,
+      158600,
+      158798,
+      158836,
+      159332,
+      160367,
+      161082,
+      162153,
+      162498
+    ],
+    "tokenizer": "unicode-casefold-stopwords-v1",
+    "top_k": 100,
+    "validation_profiles_sha256": "e2c8fcbea2e9fa73b3b8d32d1df93e265d4b603f6dfbdf04b99498b27e097295",
+    "validation_targets_sha256": "3bfa539350b7eedd72878cbfb84f1c89de2adcd21602acd927dc606c72da0c8f",
+    "version": "bm25-frozen-v1"
+  },
+  "elapsed_seconds": 34.28005708299861,
+  "evaluation_status": "B2 local diagnostics only; shared Member 2 evaluator is authoritative.",
+  "git_commit": "fde6eca7fa9447dc7d97a14aac95a499196790e2",
+  "input_sha256": {
+    "catalog.csv": "bf39972971caf93923c01e89b2a2c32775435b8f00a087735b9d613d5488f45b",
+    "manifest.json": "f2e137ff374a8cfc02348cb42d04d9a04c9a1769685a7eccc21933383a500b5a",
+    "movie_documents.jsonl": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+    "validation_profiles.jsonl": "e2c8fcbea2e9fa73b3b8d32d1df93e265d4b603f6dfbdf04b99498b27e097295",
+    "validation_targets.csv": "3bfa539350b7eedd72878cbfb84f1c89de2adcd21602acd927dc606c72da0c8f"
+  },
+  "platform": "macOS-26.5.1-arm64-arm-64bit",
+  "processor": "arm",
+  "python": "3.11.5",
+  "seed": 20261001,
+  "selected_trial": 1,
+  "selection_tie_break": "First trial in grid order",
+  "source_sha256": {
+    "bm25.py": "322838c89e12efc7ae3682aeda2ea6f504687cb2cef57849d88e7a6b0cd4dad4",
+    "run_bm25.py": "48b01770ec43bbfbd009a13683f152f327634eaaefe37ec13f279221e20b0a39"
+  },
+  "target_coverage": {
+    "excluded_target_rows": 1246,
+    "in_catalog_target_rows": 8109,
+    "positive_target_catalog_coverage": 0.8668091929449492,
+    "positive_target_rows": 9355,
+    "scope": "selected profile users",
+    "split_excluded_target_rows": 22234,
+    "split_in_catalog_target_rows": 126029,
+    "split_positive_target_catalog_coverage": 0.8500367590025832,
+    "split_positive_target_rows": 148263
+  },
+  "trials": [
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.25,
+        "fields": [
+          "text"
+        ],
+        "k1": 0.6,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.05813091463256334,
+        "recall@10": 0.023406785918095634,
+        "recall@100": 0.09471455718874354,
+        "recall@20": 0.0322483783815011,
+        "recall@50": 0.05847417210727046
+      },
+      "indexing_seconds": 0.2734461250001914,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 8.372083000722341,
+        "mean": 5.865203356734128,
+        "p50": 5.878729500182089,
+        "p95": 6.35666939915609
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.2783012234566165,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.75,
+        "fields": [
+          "text"
+        ],
+        "k1": 0.6,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.05634616009682717,
+        "recall@10": 0.02368736892670367,
+        "recall@100": 0.09493401832664107,
+        "recall@20": 0.03249024727444827,
+        "recall@50": 0.05822403818446418
+      },
+      "indexing_seconds": 0.2734461250001914,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 6.5307080003549345,
+        "mean": 5.7858526366423275,
+        "p50": 5.8173540001007495,
+        "p95": 6.307288148764201
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.2998640603759434,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.25,
+        "fields": [
+          "text"
+        ],
+        "k1": 1.2,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.05582854395931878,
+        "recall@10": 0.023268245370195832,
+        "recall@100": 0.0948185603470767,
+        "recall@20": 0.032142027663596355,
+        "recall@50": 0.059040900027893396
+      },
+      "indexing_seconds": 0.2734461250001914,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 6.828125000538421,
+        "mean": 5.899711863312405,
+        "p50": 5.942021000009845,
+        "p95": 6.374016700192442
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.273238644353818,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.75,
+        "fields": [
+          "text"
+        ],
+        "k1": 1.2,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.05444727479077771,
+        "recall@10": 0.022470888771187733,
+        "recall@100": 0.09234383053898086,
+        "recall@20": 0.03292482786586587,
+        "recall@50": 0.057333690858943236
+      },
+      "indexing_seconds": 0.2734461250001914,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 12.188374999823282,
+        "mean": 5.883888743355783,
+        "p50": 5.874000499716203,
+        "p95": 6.365041348453815
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.3049266394787419,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.25,
+        "fields": [
+          "text"
+        ],
+        "k1": 1.8,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.05484887876594922,
+        "recall@10": 0.023652279201703062,
+        "recall@100": 0.09358606970352713,
+        "recall@20": 0.0321687201775295,
+        "recall@50": 0.05584395353665403
+      },
+      "indexing_seconds": 0.2734461250001914,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 6.652167001448106,
+        "mean": 5.892507910005709,
+        "p50": 5.929208499765082,
+        "p95": 6.403075299840566
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.26817606525101956,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.75,
+        "fields": [
+          "text"
+        ],
+        "k1": 1.8,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.05315412231286153,
+        "recall@10": 0.023072305126580803,
+        "recall@100": 0.0879741796022528,
+        "recall@20": 0.03238829739089786,
+        "recall@50": 0.05542498639628592
+      },
+      "indexing_seconds": 0.2734461250001914,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 6.6093749992433,
+        "mean": 5.835307219961881,
+        "p50": 5.8555619998514885,
+        "p95": 6.3263315492804395
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.30609853278957483,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.25,
+        "fields": [
+          "title",
+          "genres"
+        ],
+        "k1": 0.6,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.015568482103356837,
+        "recall@10": 0.004763446037109843,
+        "recall@100": 0.02489151387842726,
+        "recall@20": 0.006672918127733167,
+        "recall@50": 0.015793482285336197
+      },
+      "indexing_seconds": 0.2316530000007333,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 7.48287499845901,
+        "mean": 5.156563459962247,
+        "p50": 5.169312499674561,
+        "p95": 5.577222899864864
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.25237894342099093,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.75,
+        "fields": [
+          "title",
+          "genres"
+        ],
+        "k1": 0.6,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.017791296504950857,
+        "recall@10": 0.005431959679655044,
+        "recall@100": 0.02520186937909272,
+        "recall@20": 0.00988602961872114,
+        "recall@50": 0.016045473756605116
+      },
+      "indexing_seconds": 0.2316530000007333,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 15.764957999635953,
+        "mean": 5.132347766636182,
+        "p50": 5.138417000125628,
+        "p95": 5.486195199137001
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.28523883185674775,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.25,
+        "fields": [
+          "title",
+          "genres"
+        ],
+        "k1": 1.2,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.015731711438050425,
+        "recall@10": 0.004685214744592836,
+        "recall@100": 0.02506219417750962,
+        "recall@20": 0.010216622789084888,
+        "recall@50": 0.015323496100273058
+      },
+      "indexing_seconds": 0.2316530000007333,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 6.736875000569853,
+        "mean": 5.174123903301127,
+        "p50": 5.205228999329847,
+        "p95": 5.614191949280212
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.26020719073735527,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.75,
+        "fields": [
+          "title",
+          "genres"
+        ],
+        "k1": 1.2,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.01901763510838867,
+        "recall@10": 0.00858504609940813,
+        "recall@100": 0.02404265798967857,
+        "recall@20": 0.00965055212667302,
+        "recall@50": 0.016017189778860352
+      },
+      "indexing_seconds": 0.2316530000007333,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 16.05441600077029,
+        "mean": 5.165584579984473,
+        "p50": 5.171354498997971,
+        "p95": 5.521605949797959
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.3036141189706089,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.25,
+        "fields": [
+          "title",
+          "genres"
+        ],
+        "k1": 1.8,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.015523611587448348,
+        "recall@10": 0.0045188960690682135,
+        "recall@100": 0.025449093661224505,
+        "recall@20": 0.010271812044274142,
+        "recall@50": 0.015416784877772363
+      },
+      "indexing_seconds": 0.2316530000007333,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 5.885041000510682,
+        "mean": 5.1482743266994175,
+        "p50": 5.1744999991569784,
+        "p95": 5.526218750037515
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.2643791309239207,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.75,
+        "fields": [
+          "title",
+          "genres"
+        ],
+        "k1": 1.8,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.01849731912294824,
+        "recall@10": 0.008469825010972756,
+        "recall@100": 0.023308378589417082,
+        "recall@20": 0.01047017410853689,
+        "recall@50": 0.01584405718988671
+      },
+      "indexing_seconds": 0.2316530000007333,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 16.26633399973798,
+        "mean": 5.1838988900575105,
+        "p50": 5.174958000679908,
+        "p95": 5.538688149590598
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.30886420100314066,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.25,
+        "fields": [
+          "genres",
+          "genome_tags",
+          "user_tags"
+        ],
+        "k1": 0.6,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.053837580685084485,
+        "recall@10": 0.023791809895126446,
+        "recall@100": 0.09589469343481095,
+        "recall@20": 0.03293404223377237,
+        "recall@50": 0.0609708168594026
+      },
+      "indexing_seconds": 0.2566377499988448,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 7.28829199942993,
+        "mean": 5.936186153279171,
+        "p50": 5.96914600009768,
+        "p95": 6.463777098906576
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.27009797028078564,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.75,
+        "fields": [
+          "genres",
+          "genome_tags",
+          "user_tags"
+        ],
+        "k1": 0.6,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.053642184894021054,
+        "recall@10": 0.02386154329601092,
+        "recall@100": 0.09469574613781356,
+        "recall@20": 0.03667733169097738,
+        "recall@50": 0.062328588425396014
+      },
+      "indexing_seconds": 0.2566377499988448,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 6.722957999954815,
+        "mean": 5.789621383270666,
+        "p50": 5.8183959999951185,
+        "p95": 6.277673200656864
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.2934420850325786,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.25,
+        "fields": [
+          "genres",
+          "genome_tags",
+          "user_tags"
+        ],
+        "k1": 1.2,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.052753730251627204,
+        "recall@10": 0.023531895093098425,
+        "recall@100": 0.0965235558572733,
+        "recall@20": 0.03246853405129743,
+        "recall@50": 0.06025237484229141
+      },
+      "indexing_seconds": 0.2566377499988448,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 6.92745800006378,
+        "mean": 5.9755312166089425,
+        "p50": 5.9828960002050735,
+        "p95": 6.470187500053726
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.2661135330239535,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.75,
+        "fields": [
+          "genres",
+          "genome_tags",
+          "user_tags"
+        ],
+        "k1": 1.2,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.05320373653792732,
+        "recall@10": 0.023254847881683922,
+        "recall@100": 0.09185513924579045,
+        "recall@20": 0.034513302243046294,
+        "recall@50": 0.056262290140948946
+      },
+      "indexing_seconds": 0.2566377499988448,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 19.6389580014511,
+        "mean": 5.904357076669839,
+        "p50": 5.869958499715722,
+        "p95": 6.370345550294587
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.30009843903810995,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.25,
+        "fields": [
+          "genres",
+          "genome_tags",
+          "user_tags"
+        ],
+        "k1": 1.8,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.05284632395240183,
+        "recall@10": 0.02427491189574789,
+        "recall@100": 0.09556121156619325,
+        "recall@20": 0.033348145110448285,
+        "recall@50": 0.06082968769395426
+      },
+      "indexing_seconds": 0.2566377499988448,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 19.49679199969978,
+        "mean": 5.974173773368723,
+        "p50": 5.970832999082631,
+        "p95": 6.459161049406248
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.2610040781887217,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    },
+    {
+      "candidate_pool_size": 100,
+      "catalog_movies": 21333,
+      "config": {
+        "b": 0.75,
+        "fields": [
+          "genres",
+          "genome_tags",
+          "user_tags"
+        ],
+        "k1": 1.8,
+        "top_k": 100
+      },
+      "diagnostic_metrics": {
+        "ndcg@10": 0.052791970017602226,
+        "recall@10": 0.0236798705647154,
+        "recall@100": 0.0898114984316675,
+        "recall@20": 0.034196690635276666,
+        "recall@50": 0.05422988317745771
+      },
+      "indexing_seconds": 0.2566377499988448,
+      "invalid_predictions": 0,
+      "latency_ms": {
+        "max": 19.041416999243665,
+        "mean": 5.840318609947038,
+        "p50": 5.826791500112449,
+        "p95": 6.297295200056396
+      },
+      "latency_protocol": "Single-process CPU, three warmups; tokenization, scoring, watched filtering and top-k selection included; index load/preparation, I/O and validation excluded.",
+      "missing_users": 0,
+      "recommendation_catalog_coverage": 0.3002390662354099,
+      "short_candidate_pools": 0,
+      "user_coverage": 1.0,
+      "users": 300,
+      "zero_match_queries": 0
+    }
+  ]
+}

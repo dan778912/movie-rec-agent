@@ -1,0 +1,14 @@
+{
+  "version": "bm25-validation-grid-v1",
+  "seed": 20261001,
+  "validation_users": 300,
+  "top_k": 100,
+  "objective": "ndcg@10",
+  "k1": [0.6, 1.2, 1.8],
+  "b": [0.25, 0.75],
+  "fields": [
+    ["text"],
+    ["title", "genres"],
+    ["genres", "genome_tags", "user_tags"]
+  ]
+}

@@ -1,2 +1,2 @@
-# Member 1 data pipeline uses only the Python 3.10+ standard library.
+# Member 1 data pipeline and Member 4 BM25 use only the Python 3.10+ standard library.
 

@@ -1,0 +1,625 @@
+[
+  {
+    "missed_at_100": [
+      {
+        "movie_id": 110433,
+        "query_overlap": [
+          "drama",
+          "plot",
+          "story",
+          "thriller",
+          "twist"
+        ],
+        "relevant": true,
+        "retrieval_text": "Möbius (2013). Genres: Drama, Thriller. User tags: espionage, finance, financial crisis, love story, plot twist.",
+        "text": "Möbius (2013). Genres: Drama, Thriller. User tags: espionage, finance, financial crisis, love story, plot twist.",
+        "title": "Möbius (2013)"
+      },
+      {
+        "movie_id": 140627,
+        "query_overlap": [
+          "action",
+          "drama",
+          "ii",
+          "romance",
+          "war",
+          "world"
+        ],
+        "relevant": true,
+        "retrieval_text": "Battle For Sevastopol (2015). Genres: Drama, Romance, War. Genome tags: war, russian, world war ii, wwii, dramatic, drama, action, russia. User tags: romance, war.",
+        "text": "Battle For Sevastopol (2015). Genres: Drama, Romance, War. Genome tags: war, russian, world war ii, wwii, dramatic, drama, action, russia. User tags: romance, war.",
+        "title": "Battle For Sevastopol (2015)"
+      }
+    ],
+    "ndcg@10": 0.0,
+    "profile": "Highly rated movies: Water Diviner, The (2014) (5/5; genres: Action, Drama, War; tags: genocide, war, australian, original, russell crowe); Philomena (2013) (5/5; genres: Comedy, Drama; tags: adoption, true story, catholicism, based on a true story, judi dench); Judge, The (2014) (5/5; genres: Drama; tags: father son relationship, drama, robert downey jr, father-son relationship, robert downey jr.); Interstellar (2014) (5/5; genres: Sci-Fi, IMAX; tags: space travel, astronauts, space, space, sci-fi); Gone Girl (2014) (5/5; genres: Drama, Thriller; tags: twists & turns, plot twist, adapted from:book, mindfuck, unpredictable); Sea Inside, The (Mar adentro) (2004) (5/5; genres: Drama; tags: oscar (best foreign language film), life & death, death, euthanasia, true story); Rise of the Planet of the Apes (2011) (5/5; genres: Action, Drama, Sci-Fi, Thriller; tags: genetics, scifi, original, genetics, thought-provoking); Dawn of the Planet of the Apes (2014) (5/5; genres: Sci-Fi; tags: humanity, virus, social commentary, sci-fi, apocalyptic); Life Is Beautiful (La Vita è bella) (1997) (5/5; genres: Comedy, Drama, Romance, War; tags: holocaust, oscar (best foreign language film), touching, holocaust, world war ii); Her (2013) (5/5; genres: Drama, Romance, Sci-Fi; tags: loneliness, relationships, future, thought-provoking, artificial intelligence). Low rated movies: Elephant (2003) (0.5/5); Hangover Part III, The (2013) (0.5/5); Spectre (2015) (1/5); Dumb and Dumber To (2014) (1/5); Dr. Dolittle (1998) (1/5).",
+    "recall@10": 0.0,
+    "recall@100": 0.0,
+    "recall@20": 0.0,
+    "recall@50": 0.0,
+    "selection": "low_ndcg",
+    "top_5": [
+      {
+        "movie_id": 2529,
+        "query_overlap": [
+          "action",
+          "apes",
+          "apocalyptic",
+          "astronauts",
+          "commentary",
+          "drama",
+          "fi",
+          "humanity",
+          "original",
+          "planet",
+          "sci",
+          "scifi",
+          "social",
+          "space",
+          "travel",
+          "twist"
+        ],
+        "rank": 1,
+        "relevant": false,
+        "retrieval_text": "Planet of the Apes (1968). Genres: Action, Drama, Sci-Fi. Genome tags: science fiction, astronauts, scifi, space travel, allegory, humanity, futuristic, original. User tags: post-apocalyptic, dystopia, social commentary, twist ending, science fiction.",
+        "score": 64.37734643084151,
+        "text": "Planet of the Apes (1968). Genres: Action, Drama, Sci-Fi. Genome tags: science fiction, astronauts, scifi, space travel, allegory, humanity, futuristic, original. User tags: post-apocalyptic, dystopia, social commentary, twist ending, science fiction.",
+        "title": "Planet of the Apes (1968)"
+      },
+      {
+        "movie_id": 58303,
+        "query_overlap": [
+          "best",
+          "drama",
+          "film",
+          "foreign",
+          "holocaust",
+          "ii",
+          "language",
+          "oscar",
+          "provoking",
+          "story",
+          "thought",
+          "true",
+          "war",
+          "world"
+        ],
+        "rank": 2,
+        "relevant": false,
+        "retrieval_text": "Counterfeiters, The (Die Fälscher) (2007). Genres: Crime, Drama, War. Genome tags: holocaust, world war ii, nazis, jews, nazi, oscar (best foreign language film), germany, survival. User tags: true story, holocaust, world war ii, ethical dilemma, thought-provoking.",
+        "score": 51.56527800174847,
+        "text": "Counterfeiters, The (Die Fälscher) (2007). Genres: Crime, Drama, War. Genome tags: holocaust, world war ii, nazis, jews, nazi, oscar (best foreign language film), germany, survival. User tags: true story, holocaust, world war ii, ethical dilemma, thought-provoking.",
+        "title": "Counterfeiters, The (Die Fälscher) (2007)"
+      },
+      {
+        "movie_id": 1071,
+        "query_overlap": [
+          "best",
+          "crowe",
+          "death",
+          "film",
+          "foreign",
+          "ii",
+          "language",
+          "oscar",
+          "relationships",
+          "romance",
+          "russell",
+          "war",
+          "world"
+        ],
+        "rank": 3,
+        "relevant": false,
+        "retrieval_text": "For the Moment (1994). Genres: Romance, War. Genome tags: world war ii, wwii, infidelity, relationships, independent film, gay character, oscar (best foreign language film), death. User tags: russell crowe.",
+        "score": 47.94059975297087,
+        "text": "For the Moment (1994). Genres: Romance, War. Genome tags: world war ii, wwii, infidelity, relationships, independent film, gay character, oscar (best foreign language film), death. User tags: russell crowe.",
+        "title": "For the Moment (1994)"
+      },
+      {
+        "movie_id": 1653,
+        "query_overlap": [
+          "drama",
+          "fi",
+          "future",
+          "genetics",
+          "provoking",
+          "sci",
+          "scifi",
+          "space",
+          "thought",
+          "thriller",
+          "travel"
+        ],
+        "rank": 4,
+        "relevant": false,
+        "retrieval_text": "Gattaca (1997). Genres: Drama, Sci-Fi, Thriller. Genome tags: distopia, dystopic future, future, futuristic, genetics, science fiction, space travel, scifi. User tags: dystopia, sci-fi, uma thurman, thought-provoking, genetics.",
+        "score": 46.56227391410012,
+        "text": "Gattaca (1997). Genres: Drama, Sci-Fi, Thriller. Genome tags: distopia, dystopic future, future, futuristic, genetics, science fiction, space travel, scifi. User tags: dystopia, sci-fi, uma thurman, thought-provoking, genetics.",
+        "title": "Gattaca (1997)"
+      },
+      {
+        "movie_id": 2311,
+        "query_overlap": [
+          "artificial",
+          "astronauts",
+          "based",
+          "book",
+          "fi",
+          "intelligence",
+          "sci",
+          "scifi",
+          "space",
+          "travel"
+        ],
+        "rank": 5,
+        "relevant": false,
+        "retrieval_text": "2010: The Year We Make Contact (1984). Genres: Sci-Fi. Genome tags: space, space travel, science fiction, sci-fi, space opera, astronauts, scifi, sci fi. User tags: space, space travel, sci-fi, artificial intelligence, based on a book.",
+        "score": 44.92665604796853,
+        "text": "2010: The Year We Make Contact (1984). Genres: Sci-Fi. Genome tags: space, space travel, science fiction, sci-fi, space opera, astronauts, scifi, sci fi. User tags: space, space travel, sci-fi, artificial intelligence, based on a book.",
+        "title": "2010: The Year We Make Contact (1984)"
+      }
+    ],
+    "user_id": 91
+  },
+  {
+    "missed_at_100": [
+      {
+        "movie_id": 2424,
+        "query_overlap": [
+          "comedy",
+          "ending",
+          "romance",
+          "romantic"
+        ],
+        "relevant": true,
+        "retrieval_text": "You've Got Mail (1998). Genres: Comedy, Romance. Genome tags: romantic comedy, romantic, chick flick, good romantic comedies, love story, happy ending, girlie movie, romance. User tags: meg ryan, tom hanks, romance, romantic comedy, bookshop.",
+        "text": "You've Got Mail (1998). Genres: Comedy, Romance. Genome tags: romantic comedy, romantic, chick flick, good romantic comedies, love story, happy ending, girlie movie, romance. User tags: meg ryan, tom hanks, romance, romantic comedy, bookshop.",
+        "title": "You've Got Mail (1998)"
+      },
+      {
+        "movie_id": 2671,
+        "query_overlap": [
+          "comedy",
+          "ending",
+          "romance",
+          "romantic"
+        ],
+        "relevant": true,
+        "retrieval_text": "Notting Hill (1999). Genres: Comedy, Romance. Genome tags: romantic comedy, romantic, chick flick, girlie movie, good romantic comedies, love story, happy ending, sweet. User tags: romance, hugh grant, british, julia roberts, good romantic comedies.",
+        "text": "Notting Hill (1999). Genres: Comedy, Romance. Genome tags: romantic comedy, romantic, chick flick, girlie movie, good romantic comedies, love story, happy ending, sweet. User tags: romance, hugh grant, british, julia roberts, good romantic comedies.",
+        "title": "Notting Hill (1999)"
+      },
+      {
+        "movie_id": 3969,
+        "query_overlap": [
+          "drama",
+          "ending",
+          "touching",
+          "twist",
+          "world"
+        ],
+        "relevant": true,
+        "retrieval_text": "Pay It Forward (2000). Genres: Drama. Genome tags: sentimental, touching, feel-good, inspirational, good, thought-provoking, feel good movie, mentor. User tags: inspirational, twist ending, change the world, kevin spacey, alcoholism.",
+        "text": "Pay It Forward (2000). Genres: Drama. Genome tags: sentimental, touching, feel-good, inspirational, good, thought-provoking, feel good movie, mentor. User tags: inspirational, twist ending, change the world, kevin spacey, alcoholism.",
+        "title": "Pay It Forward (2000)"
+      },
+      {
+        "movie_id": 4246,
+        "query_overlap": [
+          "comedy",
+          "drama",
+          "romance",
+          "romantic"
+        ],
+        "relevant": true,
+        "retrieval_text": "Bridget Jones's Diary (2001). Genres: Comedy, Drama, Romance. Genome tags: girlie movie, chick flick, romantic comedy, adapted from:book, based on book, based on a book, romantic, relationships. User tags: hugh grant, romantic comedy, british, romance, renee zellweger.",
+        "text": "Bridget Jones's Diary (2001). Genres: Comedy, Drama, Romance. Genome tags: girlie movie, chick flick, romantic comedy, adapted from:book, based on book, based on a book, romantic, relationships. User tags: hugh grant, romantic comedy, british, romance, renee zellweger.",
+        "title": "Bridget Jones's Diary (2001)"
+      },
+      {
+        "movie_id": 40629,
+        "query_overlap": [
+          "drama",
+          "romance",
+          "romantic"
+        ],
+        "relevant": true,
+        "retrieval_text": "Pride & Prejudice (2005). Genres: Drama, Romance. Genome tags: 18th century, adapted from:book, romantic, jane austen, love story, adaptation, period piece, costume drama. User tags: jane austen, classic, keira knightley, england, romance.",
+        "text": "Pride & Prejudice (2005). Genres: Drama, Romance. Genome tags: 18th century, adapted from:book, romantic, jane austen, love story, adaptation, period piece, costume drama. User tags: jane austen, classic, keira knightley, england, romance.",
+        "title": "Pride & Prejudice (2005)"
+      }
+    ],
+    "ndcg@10": 0.0,
+    "profile": "Highly rated movies: Seven (a.k.a. Se7en) (1995) (5/5; genres: Mystery, Thriller; tags: serial killer, police investigation, powerful ending, serial killer, twist ending); Before Sunset (2004) (5/5; genres: Drama, Romance; tags: romantic, talky, bittersweet, paris, romantic); Lives of Others, The (Das leben der Anderen) (2006) (5/5; genres: Drama, Romance, Thriller; tags: oscar (best foreign language film), east germany, surveillance, east germany, spying); Inception (2010) (5/5; genres: Action, Crime, Drama, Mystery, Sci-Fi, Thriller, IMAX; tags: dreams, complex, complicated, alternate reality, visually appealing); Life Is Beautiful (La Vita è bella) (1997) (5/5; genres: Comedy, Drama, Romance, War; tags: holocaust, oscar (best foreign language film), touching, holocaust, world war ii); Shawshank Redemption, The (1994) (5/5; genres: Crime, Drama; tags: imdb top 250, oscar (best picture), powerful ending, morgan freeman, prison); The Little Prince (2015) (4.5/5; genres: Animation, Fantasy; tags: animation, childhood, stop motion, animation, beautiful); Anything for Her (Pour elle) (2008) (4.5/5; genres: Crime, Drama, Thriller; tags: prison escape, thriller, crime, acting, crime); Pianist, The (2002) (4.5/5; genres: Drama, War; tags: holocaust, jews, poland, world war ii, holocaust); Truman Show, The (1998) (4/5; genres: Comedy, Drama, Sci-Fi; tags: reality tv, original, modern fantasy, jim carrey, dark comedy). Low rated movies: Donnie Darko (2001) (0.5/5); Ace Ventura: Pet Detective (1994) (1/5); Bucket List, The (2007) (2/5); Avatar (2009) (2/5); Downfall (Untergang, Der) (2004) (2/5).",
+    "recall@10": 0.0,
+    "recall@100": 0.0,
+    "recall@20": 0.0,
+    "recall@50": 0.0,
+    "selection": "low_ndcg",
+    "top_5": [
+      {
+        "movie_id": 58303,
+        "query_overlap": [
+          "best",
+          "crime",
+          "drama",
+          "film",
+          "foreign",
+          "germany",
+          "holocaust",
+          "ii",
+          "jews",
+          "language",
+          "oscar",
+          "war",
+          "world"
+        ],
+        "rank": 1,
+        "relevant": false,
+        "retrieval_text": "Counterfeiters, The (Die Fälscher) (2007). Genres: Crime, Drama, War. Genome tags: holocaust, world war ii, nazis, jews, nazi, oscar (best foreign language film), germany, survival. User tags: true story, holocaust, world war ii, ethical dilemma, thought-provoking.",
+        "score": 46.138583902024486,
+        "text": "Counterfeiters, The (Die Fälscher) (2007). Genres: Crime, Drama, War. Genome tags: holocaust, world war ii, nazis, jews, nazi, oscar (best foreign language film), germany, survival. User tags: true story, holocaust, world war ii, ethical dilemma, thought-provoking.",
+        "title": "Counterfeiters, The (Die Fälscher) (2007)"
+      },
+      {
+        "movie_id": 142492,
+        "query_overlap": [
+          "best",
+          "drama",
+          "film",
+          "foreign",
+          "holocaust",
+          "ii",
+          "jews",
+          "language",
+          "oscar",
+          "poland",
+          "war",
+          "world"
+        ],
+        "rank": 2,
+        "relevant": false,
+        "retrieval_text": "Son of Saul (2015). Genres: Drama. Genome tags: holocaust, oscar (best foreign language film), world war ii, jews, foreign, nazis, poland, melancholic. User tags: holocaust, lászló nemes, nazis, work camp.",
+        "score": 45.056868954214146,
+        "text": "Son of Saul (2015). Genres: Drama. Genome tags: holocaust, oscar (best foreign language film), world war ii, jews, foreign, nazis, poland, melancholic. User tags: holocaust, lászló nemes, nazis, work camp.",
+        "title": "Son of Saul (2015)"
+      },
+      {
+        "movie_id": 527,
+        "query_overlap": [
+          "best",
+          "drama",
+          "holocaust",
+          "ii",
+          "jews",
+          "list",
+          "oscar",
+          "poland",
+          "war",
+          "world"
+        ],
+        "rank": 3,
+        "relevant": false,
+        "retrieval_text": "Schindler's List (1993). Genres: Drama, War. Genome tags: holocaust, jews, oscar (best directing), nazis, world war ii, masterpiece, poland, oscar (best editing). User tags: holocaust, world war ii, true story, steven spielberg, based on a true story.",
+        "score": 43.240128832283816,
+        "text": "Schindler's List (1993). Genres: Drama, War. Genome tags: holocaust, jews, oscar (best directing), nazis, world war ii, masterpiece, poland, oscar (best editing). User tags: holocaust, world war ii, true story, steven spielberg, based on a true story.",
+        "title": "Schindler's List (1993)"
+      },
+      {
+        "movie_id": 68519,
+        "query_overlap": [
+          "alternate",
+          "crime",
+          "darko",
+          "donnie",
+          "fi",
+          "mystery",
+          "original",
+          "reality",
+          "sci",
+          "thriller"
+        ],
+        "rank": 4,
+        "relevant": false,
+        "retrieval_text": "S. Darko (S. Darko: A Donnie Darko Tale) (2009). Genres: Crime, Mystery, Sci-Fi, Thriller. Genome tags: crappy sequel, surreal, franchise, sequels, time loop, original, pointless, alternate reality. User tags: crappy sequel, donnie darko, time travel, daveigh chase, visions.",
+        "score": 43.17820006533879,
+        "text": "S. Darko (S. Darko: A Donnie Darko Tale) (2009). Genres: Crime, Mystery, Sci-Fi, Thriller. Genome tags: crappy sequel, surreal, franchise, sequels, time loop, original, pointless, alternate reality. User tags: crappy sequel, donnie darko, time travel, daveigh chase, visions.",
+        "title": "S. Darko (S. Darko: A Donnie Darko Tale) (2009)"
+      },
+      {
+        "movie_id": 6216,
+        "query_overlap": [
+          "best",
+          "drama",
+          "film",
+          "foreign",
+          "germany",
+          "holocaust",
+          "ii",
+          "jews",
+          "language",
+          "oscar",
+          "war",
+          "world"
+        ],
+        "rank": 5,
+        "relevant": false,
+        "retrieval_text": "Nowhere in Africa (Nirgendwo in Afrika) (2001). Genres: Drama. Genome tags: oscar (best foreign language film), world war ii, germany, africa, wwii, jews, nazis, holocaust. User tags: nazis, africa, kenya, world war ii, caroline link.",
+        "score": 43.058025452888145,
+        "text": "Nowhere in Africa (Nirgendwo in Afrika) (2001). Genres: Drama. Genome tags: oscar (best foreign language film), world war ii, germany, africa, wwii, jews, nazis, holocaust. User tags: nazis, africa, kenya, world war ii, caroline link.",
+        "title": "Nowhere in Africa (Nirgendwo in Afrika) (2001)"
+      }
+    ],
+    "user_id": 101
+  },
+  {
+    "missed_at_100": [],
+    "ndcg@10": 1.0,
+    "profile": "Highly rated movies: Avengers, The (2012) (5/5; genres: Action, Adventure, Sci-Fi, IMAX; tags: superheroes, super hero, superhero, superhero, robert downey jr.); The Count of Monte Cristo (2002) (5/5; genres: Action, Adventure, Drama, Thriller; tags: adapted from:book, based on a book, swashbuckler, revenge, based on a book); Django Unchained (2012) (5/5; genres: Action, Drama, Western; tags: oscar (best supporting actor), violence, gratuitous violence, quentin tarantino, leonardo dicaprio); Rise of the Planet of the Apes (2011) (5/5; genres: Action, Drama, Sci-Fi, Thriller; tags: genetics, scifi, original, genetics, thought-provoking); Knight's Tale, A (2001) (5/5; genres: Action, Comedy, Romance; tags: medieval, fun movie, entertaining, heath ledger, medieval); Inception (2010) (5/5; genres: Action, Crime, Drama, Mystery, Sci-Fi, Thriller, IMAX; tags: dreams, complex, complicated, alternate reality, visually appealing); Bowling for Columbine (2002) (5/5; genres: Documentary; tags: violence, documentary, social commentary, michael moore, documentary); Blazing Saddles (1974) (5/5; genres: Comedy, Western; tags: funniest movies, spoof, comedy, mel brooks, gene wilder); Spider-Man 2 (2004) (5/5; genres: Action, Adventure, Sci-Fi, IMAX; tags: super hero, superheroes, superhero, superhero, comic book); Star Trek IV: The Voyage Home (1986) (5/5; genres: Adventure, Comedy, Sci-Fi; tags: space opera, science fiction, space, star trek, time travel). Low rated movies: Blind Date (1987) (0.5/5); Johnny Mnemonic (1995) (1/5); Producers, The (2005) (1/5); Lost in Translation (2003) (1/5); Insider, The (1999) (1/5).",
+    "recall@10": 1.0,
+    "recall@100": 1.0,
+    "recall@20": 1.0,
+    "recall@50": 1.0,
+    "selection": "high_ndcg",
+    "top_5": [
+      {
+        "movie_id": 122920,
+        "query_overlap": [
+          "action",
+          "adapted",
+          "based",
+          "comic",
+          "downey",
+          "fi",
+          "hero",
+          "jr",
+          "man",
+          "robert",
+          "sci",
+          "spider",
+          "super",
+          "superhero",
+          "superheroes",
+          "thriller"
+        ],
+        "rank": 1,
+        "relevant": true,
+        "retrieval_text": "Captain America: Civil War (2016). Genres: Action, Sci-Fi, Thriller. Genome tags: superhero, super hero, superheroes, marvel, action, based on a comic, robert downey jr, adapted from:comic. User tags: superhero, marvel, captain america, predictable, spider-man.",
+        "score": 63.83046970045944,
+        "text": "Captain America: Civil War (2016). Genres: Action, Sci-Fi, Thriller. Genome tags: superhero, super hero, superheroes, marvel, action, based on a comic, robert downey jr, adapted from:comic. User tags: superhero, marvel, captain america, predictable, spider-man.",
+        "title": "Captain America: Civil War (2016)"
+      },
+      {
+        "movie_id": 103042,
+        "query_overlap": [
+          "action",
+          "adventure",
+          "appealing",
+          "book",
+          "comic",
+          "fi",
+          "hero",
+          "imax",
+          "man",
+          "sci",
+          "super",
+          "superhero",
+          "superheroes",
+          "visually"
+        ],
+        "rank": 2,
+        "relevant": false,
+        "retrieval_text": "Man of Steel (2013). Genres: Action, Adventure, Fantasy, Sci-Fi, IMAX. Genome tags: super hero, superhero, superheroes, big budget, action, super-hero, visually appealing, franchise. User tags: visually appealing, superman, comic book, superhero, zack snyder.",
+        "score": 55.04572617072088,
+        "text": "Man of Steel (2013). Genres: Action, Adventure, Fantasy, Sci-Fi, IMAX. Genome tags: super hero, superhero, superheroes, big budget, action, super-hero, visually appealing, franchise. User tags: visually appealing, superman, comic book, superhero, zack snyder.",
+        "title": "Man of Steel (2013)"
+      },
+      {
+        "movie_id": 110553,
+        "query_overlap": [
+          "action",
+          "based",
+          "book",
+          "comic",
+          "fi",
+          "hero",
+          "imax",
+          "man",
+          "sci",
+          "spider",
+          "super",
+          "superhero",
+          "superheroes"
+        ],
+        "rank": 3,
+        "relevant": false,
+        "retrieval_text": "The Amazing Spider-Man 2 (2014). Genres: Action, Sci-Fi, IMAX. Genome tags: super hero, superhero, superheroes, franchise, action, marvel, super-hero, based on a comic. User tags: emma stone, superhero, comic book, marvel, dialogue.",
+        "score": 54.17072270172172,
+        "text": "The Amazing Spider-Man 2 (2014). Genres: Action, Sci-Fi, IMAX. Genome tags: super hero, superhero, superheroes, franchise, action, marvel, super-hero, based on a comic. User tags: emma stone, superhero, comic book, marvel, dialogue.",
+        "title": "The Amazing Spider-Man 2 (2014)"
+      },
+      {
+        "movie_id": 53464,
+        "query_overlap": [
+          "action",
+          "adapted",
+          "adventure",
+          "based",
+          "book",
+          "comic",
+          "fi",
+          "hero",
+          "rise",
+          "sci",
+          "super",
+          "superhero",
+          "superheroes"
+        ],
+        "rank": 4,
+        "relevant": false,
+        "retrieval_text": "Fantastic Four: Rise of the Silver Surfer (2007). Genres: Action, Adventure, Sci-Fi. Genome tags: super hero, superheroes, superhero, based on a comic, marvel, super-hero, comic book, adapted from:comic. User tags: jessica alba, marvel, based on comic book, superhero, superheroes.",
+        "score": 52.535229413475015,
+        "text": "Fantastic Four: Rise of the Silver Surfer (2007). Genres: Action, Adventure, Sci-Fi. Genome tags: super hero, superheroes, superhero, based on a comic, marvel, super-hero, comic book, adapted from:comic. User tags: jessica alba, marvel, based on comic book, superhero, superheroes.",
+        "title": "Fantastic Four: Rise of the Silver Surfer (2007)"
+      },
+      {
+        "movie_id": 135569,
+        "query_overlap": [
+          "action",
+          "adventure",
+          "fi",
+          "fiction",
+          "opera",
+          "sci",
+          "science",
+          "scifi",
+          "space",
+          "star",
+          "trek"
+        ],
+        "rank": 5,
+        "relevant": false,
+        "retrieval_text": "Star Trek Beyond (2016). Genres: Action, Adventure, Sci-Fi. Genome tags: space, space opera, scifi, science fiction, franchise, sci-fi, action, star trek. User tags: star trek, science fiction, franchise, space, action.",
+        "score": 52.360034702251376,
+        "text": "Star Trek Beyond (2016). Genres: Action, Adventure, Sci-Fi. Genome tags: space, space opera, scifi, science fiction, franchise, sci-fi, action, star trek. User tags: star trek, science fiction, franchise, space, action.",
+        "title": "Star Trek Beyond (2016)"
+      }
+    ],
+    "user_id": 51760
+  },
+  {
+    "missed_at_100": [],
+    "ndcg@10": 1.0,
+    "profile": "Highly rated movies: Beauty and the Beast (1991) (5/5; genres: Animation, Children, Fantasy, Musical, Romance, IMAX; tags: disney animated feature, animation, fairy tale, disney, animation); Let the Right One In (Låt den rätte komma in) (2008) (5/5; genres: Drama, Fantasy, Horror, Romance; tags: vampires, vampire, adolescence, vampires, swedish); Pan's Labyrinth (Laberinto del fauno, El) (2006) (5/5; genres: Drama, Fantasy, Thriller; tags: dark fantasy, modern fantasy, imagination, surreal, atmospheric); Jacket, The (2005) (5/5; genres: Drama, Mystery, Sci-Fi, Thriller; tags: amnesia, time travel, future, keira knightley, time travel); Terminator, The (1984) (5/5; genres: Action, Sci-Fi, Thriller; tags: dystopic future, future, cyborgs, arnold schwarzenegger, time travel); Elephant Man, The (1980) (5/5; genres: Drama; tags: lynch, compassionate, imdb top 250, black and white, david lynch); Amadeus (1984) (5/5; genres: Drama; tags: mozart, classical music, oscar (best picture), music, classical music); 2001: A Space Odyssey (1968) (5/5; genres: Adventure, Drama, Sci-Fi; tags: space travel, masterpiece, space, sci-fi, stanley kubrick); My Neighbor Totoro (Tonari no Totoro) (1988) (5/5; genres: Animation, Children, Drama, Fantasy; tags: imagination, japan, childhood, studio ghibli, hayao miyazaki); Godfather: Part II, The (1974) (5/5; genres: Crime, Drama; tags: francis ford copolla, oscar (best directing), oscar (best supporting actor), mafia, al pacino). Low rated movies: Friday the 13th Part VI: Jason Lives (1986) (1/5); Scary Movie 4 (2006) (1/5); Clueless (1995) (1/5); Friday the 13th Part IV: The Final Chapter (1984) (1/5); Twilight (1998) (1/5).",
+    "recall@10": 1.0,
+    "recall@100": 1.0,
+    "recall@20": 1.0,
+    "recall@50": 1.0,
+    "selection": "high_ndcg",
+    "top_5": [
+      {
+        "movie_id": 858,
+        "query_overlap": [
+          "actor",
+          "al",
+          "best",
+          "copolla",
+          "crime",
+          "directing",
+          "drama",
+          "ford",
+          "francis",
+          "godfather",
+          "imdb",
+          "mafia",
+          "masterpiece",
+          "oscar",
+          "pacino",
+          "supporting",
+          "top"
+        ],
+        "rank": 1,
+        "relevant": true,
+        "retrieval_text": "Godfather, The (1972). Genres: Crime, Drama. Genome tags: francis ford copolla, organized crime, masterpiece, oscar (best directing), mafia, imdb top 250, mob, oscar (best supporting actor). User tags: mafia, classic, organized crime, al pacino, great acting.",
+        "score": 77.80087106694613,
+        "text": "Godfather, The (1972). Genres: Crime, Drama. Genome tags: francis ford copolla, organized crime, masterpiece, oscar (best directing), mafia, imdb top 250, mob, oscar (best supporting actor). User tags: mafia, classic, organized crime, al pacino, great acting.",
+        "title": "Godfather, The (1972)"
+      },
+      {
+        "movie_id": 65261,
+        "query_overlap": [
+          "adventure",
+          "animated",
+          "animation",
+          "best",
+          "children",
+          "fantasy",
+          "feature",
+          "ghibli",
+          "hayao",
+          "imagination",
+          "japan",
+          "miyazaki",
+          "oscar",
+          "studio"
+        ],
+        "rank": 2,
+        "relevant": false,
+        "retrieval_text": "Ponyo (Gake no ue no Ponyo) (2008). Genres: Adventure, Animation, Children, Fantasy. Genome tags: oscar (best animated feature), animation, visually appealing, visually stunning, imagination, japan, anime, studio ghibli. User tags: hayao miyazaki, studio ghibli, anime, animation, environmental.",
+        "score": 64.26992385836161,
+        "text": "Ponyo (Gake no ue no Ponyo) (2008). Genres: Adventure, Animation, Children, Fantasy. Genome tags: oscar (best animated feature), animation, visually appealing, visually stunning, imagination, japan, anime, studio ghibli. User tags: hayao miyazaki, studio ghibli, anime, animation, environmental.",
+        "title": "Ponyo (Gake no ue no Ponyo) (2008)"
+      },
+      {
+        "movie_id": 7099,
+        "query_overlap": [
+          "adventure",
+          "animation",
+          "drama",
+          "fantasy",
+          "fi",
+          "future",
+          "ghibli",
+          "hayao",
+          "imagination",
+          "japan",
+          "miyazaki",
+          "sci",
+          "studio"
+        ],
+        "rank": 3,
+        "relevant": false,
+        "retrieval_text": "Nausicaä of the Valley of the Wind (Kaze no tani no Naushika) (1984). Genres: Adventure, Animation, Drama, Fantasy, Sci-Fi. Genome tags: japan, anime, miyazaki, fantasy world, imagination, studio ghibli, post-apocalyptic, future. User tags: studio ghibli, hayao miyazaki, post-apocalyptic, anime, strong female lead.",
+        "score": 57.88072786049142,
+        "text": "Nausicaä of the Valley of the Wind (Kaze no tani no Naushika) (1984). Genres: Adventure, Animation, Drama, Fantasy, Sci-Fi. Genome tags: japan, anime, miyazaki, fantasy world, imagination, studio ghibli, post-apocalyptic, future. User tags: studio ghibli, hayao miyazaki, post-apocalyptic, anime, strong female lead.",
+        "title": "Nausicaä of the Valley of the Wind (Kaze no tani no Naushika) (1984)"
+      },
+      {
+        "movie_id": 104283,
+        "query_overlap": [
+          "animated",
+          "animation",
+          "best",
+          "drama",
+          "feature",
+          "ghibli",
+          "hayao",
+          "japan",
+          "miyazaki",
+          "oscar",
+          "romance",
+          "studio"
+        ],
+        "rank": 4,
+        "relevant": false,
+        "retrieval_text": "Wind Rises, The (Kaze tachinu) (2013). Genres: Animation, Drama, Romance. Genome tags: japan, oscar (best animated feature), visually appealing, dreams, miyazaki, anime, studio ghibli, storytelling. User tags: anime, hayao miyazaki, studio ghibli, dreams, romance.",
+        "score": 55.825609553761986,
+        "text": "Wind Rises, The (Kaze tachinu) (2013). Genres: Animation, Drama, Romance. Genome tags: japan, oscar (best animated feature), visually appealing, dreams, miyazaki, anime, studio ghibli, storytelling. User tags: anime, hayao miyazaki, studio ghibli, dreams, romance.",
+        "title": "Wind Rises, The (Kaze tachinu) (2013)"
+      },
+      {
+        "movie_id": 8253,
+        "query_overlap": [
+          "action",
+          "adventure",
+          "animated",
+          "animation",
+          "crime",
+          "ghibli",
+          "hayao",
+          "japan",
+          "miyazaki",
+          "mystery",
+          "studio"
+        ],
+        "rank": 5,
+        "relevant": false,
+        "retrieval_text": "Lupin III: The Castle Of Cagliostro (Rupan sansei: Kariosutoro no shiro) (1979). Genres: Action, Adventure, Animation, Comedy, Crime, Mystery. Genome tags: anime, animation, adventure, japan, visually appealing, studio ghibli, miyazaki, animated. User tags: anime, hayao miyazaki, studio ghibli, adventure, action.",
+        "score": 52.7893997060142,
+        "text": "Lupin III: The Castle Of Cagliostro (Rupan sansei: Kariosutoro no shiro) (1979). Genres: Action, Adventure, Animation, Comedy, Crime, Mystery. Genome tags: anime, animation, adventure, japan, visually appealing, studio ghibli, miyazaki, animated. User tags: anime, hayao miyazaki, studio ghibli, adventure, action.",
+        "title": "Lupin III: The Castle Of Cagliostro (Rupan sansei: Kariosutoro no shiro) (1979)"
+      }
+    ],
+    "user_id": 110019
+  }
+]
