@@ -1,0 +1,11 @@
+{
+  "version": "member3-v1",
+  "seed": 20261001,
+  "training_user_limit": 1000,
+  "examples_per_user": 20,
+  "minimum_history": 5,
+  "positive_rating_at_least": 4.0,
+  "negative_rating_at_most": 2.5,
+  "popularity_k": 100,
+  "audit_sample_size": 50
+}

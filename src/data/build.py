@@ -271,7 +271,7 @@ def build(raw: Path, output: Path, config: dict):
             "test_cutoff_utc": datetime.fromtimestamp(test_cutoff, timezone.utc).isoformat(),
         }
         (output / "statistics.json").write_text(json.dumps(stats, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        files = sorted(p for p in output.iterdir() if p.is_file() and p.name not in {db.name, "manifest.json"})
+        files = sorted(p for p in output.iterdir() if p.is_file() and p.name != "manifest.json" and not p.name.startswith(db.name))
         manifest = {
             "version": config["version"], "config": config,
             "raw_sha256": {name: sha256(raw / name) for name in

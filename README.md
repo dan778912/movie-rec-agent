@@ -4,7 +4,7 @@ This folder implements the **Member 1** workload from the [team roadmap](Movie_R
 
 ## Team repository layout
 
-The repository follows Section 8 of the roadmap. Each folder has a README describing its handoff point. The current code implements Member 1's data and profile work; the remaining folders are ready for their owners to add code, configurations, tests, and reports.
+The repository follows Section 8 of the roadmap. Each folder has a README describing its handoff point. The current code implements Member 1's data and profile work and Member 3's training-example export, popularity baseline, and explanation-audit tooling. Other folders remain ready for their owners. See [Member 3 commands and handoff details](src/baselines/README.md).
 
 | Owner | Folder | Work |
 |---|---|---|

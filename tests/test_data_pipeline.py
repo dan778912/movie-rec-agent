@@ -49,6 +49,8 @@ class DataPipelineTest(unittest.TestCase):
             self.assertGreater(stats["evaluation"]["test"]["users_with_in_catalog_positive"], 0)
             self.assertEqual(verify(output)["version"], "fixture-v1")
             first_hashes = json.loads((output / "manifest.json").read_text())["file_sha256"]
+            self.assertEqual(len(first_hashes), 10)
+            self.assertFalse(any(name.startswith("_build.sqlite3") for name in first_hashes))
             build(raw, output, config)
             self.assertEqual(first_hashes, json.loads((output / "manifest.json").read_text())["file_sha256"])
             with (output / "test_profiles.jsonl").open(encoding="utf-8") as source:
