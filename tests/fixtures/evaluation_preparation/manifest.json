@@ -1,0 +1,11 @@
+{
+  "config": {
+    "positive_rating_at_least": 4.0
+  },
+  "file_sha256": {
+    "catalog.csv": "910b8c077b7d35ca8ef853dd0968967ff1de204cc49246f56d84d10cf4357b00",
+    "validation_profiles.jsonl": "000d2e430929d83919ce30de6daf44b02ebc10f8341a7b30b3f40ffccdfb3bd7",
+    "validation_targets.csv": "9f6b0d14f59a2453f4debd5c9763e4f42bf245aa11ca06c7fa87c79592cf03fc"
+  },
+  "version": "synthetic-preparation-v1"
+}

@@ -1,0 +1,31 @@
+{
+  "evaluation_version": "eval-v1",
+  "status": "draft_for_team_review",
+  "subset_status": "generated_and_verified",
+  "path_resolution": "repository_root",
+  "dataset_version": "ml25m-global-v1",
+  "data_dir": "data/processed/ml25m-global-v1",
+  "manifest_sha256": "f2e137ff374a8cfc02348cb42d04d9a04c9a1769685a7eccc21933383a500b5a",
+  "split": "validation",
+  "users_file": "configs/validation_users_300_v1.json",
+  "users_sha256": "1617ca66255a3141e86036651d3e79698f249b7a809868931108d236143c2823",
+  "sample_size": 300,
+  "selection_seed": 20261001,
+  "positive_rating_at_least": 4.0,
+  "relevance": "binary",
+  "ground_truth": "all_distinct_in_catalog_positive_targets",
+  "required_predictions_per_user": 50,
+  "candidate_pool_size": 50,
+  "p1_candidate_policy": "exact_permutation_of_frozen_embedding_pool",
+  "ranking_k": [10],
+  "retrieval_k": [20, 50],
+  "include_hit_rate": true,
+  "averaging": "macro",
+  "failure_policy": "reject_invalid_or_missing_prediction_records",
+  "bootstrap": {
+    "resamples": 10000,
+    "confidence": 0.95,
+    "seed": 20261002,
+    "method": "paired_user_percentile"
+  }
+}

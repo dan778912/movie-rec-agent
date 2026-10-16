@@ -1,0 +1,23 @@
+{
+  "dataset_version": "synthetic-evaluation-v1",
+  "selection": {
+    "algorithm": "python.random.Random.sample_from_sorted_user_ids_v1",
+    "eligible_users": 2,
+    "python_version": "3.12.10",
+    "seed": 20261001,
+    "size": 2
+  },
+  "source_sha256": {
+    "catalog": "910b8c077b7d35ca8ef853dd0968967ff1de204cc49246f56d84d10cf4357b00",
+    "manifest": "f730d8063f82553761432150fe40ca2df57c7df1c52d656d43ce2ca167013e8b",
+    "profiles": "94a143240ce5292f18061df737dc2af3228c00fb839258a3a515be089fbbd1b5",
+    "targets": "3d7e77447b8773ed6c890eaaa950da859f5ad022926924b91d60f7b7523c9051"
+  },
+  "split": "validation",
+  "subset_version": "evaluation-users-v1",
+  "user_ids": [
+    1,
+    2
+  ],
+  "user_ids_sha256": "f109b002d2f351fa534341fcb7d18145d187efd8a47fc21539f8395a7a85d0d6"
+}
