@@ -49,6 +49,19 @@ python -m unittest discover -s tests -v
 
 The raw dataset and derived artifacts are ignored by Git. **Do not redistribute the raw files or commit them.** The [GroupLens dataset terms](https://files.grouplens.org/datasets/movielens/ml-25m-README.html) allow research use with conditions and prohibit redistribution without separate permission. Cite the MovieLens data source in publications.
 
+## P1 training-data handoff for Member 6
+
+Member 3's branch, `member-3-training-data-popularity`, includes the code to
+regenerate the P1 profile–candidate training examples. The generated JSONL and
+reports are Git-ignored, so cloning or pulling the branch does not download them.
+Member 6 can regenerate them locally or use the separately shared handoff ZIP.
+
+See the [Member 6 quick start](src/baselines/README.md#member-6-quick-start)
+for branch setup, generation commands, expected counts, and the training-file
+SHA-256 checksum. Use `profile` and `candidate_document` as model inputs and
+`label` as supervision; keep `target_rating` and the other audit metadata out of
+the model input.
+
 ## Frozen decisions
 
 The versioned settings are in [configs/data_v1.json](configs/data_v1.json). Every source rating is ordered by timestamp globally. The test boundary is the timestamp at zero-based index `floor((N−1)×0.90)` of the sorted source ratings. Ratings at that timestamp go into test, and earlier ratings go into the pretest portion. The validation boundary uses the same 90% rule inside pretest. Ratings at that timestamp go into validation; earlier ratings go into training. Timestamp ties stay wholly in the later split. This gives a single, leakage-safe cutoff for all users; split sizes may differ slightly from exact 81/9/10 percentages.

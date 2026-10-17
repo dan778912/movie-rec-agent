@@ -11,6 +11,59 @@ should be committed. Reports record configuration, seed, split-manifest hash,
 source-code hashes, Git revision, and whether the worktree had uncommitted work.
 A changed runtime does not change the deterministic JSONL output checksum.
 
+## Member 6 quick start
+
+The generator is committed on `member-3-training-data-popularity`. The generated
+training data is deliberately Git-ignored, so the branch contains the recipe,
+not the output file. In an existing clone, switch to the handoff branch and run:
+
+```bash
+git fetch origin
+git switch member-3-training-data-popularity
+
+# Only if Member 1's processed data has not been generated locally:
+python3 -m src.data.prepare
+
+# Generate the initial 1,000-user training handoff:
+python3 -m src.baselines.training
+
+# Check every exported example and print its SHA-256:
+python3 -m src.baselines.checks training --input outputs/predictions/p1-training.jsonl --output outputs/reports/p1-training-checks.json
+```
+
+The expected initial handoff contains **18,649 examples from 1,000 users**:
+14,670 `relevant` and 3,979 `not_relevant`. The configuration is
+`configs/member3_v1.json`, with seed `20261001` and up to 20 examples per user.
+The uncompressed `p1-training.jsonl` SHA-256 is:
+
+```text
+db6baee95e1d1150b47dc25c3925232793c0edf5f3944561efea413cf9a16583
+```
+
+Compare this with `output_sha256` in the generated report/check result. Reproduction
+requires the same source data, configuration, generator code, and compatible
+Python environment. Runtime and Git provenance in reports can differ between runs.
+
+The three generated files are:
+
+- `outputs/predictions/p1-training.jsonl`: training examples.
+- `outputs/predictions/p1-training.report.json`: configuration, sampling details,
+  label counts, provenance, limitations, and output checksum.
+- `outputs/reports/p1-training-checks.json`: results of checking the saved examples
+  against the source training data.
+
+Alternatively, use the separately shared `p1-training-handoff.zip` to avoid
+regenerating the data. It contains those three files under their basenames plus
+`SHA256SUMS.txt`. The ZIP itself is also Git-ignored and is not downloaded by Git.
+After extracting it on macOS/Linux, run `shasum -a 256 -c SHA256SUMS.txt` from the
+extracted folder to verify all three files.
+
+For training, pass **only `profile` and `candidate_document` as inputs** and use
+`label` (`relevant` or `not_relevant`) as the answer. `target_rating` and the other
+metadata fields are for traceability, not model inputs. These are pointwise
+relevance examples; listwise ranking and explanation-generation targets require
+additional preparation by the reranking owner.
+
 ## Step 1: give Member 6 practice examples
 
 ```bash
