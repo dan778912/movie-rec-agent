@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Sequence
 
 from .prompts import build_explanation_prompt, build_ranking_prompt
 
 
 class QwenLoRAScorer:
-    """Score candidates and generate explanations with a LoRA adapter."""
+    """Score candidates in GPU batches with a trained LoRA adapter."""
 
     def __init__(
         self,
         adapter_path: str | Path,
         max_length: int = 1024,
+        batch_size: int = 8,
+        generate_explanations: bool = False,
     ) -> None:
         try:
             import torch
@@ -25,8 +28,13 @@ class QwenLoRAScorer:
                 "requirements-reranking.txt."
             ) from error
 
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive")
+
         self.torch = torch
         self.max_length = max_length
+        self.batch_size = batch_size
+        self.generate_explanations = generate_explanations
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
@@ -54,7 +62,7 @@ class QwenLoRAScorer:
 
         base_model = AutoModelForCausalLM.from_pretrained(
             base_model_name,
-            torch_dtype=dtype,
+            dtype=dtype,
         )
         self.model = PeftModel.from_pretrained(
             base_model,
@@ -63,66 +71,140 @@ class QwenLoRAScorer:
         self.model.to(self.device)
         self.model.eval()
 
-    def _label_log_probability(
+    def _prepare_tasks(
         self,
-        prompt: str,
-        label: str,
-    ) -> float:
+        profile: str,
+        candidate_documents: Sequence[str],
+    ) -> list[dict[str, Any]]:
+        tasks: list[dict[str, Any]] = []
+
+        for candidate_index, candidate_document in enumerate(
+            candidate_documents
+        ):
+            prompt = build_ranking_prompt(profile, candidate_document)
+            prompt_ids = self.tokenizer(
+                prompt,
+                add_special_tokens=True,
+            )["input_ids"]
+
+            for label, sign in (
+                ("relevant", 1.0),
+                ("not_relevant", -1.0),
+            ):
+                label_ids = self.tokenizer(
+                    label,
+                    add_special_tokens=False,
+                )["input_ids"]
+
+                available_prompt = self.max_length - len(label_ids)
+                if available_prompt <= 0:
+                    raise ValueError(
+                        "Label exceeds the configured maximum length"
+                    )
+
+                truncated_prompt_ids = prompt_ids[-available_prompt:]
+                tasks.append(
+                    {
+                        "candidate_index": candidate_index,
+                        "sign": sign,
+                        "prompt_length": len(truncated_prompt_ids),
+                        "label_ids": label_ids,
+                        "input_ids": truncated_prompt_ids + label_ids,
+                    }
+                )
+
+        return tasks
+
+    def _run_task_batch(
+        self,
+        tasks: Sequence[dict[str, Any]],
+    ) -> list[tuple[int, float, float]]:
         torch = self.torch
+        pad_token_id = self.tokenizer.pad_token_id
+        maximum_length = max(len(task["input_ids"]) for task in tasks)
 
-        prompt_ids = self.tokenizer(
-            prompt,
-            add_special_tokens=True,
-        )["input_ids"]
-        label_ids = self.tokenizer(
-            label,
-            add_special_tokens=False,
-        )["input_ids"]
+        padded_ids: list[list[int]] = []
+        attention_masks: list[list[int]] = []
 
-        available_prompt = self.max_length - len(label_ids)
-        if available_prompt <= 0:
-            raise ValueError("Label exceeds the configured maximum length")
-
-        prompt_ids = prompt_ids[-available_prompt:]
-        full_ids = prompt_ids + label_ids
+        for task in tasks:
+            input_ids = task["input_ids"]
+            padding_length = maximum_length - len(input_ids)
+            padded_ids.append(
+                input_ids + ([pad_token_id] * padding_length)
+            )
+            attention_masks.append(
+                ([1] * len(input_ids)) + ([0] * padding_length)
+            )
 
         input_tensor = torch.tensor(
-            [full_ids],
+            padded_ids,
+            dtype=torch.long,
+            device=self.device,
+        )
+        attention_tensor = torch.tensor(
+            attention_masks,
             dtype=torch.long,
             device=self.device,
         )
 
         with torch.inference_mode():
-            logits = self.model(input_ids=input_tensor).logits
+            logits = self.model(
+                input_ids=input_tensor,
+                attention_mask=attention_tensor,
+                use_cache=False,
+            ).logits
 
-        log_probabilities = torch.log_softmax(logits, dim=-1)
-        start = len(prompt_ids) - 1
-        token_scores = []
+        results: list[tuple[int, float, float]] = []
 
-        for offset, token_id in enumerate(label_ids):
-            token_scores.append(
-                log_probabilities[0, start + offset, token_id]
+        for row_index, task in enumerate(tasks):
+            start = task["prompt_length"] - 1
+            token_scores = []
+
+            for offset, token_id in enumerate(task["label_ids"]):
+                position_logits = logits[row_index, start + offset]
+                token_log_probability = torch.log_softmax(
+                    position_logits,
+                    dim=-1,
+                )[token_id]
+                token_scores.append(token_log_probability)
+
+            mean_score = torch.stack(token_scores).mean().item()
+            results.append(
+                (
+                    task["candidate_index"],
+                    task["sign"],
+                    mean_score,
+                )
             )
 
-        return torch.stack(token_scores).mean().item()
+        return results
+
+    def score_many(
+        self,
+        profile: str,
+        candidate_documents: Sequence[str],
+    ) -> list[float]:
+        """Score all candidates for one user in GPU batches."""
+        if not candidate_documents:
+            return []
+
+        tasks = self._prepare_tasks(profile, candidate_documents)
+        margins = [0.0] * len(candidate_documents)
+
+        for start in range(0, len(tasks), self.batch_size):
+            batch = tasks[start : start + self.batch_size]
+
+            for candidate_index, sign, score in self._run_task_batch(batch):
+                margins[candidate_index] += sign * score
+
+        return margins
 
     def score(self, profile: str, candidate_document: str) -> float:
-        """Return the relevant-versus-not-relevant log-probability margin."""
-        prompt = build_ranking_prompt(profile, candidate_document)
-
-        relevant_score = self._label_log_probability(
-            prompt,
-            "relevant",
-        )
-        not_relevant_score = self._label_log_probability(
-            prompt,
-            "not_relevant",
-        )
-
-        return relevant_score - not_relevant_score
+        """Score one candidate while preserving the original interface."""
+        return self.score_many(profile, [candidate_document])[0]
 
     def explain(self, profile: str, candidate_document: str) -> str:
-        """Generate a short explanation from only supplied evidence."""
+        """Generate an optional short explanation from supplied evidence."""
         torch = self.torch
         prompt = build_explanation_prompt(profile, candidate_document)
 

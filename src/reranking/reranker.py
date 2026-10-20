@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any, Protocol
+from typing import Any, Protocol, Sequence
 
 
 class CandidateScorer(Protocol):
@@ -59,6 +59,17 @@ class KeywordOverlapScorer:
 
         return len(profile_terms & movie_terms) / len(movie_terms)
 
+    def score_many(
+        self,
+        profile: str,
+        candidate_documents: Sequence[str],
+    ) -> list[float]:
+        """Score multiple candidates while preserving input order."""
+        return [
+            self.score(profile, candidate_document)
+            for candidate_document in candidate_documents
+        ]
+
     def explain(self, profile: str, candidate_document: str) -> str:
         shared = sorted(
             self._terms(profile) & self._terms(candidate_document)
@@ -74,6 +85,33 @@ class KeywordOverlapScorer:
         return f"This movie matches the profile through: {terms}."
 
 
+def _score_candidates(
+    scorer: CandidateScorer,
+    profile_text: str,
+    document_texts: Sequence[str],
+) -> list[float]:
+    """Use batched scoring when supported, otherwise score individually."""
+    score_many = getattr(scorer, "score_many", None)
+
+    if callable(score_many):
+        scores = [
+            float(score)
+            for score in score_many(profile_text, document_texts)
+        ]
+    else:
+        scores = [
+            float(scorer.score(profile_text, document_text))
+            for document_text in document_texts
+        ]
+
+    if len(scores) != len(document_texts):
+        raise ValueError(
+            "Model returned a different number of scores than candidates"
+        )
+
+    return scores
+
+
 def rerank_candidate_pools(
     candidate_pools: list[dict[str, Any]],
     profiles: dict[int, dict[str, Any]],
@@ -82,6 +120,9 @@ def rerank_candidate_pools(
 ) -> list[dict[str, Any]]:
     """Rerank each frozen candidate pool without changing its movie IDs."""
     output: list[dict[str, Any]] = []
+    generate_explanations = bool(
+        getattr(scorer, "generate_explanations", True)
+    )
 
     for pool in candidate_pools:
         user_id = pool["user_id"]
@@ -90,9 +131,10 @@ def rerank_candidate_pools(
             raise ValueError(f"Missing profile for user {user_id}")
 
         profile_text = profiles[user_id]["text"]
-        scored: list[dict[str, Any]] = []
+        originals = pool["recommendations"]
+        document_texts: list[str] = []
 
-        for original in pool["recommendations"]:
+        for original in originals:
             movie_id = original["movie_id"]
 
             if movie_id not in movie_documents:
@@ -100,32 +142,49 @@ def rerank_candidate_pools(
                     f"Missing movie document for movie {movie_id}"
                 )
 
-            document_text = movie_documents[movie_id]["text"]
-            score = float(scorer.score(profile_text, document_text))
+            document_texts.append(movie_documents[movie_id]["text"])
+
+        candidate_scores = _score_candidates(
+            scorer,
+            profile_text,
+            document_texts,
+        )
+        scored: list[dict[str, Any]] = []
+
+        for original, document_text, score in zip(
+            originals,
+            document_texts,
+            candidate_scores,
+            strict=True,
+        ):
+            movie_id = original["movie_id"]
 
             if not math.isfinite(score):
                 raise ValueError(
                     f"Model returned a nonfinite score for movie {movie_id}"
                 )
 
-            explanation = scorer.explain(
-                profile_text,
-                document_text,
-            ).strip()
+            item: dict[str, Any] = {
+                "movie_id": movie_id,
+                "score": score,
+                "original_rank": original["rank"],
+            }
 
-            if not explanation:
-                raise ValueError(
-                    f"Model returned an empty explanation for movie {movie_id}"
-                )
+            if generate_explanations:
+                explanation = scorer.explain(
+                    profile_text,
+                    document_text,
+                ).strip()
 
-            scored.append(
-                {
-                    "movie_id": movie_id,
-                    "score": score,
-                    "original_rank": original["rank"],
-                    "explanation": explanation,
-                }
-            )
+                if not explanation:
+                    raise ValueError(
+                        "Model returned an empty explanation for movie "
+                        f"{movie_id}"
+                    )
+
+                item["explanation"] = explanation
+
+            scored.append(item)
 
         scored.sort(
             key=lambda item: (
@@ -135,17 +194,19 @@ def rerank_candidate_pools(
             )
         )
 
-        recommendations = []
+        recommendations: list[dict[str, Any]] = []
 
         for new_rank, item in enumerate(scored, start=1):
-            recommendations.append(
-                {
-                    "movie_id": item["movie_id"],
-                    "score": item["score"],
-                    "rank": new_rank,
-                    "explanation": item["explanation"],
-                }
-            )
+            recommendation: dict[str, Any] = {
+                "movie_id": item["movie_id"],
+                "score": item["score"],
+                "rank": new_rank,
+            }
+
+            if "explanation" in item:
+                recommendation["explanation"] = item["explanation"]
+
+            recommendations.append(recommendation)
 
         output.append(
             {
