@@ -15,7 +15,7 @@ class QwenLoRAScorer:
         self,
         adapter_path: str | Path,
         max_length: int = 1024,
-        batch_size: int = 8,
+        batch_size: int = 2,
         generate_explanations: bool = False,
     ) -> None:
         try:
