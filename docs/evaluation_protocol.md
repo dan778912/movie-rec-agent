@@ -1,7 +1,8 @@
 # Shared evaluation protocol — Phase 1
 
-**Status: draft for team review.** The team has not yet approved or frozen this
-contract. Dataset rules describe the existing `ml25m-global-v1` implementation;
+**Status: draft for team review.** Full team approval/freeze of this contract
+is not established by the completed validation run. The separately documented
+P1/B3 test-inference freeze has narrower scope. Dataset rules describe the existing `ml25m-global-v1` implementation;
 prediction length, sampling, failure handling, and reporting rules are proposed
 experiment choices.
 
@@ -11,9 +12,14 @@ implemented, together with end-to-end scoring and per-user/summary outputs.
 The full official dataset has been built and verified locally; the saved
 validation subset contains 300 users. Synthetic fixtures demonstrate valid
 embedding/P1 scoring and deliberate validation failures. Paired bootstrap
-comparison and automatic CSV/Markdown tables are implemented. Real model
-predictions are not yet available. A generated subset is a fixed local
-artifact, not evidence that the team has approved this draft contract.
+comparison and automatic CSV/Markdown tables are implemented. Actual
+B0/B2/B3/P1 validation is complete on the same 300 users, with full portable
+[report bundles](results/member2_validation_300_v1/README.md). P1 NDCG@10
+is 0.041927 versus B3 0.014578 (difference +0.027349; paired 95% interval
+[0.018656, 0.036476]); P1 remains below observed B0/B2 means. Recall@50 is
+unchanged and 218/300 B3 pools contain no relevant held-out movie. These are
+validation-development findings, not final-test results or evidence that the
+team has approved this entire draft contract.
 
 ## 1. Phase 1 comparison
 
@@ -124,11 +130,28 @@ experiment. Reproducing bytes requires matching input artifacts and the recorded
 Python version; cross-version metadata or sampling differences do not justify
 resampling. Teammates should consume the saved ID list directly.
 
-For the final comparison, select **500–1,000 test users** from
-`test_profiles.jsonl` before viewing final-test scores. Fix the exact count based
-on compute and save the same metadata. The test subset remains planned; it has
-not been generated in this increment. No final-test model scores are used for
-current development.
+The roadmap allows **500–1,000 test users**. The confirmed inference budget
+is **500**, selected from all 3,779 frozen `test_profiles.jsonl` IDs with seed
+`20261003`, without opening test targets or test ratings. The exact saved
+[`test_users_500_v1.json`](../configs/test_users_500_v1.json) and
+[plain IDs](../configs/test_users_500_export_v1/user_ids.json) are authoritative;
+do not resample. Target identity is copied from the pre-existing manifest, not
+independently verified by opening labels in this label-blind selection step.
+
+The original prepared config
+[`evaluation_test_v1.json`](../configs/evaluation_test_v1.json) and the later
+[`evaluation_test_frozen_v1.json`](../configs/evaluation_test_frozen_v1.json)
+retain their verified bytes. Only administrative status fields differ. The
+[test archive](results/member2_test_500_v1/README.md) records owner confirmation
+for P1/B3 inference inputs/settings, preserving historical pending preparation
+records. This is not a freeze of all methods/P2 or approval of this full protocol.
+
+Member 6's returned predictions passed integrity checks for 500 users and 25,000
+recommendations with zero errors and exact B3 candidate sets. The corrected
+receipt v2 resolves source hashes against published commit `281cca1`, including
+LF/CRLF differences. **Test targets and metrics remain sealed pending explicit
+team authorization and the final model/evaluation freeze.** Structural validation
+does not establish test performance.
 
 Every directly compared method uses the same users. Inexpensive baselines may
 additionally run on the complete eligible population in a separately labeled
@@ -389,25 +412,27 @@ inference runtime/latency, hardware, and approximate compute/API cost. These
 facts cannot be inferred from the recommendation IDs.
 
 Large data, model artifacts, and predictions stay out of Git under the existing
-ignore rules. `outputs/reports/` is also ignored: place a small reviewed midterm
-summary under `docs/` and document generated-artifact reproduction and sharing.
+ignore rules. `outputs/reports/` is also ignored. Portable reviewed validation
+bundles and label-blind test records are archived under `docs/results/`, with
+source hashes, exact command records, and artifact-sharing references. Preserve
+hashed historical artifacts instead of rewriting their status/path fields.
 
 ## 10. Handoffs and completion gates
 
 | Handoff | Deliverables |
 |---|---|
-| Implemented locally | Verified processed data, saved 300-user subset/configuration, draft protocol, tested validator/scorer/bootstrap/table generator, synthetic examples, handoff guides |
-| Unblock prediction integration | Review/publish the integration package and obtain team approval of the experiment contract |
-| Establish baseline results | Actual B0/B2/B3 prediction files, validated scores and coverage, generated comparison table |
-| Compare reranking | Verified B3/P1 pools, paired intervals, failure analysis, midterm summary |
+| Implemented and tested | Metric/validator/subset/preparation/scorer/bootstrap/table tools; saved populations/configurations; fixtures and guides |
+| Validation complete | B0/B2/B3/P1 on the same 300 users, complete reports/coverage, both paired comparisons, four-method table, limitations |
+| P1/B3 test inference complete | Scoped owner confirmations; exact saved 500 users/pools; received predictions/manifest; corrected receipt v2 with zero structural errors |
+| Still subject to team approval | Full evaluation contract and final method/settings freeze; this record does not authorize test scoring |
+| Later evaluation work | Required P2 controls and owner outputs, authorized final comparison, intervals, coverage, explanation/cost records, final report |
 
-The validator enforces watched-item exclusion in model files using complete
-profile histories. The first integration handoff remains incomplete until the
-integration package is published and the team approves the contract. The saved
-subset/configuration and full processed-data verification are complete locally.
-The core Phase 1 evaluation tooling is implemented. Baseline/reranker owners
-still need to produce actual prediction files; Member 2 must score and review
-those results and turn them into honest midterm evidence.
+The validator enforces watched-item exclusion from complete profile histories.
+Completed validation evidence is archived in the repository; model source,
+large predictions, and weights remain with their owners or agreed team storage.
+The current [completion checklist](member2_completion_checklist.md) distinguishes
+finished Member 2 work from remaining group dependencies. Scores in prediction
+files are ranking scores, not calibrated probabilities.
 
 Before freezing the contract, Members 1–6 review the data rules, saved user list,
 output length, score convention, P1 pool requirement, and fallback policy. Record

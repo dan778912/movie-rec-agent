@@ -1,0 +1,60 @@
+[
+  {
+    "stage": "evaluate_p1",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.evaluate",
+      "--config",
+      "configs/evaluation_v1.json",
+      "--predictions",
+      "outputs/predictions/incoming/member6-p1-validation-v1/p1_validation_predictions.jsonl",
+      "--method",
+      "p1",
+      "--candidate-pool",
+      "outputs/predictions/prepared/b3_validation_v1/predictions.jsonl",
+      "--output-dir",
+      "outputs/reports/p1_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 0.8881080829887651
+  },
+  {
+    "stage": "compare_p1_vs_b3",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.bootstrap",
+      "--baseline-dir",
+      "outputs/reports/b3_validation_v1",
+      "--challenger-dir",
+      "outputs/reports/p1_validation_v1",
+      "--output-dir",
+      "outputs/reports/p1_vs_b3_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 2.026951084000757
+  },
+  {
+    "stage": "update_four_method_table",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.report",
+      "--runs",
+      "outputs/reports/b0_validation_v1",
+      "outputs/reports/b2_validation_v1",
+      "outputs/reports/b3_validation_v1",
+      "outputs/reports/p1_validation_v1",
+      "--comparisons",
+      "outputs/reports/b3_vs_b2_validation_v1",
+      "outputs/reports/p1_vs_b3_validation_v1",
+      "--kind",
+      "experiment",
+      "--output-dir",
+      "outputs/reports/midterm_validation_with_p1_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 4.074231082995539
+  }
+]

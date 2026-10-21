@@ -1,0 +1,233 @@
+[
+  {
+    "stage": "generate_popularity",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.baselines.popularity",
+      "--split",
+      "validation",
+      "--user-ids",
+      "configs/validation_users_300_export_v1/user_ids.json",
+      "--output",
+      "outputs/predictions/incoming/b0_validation_300_top100.jsonl"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 0.23516054099309258
+  },
+  {
+    "stage": "build_bm25_index",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.retrieval.run_bm25",
+      "index",
+      "--config",
+      "configs/bm25_frozen.json",
+      "--output",
+      "data/processed/bm25/index.json"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 0.3375676249997923
+  },
+  {
+    "stage": "generate_bm25",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.retrieval.run_bm25",
+      "predict",
+      "--split",
+      "validation",
+      "--config",
+      "configs/bm25_frozen.json",
+      "--index",
+      "data/processed/bm25/index.json",
+      "--user-ids",
+      "configs/validation_users_300_export_v1/user_ids.json",
+      "--output",
+      "outputs/predictions/incoming/b2_validation_300_top100.jsonl",
+      "--report-dir",
+      "outputs/reports/producer_b2_validation_300_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 2.139265499994508
+  },
+  {
+    "stage": "prepare_b0",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.prepare",
+      "predictions",
+      "--config",
+      "configs/evaluation_v1.json",
+      "--source",
+      "outputs/predictions/incoming/b0_validation_300_top100.jsonl",
+      "--method",
+      "popularity",
+      "--source-count",
+      "100",
+      "--source-users",
+      "selected",
+      "--source-label",
+      "member3-popularity-f6ddddb-reproduced",
+      "--expected-source-sha256",
+      "320ee74711bcaeb309543921d044ed11522bb7ff4d7385d59c2da0b13f427795",
+      "--source-metadata",
+      "outputs/predictions/incoming/b0_validation_300_top100.report.json",
+      "--output-dir",
+      "outputs/predictions/prepared/b0_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 0.755748958006734
+  },
+  {
+    "stage": "score_b0",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.evaluate",
+      "--config",
+      "configs/evaluation_v1.json",
+      "--predictions",
+      "outputs/predictions/prepared/b0_validation_v1/predictions.jsonl",
+      "--method",
+      "popularity",
+      "--output-dir",
+      "outputs/reports/b0_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 0.7557860419910867
+  },
+  {
+    "stage": "prepare_b2",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.prepare",
+      "predictions",
+      "--config",
+      "configs/evaluation_v1.json",
+      "--source",
+      "outputs/predictions/incoming/b2_validation_300_top100.jsonl",
+      "--method",
+      "bm25",
+      "--source-count",
+      "100",
+      "--source-users",
+      "selected",
+      "--source-label",
+      "member4-bm25-5799b0d-frozen-reproduced",
+      "--expected-source-sha256",
+      "549d20ad02a7bb19fe62814c14022bc5e80602b28cb01adbee9fa7171838e6e2",
+      "--source-metadata",
+      "outputs/reports/producer_b2_validation_300_v1/summary.json",
+      "--output-dir",
+      "outputs/predictions/prepared/b2_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 0.8030616250034655
+  },
+  {
+    "stage": "score_b2",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.evaluate",
+      "--config",
+      "configs/evaluation_v1.json",
+      "--predictions",
+      "outputs/predictions/prepared/b2_validation_v1/predictions.jsonl",
+      "--method",
+      "bm25",
+      "--output-dir",
+      "outputs/reports/b2_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 0.7598936249996768
+  },
+  {
+    "stage": "prepare_b3",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.prepare",
+      "predictions",
+      "--config",
+      "configs/evaluation_v1.json",
+      "--source",
+      "outputs/predictions/incoming/member5-validation/validation_candidates_top50.jsonl",
+      "--method",
+      "embedding",
+      "--source-count",
+      "50",
+      "--source-users",
+      "all",
+      "--source-label",
+      "member5-original-data-frozen-minilm-l6-v1",
+      "--expected-source-sha256",
+      "0f61c4d87a73062400bfeea26371efaf33a25caf1cfd342e250de729be3706df",
+      "--source-metadata",
+      "outputs/predictions/incoming/member5-validation/validation_run.json",
+      "--output-dir",
+      "outputs/predictions/prepared/b3_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 1.1062315000017406
+  },
+  {
+    "stage": "score_b3",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.evaluate",
+      "--config",
+      "configs/evaluation_v1.json",
+      "--predictions",
+      "outputs/predictions/prepared/b3_validation_v1/predictions.jsonl",
+      "--method",
+      "embedding",
+      "--output-dir",
+      "outputs/reports/b3_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 0.7577410420053639
+  },
+  {
+    "stage": "compare_embedding_vs_bm25",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.bootstrap",
+      "--baseline-dir",
+      "outputs/reports/b2_validation_v1",
+      "--challenger-dir",
+      "outputs/reports/b3_validation_v1",
+      "--output-dir",
+      "outputs/reports/b3_vs_b2_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 2.0607861669996055
+  },
+  {
+    "stage": "make_baseline_table",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/.venv/bin/python",
+      "-m",
+      "src.evaluation.report",
+      "--runs",
+      "outputs/reports/b0_validation_v1",
+      "outputs/reports/b2_validation_v1",
+      "outputs/reports/b3_validation_v1",
+      "--comparisons",
+      "outputs/reports/b3_vs_b2_validation_v1",
+      "--kind",
+      "experiment",
+      "--output-dir",
+      "outputs/reports/midterm_validation_v1"
+    ],
+    "returncode": 0,
+    "elapsed_seconds": 2.0699728750041686
+  }
+]

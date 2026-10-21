@@ -4,9 +4,9 @@ This folder implements the **Member 1** data workload from the [team roadmap](Mo
 
 ## Team repository layout
 
-The repository follows Section 8 of the roadmap. Each folder has a README describing its handoff point. The current code implements Member 1's data and profile work plus Member 2's metrics, prediction validation, fixed-user selection, scoring, paired bootstrap comparisons, and comparison-table generation. Actual performance results await the model owners' prediction files. Other folders are ready for their owners to add code, configurations, tests, and reports.
+The repository follows Section 8 of the roadmap. Each folder has a README describing its handoff point. The current code implements Member 1's data and profile work plus Member 2's metrics, prediction validation, fixed-user selection, scoring, paired bootstrap comparisons, and comparison-table generation. The shared 300-user validation evaluation is complete for popularity, BM25, frozen embeddings, and P1. The portable result archive preserves complete reports and comparisons; other members' model implementations remain on their own branches until integrated.
 
-See the [Member 2 evaluation instructions](src/evaluation/README.md) for runnable scoring and validation examples; the [Member 2 handoff](docs/member2_handoff.md) for teammate integration; and the [draft evaluation protocol](docs/evaluation_protocol.md) for proposed shared experiment rules. The scorer checks prediction integrity and data identity before calculating per-user metrics, macro means, and catalog-positive coverage. The saved [300-user validation subset](configs/validation_users_300_v1.json) identifies the shared experiment population. The protocol still awaits team review, and real prediction files are needed to establish baseline performance.
+See the [Member 2 evaluation instructions](src/evaluation/README.md) for runnable scoring and validation examples; the [Member 2 handoff](docs/member2_handoff.md) for teammate integration; and the [draft evaluation protocol](docs/evaluation_protocol.md) for proposed shared experiment rules. The scorer checks prediction integrity and data identity before calculating per-user metrics, macro means, and catalog-positive coverage. The saved [300-user validation subset](configs/validation_users_300_v1.json) identifies the shared experiment population. The protocol remains a draft for team review. Completing validation or freezing the P1/B3 test-inference inputs does not approve the full evaluation contract.
 
 The [integration guide](docs/member2_integration.md) covers the reviewed Member
 3/4/5 interfaces. It prepares their full-population Top 100/50 exports as explicit,
@@ -24,7 +24,7 @@ file is validated before any user selection or prefix operation.
 | Member 6 | `src/reranking/` | P1 and P2 fine-tuning and inference |
 | Phase 2 team | `src/agent/`, `src/app/` | Agent loop and application; assignment follows Phase 1 |
 
-Shared experiment settings belong in `configs/`; model artifact references in `models/`; standard prediction JSONL files in `outputs/predictions/`; generated tables and reports in `outputs/reports/`; unit and smoke tests in `tests/`. Large datasets, model weights, and generated outputs are Git-ignored. Commit code, small configuration files, documentation, and tests. To collaborate, clone the repository, create a branch for your task, and open a pull request into `main` after your checks pass.
+Shared experiment settings belong in `configs/`; model artifact references in `models/`; standard prediction JSONL files in `outputs/predictions/`; generated tables and reports in `outputs/reports/`; unit and smoke tests in `tests/`. Large datasets, model weights, and generated outputs are Git-ignored. Commit code, small configuration files, documentation, and tests. Small, reviewed result bundles are archived under `docs/results/` for lasting access. To collaborate, clone the repository, create a branch for your task, and open a pull request into `main` after your checks pass.
 
 The GitHub repository is private. Its owner must invite each teammate as a collaborator before they can clone or push. Once invited, a teammate can start with:
 
@@ -57,6 +57,36 @@ python -m unittest discover -s tests -v
 
 The raw dataset and derived artifacts are ignored by Git. **Do not redistribute the raw files or commit them.** The [GroupLens dataset terms](https://files.grouplens.org/datasets/movielens/ml-25m-README.html) allow research use with conditions and prohibit redistribution without separate permission. Cite the MovieLens data source in publications.
 
+## Current evaluation results and test status
+
+The [portable validation archive](docs/results/member2_validation_300_v1/README.md)
+contains complete B0/B2/B3/P1 reports, both paired comparisons, the four-method
+table, and execution provenance. On the same 300 users, P1 improves NDCG@10
+from B3's **0.014578** to **0.041927**: difference **+0.027349**, paired 95%
+interval **[0.018656, 0.036476]**. P1's observed scores remain below popularity
+and BM25. Recall@50 is unchanged because P1 preserves B3's candidate sets;
+218 of the 300 pools contain no relevant held-out movie. BM25 was tuned on
+these validation users, so these are development findings.
+
+The [500-user test record](docs/results/member2_test_500_v1/README.md) preserves
+the label-blind selection, scoped P1/B3 inference freeze, original inference
+manifest, and corrected receipt v2. All **500 users / 25,000 recommendations**
+passed structural validation with zero errors and exact frozen candidate sets.
+Published source commit `281cca11474b3bf680ec13444d57cd2df7420fd8` accounts for
+the manifest's source hashes; two files use CRLF rather than LF line endings.
+**No test targets were read or test performance metrics computed in this
+receipt/publication step. Test scores remain sealed pending explicit team
+authorization and the applicable final model/evaluation freeze.**
+
+Use the saved [500-user metadata](configs/test_users_500_v1.json) and
+[plain IDs](configs/test_users_500_export_v1/user_ids.json).
+[evaluation_test_v1.json](configs/evaluation_test_v1.json) preserves the original
+prepared configuration; [evaluation_test_frozen_v1.json](configs/evaluation_test_frozen_v1.json)
+records the later P1/B3 inference-only freeze. Historical pending labels remain
+unchanged in hashed preparation artifacts. The freeze record explains their
+scope and supersession. P2 implementation/evaluation and the final frozen
+comparison remain later work under the roadmap.
+
 ## Fixed validation users
 
 The shared subset contains 300 of the 4,751 evaluable validation users, selected with seed `20261001`. Use the actual IDs in [configs/validation_users_300_v1.json](configs/validation_users_300_v1.json), rather than independently resampling. [configs/evaluation_v1.json](configs/evaluation_v1.json) records proposed settings and actual data/subset hashes. The scorer accepts this file with `--config`; the standalone validator continues to use explicit input arguments.
@@ -72,7 +102,7 @@ python -m src.evaluation.subsets \
   --output configs/validation_users_300_v1.json
 ```
 
-The command checks selected data files against the manifest and verifies the profile/positive-target population. It accepts identical existing bytes and refuses to overwrite a different frozen subset. The saved IDs remain authoritative across Python versions; a different recorded Python version can prevent byte-identical regeneration. Producing or verifying a subset does not constitute team approval of the draft protocol. No real recommender predictions or experiment scores have been produced by Member 2 at this stage.
+The command checks selected data files against the manifest and verifies the profile/positive-target population. It accepts identical existing bytes and refuses to overwrite a different frozen subset. The saved IDs remain authoritative across Python versions; a different recorded Python version can prevent byte-identical regeneration. Producing or verifying a subset does not constitute team approval of the draft protocol. Real validation scores for all four Phase 1 methods are preserved in the [300-user validation archive](docs/results/member2_validation_300_v1/README.md).
 
 ## Try end-to-end scoring
 
@@ -90,7 +120,7 @@ It saves `summary.json`, `per_user.csv`, and `validation.json`. Expected synthet
 macro scores are Recall@2 = 0.5, NDCG@2 = 0.5, HitRate@2 = 1.0, and Recall@3 =
 0.75. These are hand-checkable test results, not MovieLens model performance.
 The [evaluation README](src/evaluation/README.md) explains the outputs and the
-real 300-user scoring command to use when predictions are available.
+real 300-user scoring commands and the completed validation record.
 
 After running both synthetic scoring examples in the evaluation instructions,
 compare their saved user scores:

@@ -1,0 +1,57 @@
+{
+  "canonical_data_directory": "/Users/priyankaamrute/Codex Projects/movie-rec-agent/data/processed/ml25m-global-v1",
+  "canonical_inputs_sha256": {
+    "catalog.csv": "bf39972971caf93923c01e89b2a2c32775435b8f00a087735b9d613d5488f45b",
+    "movie_documents.jsonl": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+    "validation_profiles.jsonl": "e2c8fcbea2e9fa73b3b8d32d1df93e265d4b603f6dfbdf04b99498b27e097295",
+    "validation_targets.csv": "3bfa539350b7eedd72878cbfb84f1c89de2adcd21602acd927dc606c72da0c8f"
+  },
+  "date": "2026-10-20",
+  "evaluation_base_commit": "021374453f9dcdf60bcd4d911b7c5f5e97043322",
+  "imported_sources": {
+    "member3": {
+      "commit": "f6ddddb754023fe1130cef6f7f116414d7ca1886",
+      "files_sha256": {
+        "configs/member3_v1.json": "492a854af59dd4e219c77a34c74314ebe5b4dafae5a3f86f4d0942818fd6e5d8",
+        "src/baselines/__init__.py": "fcf76ae7540e17ee572f087b43a5248c8113f54aa543537516c56a8c0ba241e3",
+        "src/baselines/audit.py": "b905aa8fa22b3ed6d424a41363214dcf2dd864c8ed5d47c116d642b5d67214fa",
+        "src/baselines/checks.py": "abb0ff28cea46b74eca4118f8b09436b33f09878017a56d959f1fce9f498de25",
+        "src/baselines/common.py": "f5a6fed84908d5ded09159ab1cb0abe51e7e8d49fbf60be57e4ee99d00da7187",
+        "src/baselines/popularity.py": "2b068b3df0f8eba1a192326ac2963ace3dbd9d19272e5648d70c3eafcb615065",
+        "src/baselines/training.py": "743c217226077efb0307940e63011b24a4397e59a45ef4ff6b07d68950edfd4d",
+        "tests/test_member3.py": "3794696844f77965d527f933f750852fb62dfee97f259e6a77bc5652f6d16b0d"
+      }
+    },
+    "member4": {
+      "commit": "5799b0d71c2de357b87a631fa3a5fd1ddecee056",
+      "files_sha256": {
+        "configs/bm25_frozen.json": "7a7bc7bcb7085dbfb718ec8bd633d17539d37f4764619f2aad0d2dd067b32cc6",
+        "configs/bm25_grid.json": "7c945d8e8776c8564bbd796836bc52cab7b9b9151d5ac9fd57a605cf2b6340d6",
+        "src/retrieval/__init__.py": "793102a4f5d0efa0c8bcb6e1a5f974002e7179a6fd684840ecbf36faf685f510",
+        "src/retrieval/bm25.py": "322838c89e12efc7ae3682aeda2ea6f504687cb2cef57849d88e7a6b0cd4dad4",
+        "src/retrieval/run_bm25.py": "48b01770ec43bbfbd009a13683f152f327634eaaefe37ec13f279221e20b0a39",
+        "tests/test_bm25.py": "81f0d68ddaaaa549899244c72bdbdd1b0a0873a467cb54817a8afcb5b05315bc"
+      }
+    }
+  },
+  "limitations": [
+    "BM25 configuration selected on the same 300 validation users; these are development results.",
+    "No test targets or test metrics are used.",
+    "Imported baseline source changes are uncommitted; source commits and exact bytes are recorded."
+  ],
+  "member5_package_verified": {
+    "README.md": "a10a66edd664dd0e9c2ba719c91b1400118cdf7f527ca9bf43a13a17d1a07858",
+    "movie_documents.jsonl": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+    "original_data_manifest.json": "f2e137ff374a8cfc02348cb42d04d9a04c9a1769685a7eccc21933383a500b5a",
+    "original_handoff_manifest.json": "6583be46ab1c726ae47bb80510710544cc4c547134d5e4449148eb7ead02b6d1",
+    "selection.json": "8395232830af89cc10441a85bbbf176ee5a657a4f0b55e1a835bc57848a51d9d",
+    "validation_candidates_top50.jsonl": "0f61c4d87a73062400bfeea26371efaf33a25caf1cfd342e250de729be3706df",
+    "validation_profiles.jsonl": "e2c8fcbea2e9fa73b3b8d32d1df93e265d4b603f6dfbdf04b99498b27e097295",
+    "validation_run.json": "e3686cb34340ac33214b4c1de2a7a0c0487b617ddc832113f5792722b09828db"
+  },
+  "member5_zip_sha256": "44f6ee16b6c64f1dcbecf8c57211a1ffd753df747a09b848feeaae21877628ab",
+  "population": 300,
+  "protocol_status": "draft_for_team_review",
+  "split": "validation",
+  "status": "integration_ready"
+}

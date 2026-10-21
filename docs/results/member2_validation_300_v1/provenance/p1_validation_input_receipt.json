@@ -1,0 +1,17 @@
+{
+  "artifact": "member6-p1-validation-v1",
+  "candidate_pool_sha256": "c388c0fd10bb895c1e0710ec10fa96a7d87785939f2498a5bf23533d18d000a9",
+  "member6_supplied_sha256_verified": true,
+  "model_provenance": "Owner supplied as P1 predictions; no trained-adapter identity or training run manifest accompanied the file.",
+  "original_bytes_preserved": true,
+  "original_path": "/Users/priyankaamrute/Downloads/p1_validation_predictions.jsonl",
+  "owner_claims": {
+    "candidate_policy": "exact same movie IDs as frozen B3 pool",
+    "method": "p1",
+    "recommendations_per_user": 50,
+    "split": "validation",
+    "users": 300
+  },
+  "preserved_path": "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation/outputs/predictions/incoming/member6-p1-validation-v1/p1_validation_predictions.jsonl",
+  "source_sha256": "b70ccd8ea374695c3bed24cd908caee65bffdfe96de7e30b693de990091c3ad2"
+}

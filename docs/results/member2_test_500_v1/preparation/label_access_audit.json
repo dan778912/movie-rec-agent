@@ -1,0 +1,1 @@
+{"blocked_test_label_open_attempts":[],"guard":"Python audit hook rejected any open of test_targets.csv or test_ratings.csv","note":"Expected target SHA-256 was read as a string from the pre-existing manifest, not verified by opening targets.","test_metrics_computed":false,"test_ratings_read":false,"test_targets_read":false}

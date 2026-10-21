@@ -4,11 +4,40 @@ The evaluation commands are implemented. This guide bridges the interfaces in
 the teammates' reviewed branches without changing their original predictions or
 their model code. The shared evaluation protocol remains a draft for team review.
 
+## Current completed integration
+
+The actual 300-user B0/B2/B3/P1 validation run is complete. Use the
+[portable validation archive](results/member2_validation_300_v1/README.md)
+for complete scored bundles, paired comparisons, final table, exact commands,
+and imported source identities. Baseline reproduction used Member 3 commit
+`f6ddddb754023fe1130cef6f7f116414d7ca1886` and Member 4 commit
+`5799b0d71c2de357b87a631fa3a5fd1ddecee056`; their code is not copied into this
+Member 2 publication.
+
+P1 improved validation NDCG@10 from 0.014578 to 0.041927; the P1-minus-B3
+95% interval is [0.018656, 0.036476]. P1 remains below the observed B0/B2 means,
+and 218/300 B3 pools contain no relevant target. Recall@50 is identical for B3
+and P1 because reranking preserves the full candidate set.
+
+The [test archive](results/member2_test_500_v1/README.md) records the saved
+500-user population, scoped P1/B3 inference freeze, and corrected receipt v2.
+Member 6's test output passed structural validation with zero errors across
+25,000 recommendations. The LF/CRLF source-hash question is resolved against
+published commit `281cca11474b3bf680ec13444d57cd2df7420fd8`.
+Test metrics remain sealed; these preparation commands must not be repurposed
+for test data while scoring is unauthorized, because preparation/scoring can
+open target labels. Use the existing saved test selection without regenerating it.
+
+The remaining sections document interfaces and reproducible **validation**
+workflows. Generic incoming paths are templates; the archive records the actual
+completed commands and file identities. A fresh clone still needs separately
+shared prediction artifacts for rescoring.
+
 ## Reviewed branch interfaces
 
 | Owner | Reviewed commit | Existing export | Preparation for the current shared evaluation |
 |---|---|---|---|
-| Member 3 | `99272fb` | Popularity, normally all validation profiles and Top 100; `--user-ids` accepts a JSON array | Select saved users, retain Top 50; use the plain-array export when requesting a subset |
+| Member 3 | `f6ddddb` | Popularity, normally all validation profiles and Top 100; `--user-ids` accepts a JSON array | Select saved users, retain Top 50; use the plain-array export when requesting a subset |
 | Member 4 | `5799b0d` | BM25, normally all 4,751 validation users and Top 100; `--user-ids` accepts a JSON array | Select saved users and retain Top 50; preserve the original Top 100 file |
 | Member 5 | `cd80dbf` | Embedding Top 100 plus exact `candidates_top50.jsonl`, covering all 4,751 validation users | Select saved users from the authoritative frozen Top 50 artifact |
 
@@ -20,8 +49,8 @@ final-test comparison separate.
 
 These commits publish code and small reports. Large prediction exports are
 Git-ignored and are not supplied merely by fetching branches. Obtain them and
-their run metadata through the team's agreed storage. No real prediction files
-from those owners have been evaluated in Priyanka's checkout during this work.
+their run metadata through the team's agreed storage. The completed validation record is now preserved
+in the portable archive above; raw inputs remain separately managed.
 
 ## What preparation does
 
@@ -110,7 +139,7 @@ accepted; different outputs require a new directory. Inputs and data directories
 are protected from overwrites. Invalid predictions exit 1; input/config/output
 errors exit 2. Successful preparation exits 0.
 
-## 3. Prepare actual popularity and BM25 exports when received
+## 3. Prepare popularity and BM25 exports for a validation run
 
 Save owner-provided files under a separate incoming directory. The paths below
 are suggested local handoff locations, not claims that the files already exist.
@@ -205,7 +234,7 @@ file-hash binding in the paired comparison.
 
 ## 6. Score prepared files and publish the implementation
 
-Example once the real prepared B3 file exists:
+Example using a matching local prepared B3 validation file:
 
 ```bash
 python -m src.evaluation.evaluate \
@@ -230,6 +259,8 @@ python -m unittest discover -s tests -v
 
 Publish code, tests, documentation, and small configurations through
 `member2-evaluation` and the group's review process. Include the exported plain
-user-ID array and its provenance. Large source/derived prediction files and
-generated experiment reports remain ignored. Publication does not approve the
-draft protocol or establish real model results.
+user-ID array and its provenance. Large source/derived prediction files remain ignored. Reviewed lightweight
+validation reports and test integrity/freeze records are archived under
+`docs/results/`; `outputs/reports/` remains the local generation area. Publishing
+those actual validation findings does not approve the draft protocol or
+authorize final-test scoring.

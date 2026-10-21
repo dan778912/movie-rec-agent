@@ -1,0 +1,7 @@
+{
+  "command": ".venv/bin/python -m unittest discover -s tests -v",
+  "tests": 218,
+  "result": "OK",
+  "elapsed_seconds": 3.761,
+  "scope": "Existing evaluation, data, Member 3, and Member 4 tests in the isolated integration checkout"
+}

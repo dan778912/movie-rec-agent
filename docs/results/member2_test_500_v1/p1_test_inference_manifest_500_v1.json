@@ -1,0 +1,56 @@
+{
+  "checkpoint": {
+    "adapter_archive_sha256": "6d4a86f80f4f6f7bbe6f1b9c5df221f3847f12fce4afb99ea08afc4f1a32e392",
+    "adapter_type": "LoRA",
+    "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "base_model_revision": "775b11afaf83e0dc75bd5abaf90133e47b3ec082"
+  },
+  "code": {
+    "config_sha256": "0f0378fc45ef87255b32f2a15a9f9c4a0a8b88d64aafd80448cbec4560d300f3",
+    "git_commit": "060a9ddedd98000199846d94b150c0bc2ac3b220",
+    "prompts_sha256": "5fc9ea51283998111853618524fe60e558f3fd70da32c38f3c6c5bf630f65842",
+    "qwen_scorer_sha256": "ddd6f9e0a1c0db50f3c4e8205048284f6ac81556da5eab1665be4bd942360a1e",
+    "reranker_sha256": "d3f3722cc914ec1739f06c97405beb71a11a39e0a422030031bd9899b02300ce",
+    "run_reranker_sha256": "e4a10a5f88c3f099d8b27070139d6cd3717493c185a4856b0b98ff67619dd9a5",
+    "worktree_had_inference_modifications": true
+  },
+  "inference": {
+    "batch_size": 2,
+    "chunk_size": 30,
+    "chunks": 17,
+    "error_count": 0,
+    "explanations_generated": false,
+    "final_chunk_size": 20,
+    "gpu": "NVIDIA A40",
+    "max_sequence_length": 1024,
+    "precision": "bfloat16",
+    "total_gpu_task_runtime": "00:52:41"
+  },
+  "inputs": {
+    "candidate_pool_sha256": "44ec13348849458fa58746e126369afc5fa0c2cf4bbd867bc732b83f412b93a1",
+    "movie_documents_sha256": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+    "profiles_sha256": "6c7f74f14b94719c99cea082a6b3a2991ab46d1dca707b5b94532ddd9b992759",
+    "user_ids_sha256": "7d0fced3b4e76ddbaf315883a249380c9966cd9b1c8971d355d69f413aa05b49"
+  },
+  "method": "p1",
+  "output": {
+    "candidate_sets_preserved": true,
+    "filename": "p1_test_predictions_500_v1.jsonl",
+    "records": 500,
+    "schema_validated": true,
+    "scores_finite": true,
+    "sha256": "15d5d332f61224824f339bdd73275522dec71a93ae05d0a460f9bb7fb1412634"
+  },
+  "recommendations_per_user": 50,
+  "software": {
+    "accelerate": "1.10.1",
+    "peft": "0.17.1",
+    "python": "3.12",
+    "torch": "2.8.0+cu128",
+    "transformers": "4.57.1"
+  },
+  "split": "test",
+  "status": "completed_and_validated",
+  "test_labels_accessed_by_member6": false,
+  "users": 500
+}

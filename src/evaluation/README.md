@@ -14,7 +14,9 @@ The [draft protocol](../../docs/evaluation_protocol.md) describes the data rules
 proposed prediction contract, and B3/P1 comparison. The contract awaits team
 review. The [teammate handoff](../../docs/member2_handoff.md) explains how to use
 the real data and saved IDs. The core Phase 1 evaluation tooling is implemented.
-No real model predictions have been evaluated.
+Actual B0/B2/B3/P1 validation is complete on the same 300 users. See the
+[portable validation archive](../../docs/results/member2_validation_300_v1/README.md)
+for complete run bundles, paired comparisons, and the four-method table.
 
 The [integration guide](../../docs/member2_integration.md) explains the actual
 reviewed producer interfaces, artifact access, and preparation commands. Members
@@ -256,13 +258,13 @@ the frozen subset's hashes. It does not calculate Recall/NDCG or independently
 reconstruct histories from raw ratings. Member 1's builder/verifier owns that
 complete data provenance check.
 
-## Real Phase 1 validation — once prediction artifacts are available locally
+## Real Phase 1 validation — completed record and local reproduction
 
-The processed data and fixed user list exist locally. The reviewed teammates'
-branches contain model code and small evidence reports, but their large exports
-are not present in this checkout. Obtain the authoritative files, then use the
+The completed validation reports are archived; a fresh clone does not include
+large prediction artifacts merely by fetching model-owner branches. Obtain the
+matching files through agreed storage, then use the
 [integration guide](../../docs/member2_integration.md) to prepare them. The
-following command requires that prepared embedding artifact to exist.
+following validation-only command requires the prepared local embedding file.
 
 ```bash
 python -m src.evaluation.validate \
@@ -284,8 +286,13 @@ command; the earlier synthetic P1 example shows that syntax. Member 5 freezes
 that 50-movie pool before Member 6 reranks it. P1 must return the same 50 IDs in
 a different order, with no additions or omissions.
 
-Use `test_profiles.jsonl`, a separately frozen test user list, and `--split test`
-only for final evaluation. Do not use test scores for development decisions.
+The saved test population contains 500 users. Member 6's test predictions
+already passed this standalone validator without reading labels. Use the saved
+[test record](../../docs/results/member2_test_500_v1/README.md) and frozen
+selection for any further integrity check. **Keep test targets and performance
+metrics sealed until explicit team authorization and the final experiment
+freeze.** `evaluate`, `prepare`, and `subsets` can open target labels; do not
+repurpose the validation examples below for test scoring now.
 
 ## Score complete prediction files
 
@@ -320,7 +327,7 @@ Reusing an identical result directory is accepted; different results require a
 new output directory. The scorer protects data inputs and does not write scored
 results for invalid predictions. Generated reports remain Git-ignored.
 
-Once the authoritative embedding export has been obtained and prepared, run:
+For a matching locally prepared embedding validation export:
 
 ```bash
 python -m src.evaluation.evaluate \
@@ -330,7 +337,8 @@ python -m src.evaluation.evaluate \
   --output-dir outputs/reports/b3_validation_v1
 ```
 
-That command requires an actual prediction file; it cannot run successfully yet.
+That command requires the actual prepared prediction file. It documents the
+completed validation workflow; raw inputs are managed separately from Git.
 It uses Recall@10, NDCG@10, HitRate@10, Recall@20, and Recall@50 as configured.
 For P1, supply its prediction file, `--method p1`, and the required
 `--candidate-pool` pointing to the frozen embedding export. The complete P1
@@ -436,7 +444,8 @@ protected from output overwrites. Exit 0 means success; exit 2 reports unusable
 inputs or an output error. The generator does not rerun recommendation models.
 
 See the [table walkthrough](../../docs/member2_table_walkthrough.md) for the
-expected synthetic table and the command to use once real predictions arrive.
+expected synthetic table and the corresponding real-validation workflow. The
+completed portable archive is linked above.
 
 ## Try a metric example
 
@@ -463,17 +472,40 @@ Expected values: Recall@3 = `1.0`, NDCG@3 approximately `0.919720789`, Hit Rate@
 - The metric helpers cannot check catalog membership, watched IDs, user coverage,
   or pool equality. Run the validator with matching context before scoring files.
 
-## Implementation status and first handoff
+## Current implementation and results status
 
 `src.evaluation.prepare`, `src.evaluation.evaluate`, `src.evaluation.bootstrap`,
 `src.evaluation.report`, `src.evaluation.subsets`, and `src.evaluation.validate` are implemented. The
 validator's `--report` saves an integrity report; the scorer calculates metrics,
 bootstrap compares two runs, and the report command generates shared tables.
 
-The first integration package now includes the real saved user list,
-configuration/provenance, synthetic examples, validator, export preparation,
-scorer, bootstrap comparison, table generator, and handoff guide.
-Publish the reviewed package through the team's branch/PR process. The team must approve the draft
-contract before freezing official runs. The remaining Phase 1 work is integration:
-receive actual predictions, validate/score/compare them, review the findings,
-and prepare midterm evidence. Synthetic checks do not establish model performance.
+The package contains saved validation/test populations and configurations,
+synthetic examples, the tested evaluation tools, current handoff documentation,
+and portable lightweight result archives. The complete validation evidence is
+available without rerunning model inference or accessing original target data.
+Bootstrap/table generation can verify copied complete report bundles by their
+byte hashes while retaining historical absolute source paths.
+
+P1 validation NDCG@10 is **0.041927**, compared with B3 **0.014578**; the paired
+difference is **+0.027349**, 95% interval **[0.018656, 0.036476]**. Observed P1
+means remain below popularity/BM25; BM25 was tuned on the same validation users.
+Recall@50 is unchanged because P1 preserves the candidate pool. There are
+**218/300 pools with no relevant held-out movie**. No untuned-Qwen control was
+evaluated, so the comparison does not isolate the effect of fine-tuning.
+
+The [test archive](../../docs/results/member2_test_500_v1/README.md) contains
+the original inference manifest and corrected receipt v2. All 500 users and
+25,000 recommendations passed the official structural validator with zero
+errors and exact B3 movie-ID sets. The source hashes are accounted for by
+published commit `281cca11474b3bf680ec13444d57cd2df7420fd8`, including LF/CRLF
+conversion for two files. No extra source handoff or rerun is required for that
+issue. The model archive identity and label-access declaration remain owner
+reported; the adapter archive was not independently hashed by Member 2.
+
+The validation config retains `draft_for_team_review`. The separate P1/B3
+test-inference freeze does not approve the full protocol or authorize scoring.
+Test targets/metrics remain sealed pending explicit team authorization and the
+final model/evaluation freeze. Remaining group work includes protocol review,
+owner explanation/model/cost records, Phase 2 evaluation, and the authorized
+joint final comparison described in the roadmap. See the
+[current checklist](../../docs/member2_completion_checklist.md).

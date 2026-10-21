@@ -1,0 +1,57 @@
+{
+  "scope": "inference source provenance correction; no test scoring",
+  "review_date": "2026-10-21",
+  "version": 2,
+  "published_branch": "origin/member-6-reranking",
+  "published_commit": "281cca11474b3bf680ec13444d57cd2df7420fd8",
+  "manifest_declares_local_inference_modifications": true,
+  "status": "resolved_line_endings_only",
+  "all_five_source_files_accounted_for": true,
+  "additional_source_handoff_required": false,
+  "inference_rerun_required_for_this_issue": false,
+  "published_source_comparison": {
+    "configs/p1_qwen_lora_v1.json": {
+      "manifest_sha256": "0f0378fc45ef87255b32f2a15a9f9c4a0a8b88d64aafd80448cbec4560d300f3",
+      "committed_sha256": "0f0378fc45ef87255b32f2a15a9f9c4a0a8b88d64aafd80448cbec4560d300f3",
+      "committed_crlf_sha256": "c0431034cec98e1ea7528d0b7674f4fa0258908c21915646c7ec99d6926a7f63",
+      "raw_bytes_match": true,
+      "content_accounted_for": true,
+      "matching_representation": "raw"
+    },
+    "src/reranking/prompts.py": {
+      "manifest_sha256": "5fc9ea51283998111853618524fe60e558f3fd70da32c38f3c6c5bf630f65842",
+      "committed_sha256": "5fc9ea51283998111853618524fe60e558f3fd70da32c38f3c6c5bf630f65842",
+      "committed_crlf_sha256": "2201b231f47318c633f304055d6a236902cad8ed8e89f38a6e362218b062678d",
+      "raw_bytes_match": true,
+      "content_accounted_for": true,
+      "matching_representation": "raw"
+    },
+    "src/reranking/qwen_scorer.py": {
+      "manifest_sha256": "ddd6f9e0a1c0db50f3c4e8205048284f6ac81556da5eab1665be4bd942360a1e",
+      "committed_sha256": "268e6f1fedefc7ca713942a62e4f77076c007ca5cf047f0ab5374ac87c39207c",
+      "committed_crlf_sha256": "ddd6f9e0a1c0db50f3c4e8205048284f6ac81556da5eab1665be4bd942360a1e",
+      "raw_bytes_match": false,
+      "content_accounted_for": true,
+      "matching_representation": "CRLF line endings"
+    },
+    "src/reranking/reranker.py": {
+      "manifest_sha256": "d3f3722cc914ec1739f06c97405beb71a11a39e0a422030031bd9899b02300ce",
+      "committed_sha256": "d49877dc6d4e9fa52e5991231c823ce37b92d1b025284a2be899a06b84b54d6e",
+      "committed_crlf_sha256": "d3f3722cc914ec1739f06c97405beb71a11a39e0a422030031bd9899b02300ce",
+      "raw_bytes_match": false,
+      "content_accounted_for": true,
+      "matching_representation": "CRLF line endings"
+    },
+    "src/reranking/run_reranker.py": {
+      "manifest_sha256": "e4a10a5f88c3f099d8b27070139d6cd3717493c185a4856b0b98ff67619dd9a5",
+      "committed_sha256": "e4a10a5f88c3f099d8b27070139d6cd3717493c185a4856b0b98ff67619dd9a5",
+      "committed_crlf_sha256": "c7de3e250c3e8c79447e9c25cb3ea9c27e3e771565a3d99cd417b51e661e6b6b",
+      "raw_bytes_match": true,
+      "content_accounted_for": true,
+      "matching_representation": "raw"
+    }
+  },
+  "correction": "The earlier review treated differing raw SHA-256 hashes as a missing source snapshot before checking line endings. Both previously flagged files exactly reproduce their manifest hashes when the committed LF line endings are converted to CRLF. Their source code is already committed.",
+  "test_targets_read": false,
+  "test_ranking_metrics_computed": false
+}

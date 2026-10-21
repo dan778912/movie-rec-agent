@@ -11,3 +11,27 @@ report bundles. The protocol remains a draft for team review.
 `validation_users_300_export_v1/user_ids.json` is the plain-array companion for
 producer loaders. Its provenance binds it to the metadata-rich saved subset;
 recreate/check it with `python -m src.evaluation.prepare users --config configs/evaluation_v1.json --output-dir configs/validation_users_300_export_v1`.
+
+## Saved test selection and scoped inference freeze
+
+- `test_users_500_v1.json`: the exact 500-user selection from the frozen test
+  profile population, seed `20261003`, created without opening target labels.
+- `test_users_500_export_v1/user_ids.json`: the identical selection as a plain
+  array for producer loaders; companion provenance binds it to the metadata file.
+- `evaluation_test_v1.json`: the original historical prepared configuration,
+  retaining its pending status and original hash.
+- `evaluation_test_frozen_v1.json`: the later P1/B3 inference-only frozen copy;
+  only administrative `status` and `subset_status` differ from the prepared copy.
+
+Use these saved files directly. Do not regenerate the test selection with the
+general subset/preparation commands while labels remain sealed: those commands
+can open targets. Preserve verified bytes and consult the
+[test archive](../docs/results/member2_test_500_v1/README.md) for the later
+confirmation that supersedes preparation-time pending labels. The scoped freeze
+does not approve the full draft protocol, freeze P2/other baseline decisions, or
+authorize test metric computation.
+
+The complete [300-user validation archive](../docs/results/member2_validation_300_v1/README.md)
+uses the unchanged `evaluation_v1.json`, whose status remains
+`draft_for_team_review`. Test predictions have passed structural checks; final
+test scores remain sealed pending authorization and the final experiment freeze.
