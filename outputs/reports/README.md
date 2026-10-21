@@ -13,12 +13,17 @@ preserved in tracked directories:
 - [500-user test archive](../../docs/results/member2_test_500_v1/README.md):
   label-blind preparation, scoped inference confirmation, original Member 6
   manifest, official structural validation, and corrected receipt v2.
+- [Authorized 500-user P1/B3 test comparison](../../docs/results/member2_p1_b3_test_500_v1/README.md):
+  both scored bundles, paired intervals, table, authorization, and exact commands.
 
 The corrected receipt accounts for source-file LF/CRLF differences; the old
 receipt v1 is superseded. Test predictions passed integrity checks for 500 users
-and 25,000 recommendations with zero errors. **No test performance results are
-published or computed here; scoring remains sealed pending team authorization
-and the applicable final model/evaluation freeze.**
+and 25,000 recommendations with zero errors. That receipt describes the earlier
+label-blind stage. The user later relayed explicit team approval to run and
+publish P1/B3 test results; the completed comparison is archived separately
+above. Preserved receipt/freeze JSON retains its historical sealed/pending
+statements. This completes P1/B3 scoring, not Phase 2 or the broader joint final
+comparison.
 
 Preserve original report/configuration bytes and their hashes. Complete
 validation bundles can be copied and compared without rewriting historical

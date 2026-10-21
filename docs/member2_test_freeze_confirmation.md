@@ -1,6 +1,6 @@
 # Confirmed P1/B3 test-inference settings and current status
 
-Member 5 confirmed the existing B3 test pool, as relayed by the user. Member 6 accepted the 500-user budget, verified the handoff ZIP, and identified the validated P1 adapter and unchanged ranking settings. Member 6 has now completed inference; Member 2 verified all 500 returned users and 25,000 recommendations with zero structural errors. **Final test scores remain sealed.**
+Member 5 confirmed the existing B3 test pool, as relayed by the user. Member 6 accepted the 500-user budget, verified the handoff ZIP, and identified the validated P1 adapter and unchanged ranking settings. Member 6 has now completed inference; Member 2 verified all 500 returned users and 25,000 recommendations with zero structural errors. The user later relayed explicit team approval to run and publish P1/B3 test results; the [500-user comparison](results/member2_p1_b3_test_500_v1/README.md) is now complete. Preserved receipt/freeze JSON describes the earlier pre-scoring stage.
 
 ## Preserved settings
 
@@ -20,6 +20,6 @@ The [machine-readable owner confirmation](results/member2_test_500_v1/freeze_con
 
 [evaluation_test_frozen_v1.json](../configs/evaluation_test_frozen_v1.json) differs from the [original prepared version](../configs/evaluation_test_v1.json) only in administrative `status` and `subset_status` fields. Saved IDs, metadata, input pools, profiles, documents, and metric settings are unchanged.
 
-The historical preparation metadata and confirmation record retain their original bytes, including pending labels or the then-future inference step. The confirmation supersedes preparation-time labels for the P1/B3 inference scope, and the received prediction receipt records completion. It does not certify all other baseline/P2 decisions or authorize final scoring.
+The historical preparation metadata and confirmation record retain their original bytes, including pending labels or the then-future inference step. The confirmation supersedes preparation-time labels for the P1/B3 inference scope, and the received prediction receipt records completion. It did not itself authorize scoring or certify other baseline/P2 decisions. The later explicit authorization and scoring are recorded in the separate P1/B3 comparison archive.
 
-No test targets or ratings were opened in Member 2's selection, handoff, prediction validation, or publication steps. The final joint comparison remains subject to the roadmap's final-evaluation timing. See the [test-record index](results/member2_test_500_v1/README.md) for the complete current status.
+No test targets or ratings were opened during earlier selection, handoff, prediction validation, or initial receipt publication. Targets were later accessed for expressly authorized P1/B3 scoring using unchanged frozen settings. The broader joint comparison and P2 remain separate work under their applicable protocol. See the [inference-record index](results/member2_test_500_v1/README.md) for preserved history and the [P1/B3 test archive](results/member2_p1_b3_test_500_v1/README.md) for scored results.

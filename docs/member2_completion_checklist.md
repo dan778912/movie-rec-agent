@@ -43,10 +43,20 @@ adding the owners' packages to this branch.
 - The [test archive](results/member2_test_500_v1/README.md) preserves the
   preparation/freeze records, original manifest, and current corrected receipt.
 
-**Test performance has not been computed.** The receipt does not authorize
-scoring, certify all baseline/P2 decisions, or approve the full draft protocol.
-Historical pending labels in hashed preparation artifacts are retained and
-explained by the later scoped confirmation record.
+The preserved receipt describes the earlier pre-scoring stage and did not
+itself authorize scoring or certify all baseline/P2 decisions. Historical
+pending labels in hashed preparation artifacts retain their verified bytes.
+
+## Complete: authorized P1/B3 test comparison
+
+The user explicitly relayed team approval to run and publish P1/B3 test results.
+The [500-user test comparison](results/member2_p1_b3_test_500_v1/README.md) is
+complete using the unchanged frozen users/settings. P1 test NDCG@10 is **0.036421**, versus B3 **0.012429**: difference **+0.023992**, paired 95% interval **[0.016787, 0.031517]**. Both methods have 500 valid users and zero errors; Recall@50 is identical (**0.022180**).
+The paired interval uses 10,000 resamples and seed `20261002`. Targets were
+accessed for authorized scoring; earlier receipt/freeze JSON retains its
+historical statements. This completes P1/B3 scoring, not the broader final
+comparison or Phase 2. No untuned-Qwen control was evaluated, so the comparison
+does not isolate fine-tuning's contribution.
 
 ## Remaining coordination and course deliverables
 
@@ -54,7 +64,7 @@ explained by the later scoped confirmation record.
    and report. Share the archive link with Members 3–6 and the report presenter.
 2. Review the [draft protocol](evaluation_protocol.md) and findings with the
    group. Successful scoring and the P1/B3 inference-only freeze do not amount to
-   full team approval. Record final experiment decisions before test scoring.
+   full team approval. Record applicable decisions before further test comparisons.
 3. Model owners retain the training/checkpoint/prompt and runtime records;
    Member 3 performs the explanation audit once suitable outputs are available.
    Member 2's ranking metrics do not establish explanation quality. The test
@@ -63,12 +73,13 @@ explained by the later scoped confirmation record.
 4. Follow the roadmap's later Phase 2 plan. Its development roles and final
    evaluation controls need team agreement; no new role assignments are implied
    by this checklist.
-5. After explicit team authorization and the applicable final model/evaluation
-   freeze, run the joint final comparison on the same 500 users using all
-   required available predictions (popularity, BM25, embeddings, P1, and P2),
-   paired intervals, coverage, failure analysis, and the final results table.
-   Missing outputs remain dependencies on their owners. Keep test scores sealed
-   while development/model selection continues.
+5. Complete the broader final comparison when remaining owner outputs,
+   applicable settings, and authorization are ready: popularity, BM25,
+   embeddings, P1, and P2 on the same saved 500 users, with paired intervals,
+   coverage, failure analysis, and a joint table. P1/B3 scoring is already
+   complete. Test outcomes must not guide model selection. P2 requires an
+   explicit protocol/scorer extension; the current scorer accepts only
+   popularity, BM25, embedding, and P1.
 
 No additional P1 inference or metric implementation is required for the files
 already received. Preserve original predictions and hashes. Do not silently

@@ -1,0 +1,107 @@
+{
+  "schema_version": "member2-authorized-test-archive-v1",
+  "recorded_client_date": "2026-10-21",
+  "scope": "Frozen P1/B3 test comparison on the exact 500 saved users",
+  "test_targets_read_during_scoring": true,
+  "test_ranking_metrics_computed": true,
+  "prediction_input_bytes_unchanged": true,
+  "full_project_comparison_claimed": false,
+  "source_files": [
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/b3_test_500_v1/summary.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/b3_test_500_v1/summary.json",
+      "sha256": "438c07d68a3aa648de676541987bdd9eaef5efc03e4d7676002d7af5f1dec4db",
+      "bytes": 4211
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/b3_test_500_v1/per_user.csv",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/b3_test_500_v1/per_user.csv",
+      "sha256": "553f9b659ec876281bc69955d758a56df220d67dca9d53d444db72b2155ee09f",
+      "bytes": 30157
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/b3_test_500_v1/validation.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/b3_test_500_v1/validation.json",
+      "sha256": "4845a90c65bd87e590eb35f4039b7f9262565e382fbfdbc35cf30ace518397e3",
+      "bytes": 736
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/p1_test_500_v1/summary.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/p1_test_500_v1/summary.json",
+      "sha256": "d26d4568882eeb8a5c76bb32aa2534241597a33b1bbb540120531bebc53b165d",
+      "bytes": 4443
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/p1_test_500_v1/per_user.csv",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/p1_test_500_v1/per_user.csv",
+      "sha256": "c2a8284821950bf4c972d69396b1c73b7f64965012181e6d11163b7d013f1cac",
+      "bytes": 28363
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/p1_test_500_v1/validation.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/p1_test_500_v1/validation.json",
+      "sha256": "3c410b0aa12b066cf056e72982fe7148a3e35826b1c4371f431d0e394a85fe9f",
+      "bytes": 836
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/p1_vs_b3_test_500_v1/comparison.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/p1_vs_b3_test_500_v1/comparison.json",
+      "sha256": "b868550876bcbdbb24bcb3efae22510a2a409b133f00341546131d0389d6c7aa",
+      "bytes": 7732
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/p1_vs_b3_test_500_v1/per_user_differences.csv",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/p1_vs_b3_test_500_v1/per_user_differences.csv",
+      "sha256": "bce488cc8692c3bb3871bb5df3d896e965a7accb422ead8f0413036747b29c0b",
+      "bytes": 56067
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/p1_b3_test_table_500_v1/table.md",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/p1_b3_test_table_500_v1/table.md",
+      "sha256": "ec48c58339a9ce7a813396ea35c60d996ab23da349bf98da7b58489cea63fc4d",
+      "bytes": 2444
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/p1_b3_test_table_500_v1/table.csv",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/p1_b3_test_table_500_v1/table.csv",
+      "sha256": "3c42765d96e3e175d551ae79539b610c28ac4c1aa895efcefd31c629e7e3f6a9",
+      "bytes": 836
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/p1_b3_test_table_500_v1/differences.csv",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/p1_b3_test_table_500_v1/differences.csv",
+      "sha256": "e5e99d0953518cb2fd7e9ab2f5be9a855e17d1b4a90dc84a7f673c30866d14c1",
+      "bytes": 771
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/p1_b3_test_table_500_v1/report.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/p1_b3_test_table_500_v1/report.json",
+      "sha256": "8c69770ef728556761e3a9ade4dbab2d1a275847faf01dc194f908f2c89229ba",
+      "bytes": 12989
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/workflow_p1_b3_test_500_v1/scoring_authorization.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/provenance/scoring_authorization.json",
+      "sha256": "8f38681ef4d7180762e7a9a01fa7977e4593b02fcb8723cb53ad9a4af04168b6",
+      "bytes": 867
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/workflow_p1_b3_test_500_v1/commands.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/provenance/commands.json",
+      "sha256": "00b46c088d14469c4142eaade69927f8757963c3d23f3993a3a89d7c23312f54",
+      "bytes": 2317
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/workflow_p1_b3_test_500_v1/input_copy_receipt.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/provenance/input_copy_receipt.json",
+      "sha256": "c2f385590ac7b1d3992f07ea0a0575dedd78908092a5b9826feeef07c47f01bc",
+      "bytes": 1530
+    },
+    {
+      "source_path_in_scoring_checkout": "outputs/reports/workflow_p1_b3_test_500_v1/completion.json",
+      "archived_path": "docs/results/member2_p1_b3_test_500_v1/provenance/completion.json",
+      "sha256": "1d42eaa644087ea34e681aef04905784df5faad72b1940536c87f5a753513782",
+      "bytes": 3093
+    }
+  ]
+}

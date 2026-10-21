@@ -2,7 +2,8 @@
 
 **Status: draft for team review.** Full team approval/freeze of this contract
 is not established by the completed validation run. The separately documented
-P1/B3 test-inference freeze has narrower scope. Dataset rules describe the existing `ml25m-global-v1` implementation;
+P1/B3 test-inference freeze and subsequent explicit authorization to run and
+publish P1/B3 test results have narrower scope. Dataset rules describe the existing `ml25m-global-v1` implementation;
 prediction length, sampling, failure handling, and reporting rules are proposed
 experiment choices.
 
@@ -149,9 +150,14 @@ records. This is not a freeze of all methods/P2 or approval of this full protoco
 Member 6's returned predictions passed integrity checks for 500 users and 25,000
 recommendations with zero errors and exact B3 candidate sets. The corrected
 receipt v2 resolves source hashes against published commit `281cca1`, including
-LF/CRLF differences. **Test targets and metrics remain sealed pending explicit
-team authorization and the final model/evaluation freeze.** Structural validation
-does not establish test performance.
+LF/CRLF differences. That receipt records the earlier pre-scoring stage. The
+user subsequently relayed explicit team approval to run and publish P1/B3 test
+results. The [authorized comparison](results/member2_p1_b3_test_500_v1/README.md)
+is complete using unchanged frozen settings. P1 test NDCG@10 is **0.036421**, versus B3 **0.012429**: difference **+0.023992**, paired 95% interval **[0.016787, 0.031517]**. Both methods have 500 valid users and zero errors; Recall@50 is identical (**0.022180**).
+Targets were accessed during the later authorized scoring. Earlier receipt/
+freeze JSON retains its historical sealed/pending statements. This completes
+P1/B3 scoring, not all final systems or Phase 2; test outcomes must not guide
+subsequent model selection.
 
 Every directly compared method uses the same users. Inexpensive baselines may
 additionally run on the complete eligible population in a separately labeled
@@ -424,8 +430,9 @@ hashed historical artifacts instead of rewriting their status/path fields.
 | Implemented and tested | Metric/validator/subset/preparation/scorer/bootstrap/table tools; saved populations/configurations; fixtures and guides |
 | Validation complete | B0/B2/B3/P1 on the same 300 users, complete reports/coverage, both paired comparisons, four-method table, limitations |
 | P1/B3 test inference complete | Scoped owner confirmations; exact saved 500 users/pools; received predictions/manifest; corrected receipt v2 with zero structural errors |
-| Still subject to team approval | Full evaluation contract and final method/settings freeze; this record does not authorize test scoring |
-| Later evaluation work | Required P2 controls and owner outputs, authorized final comparison, intervals, coverage, explanation/cost records, final report |
+| P1/B3 test comparison complete | Explicit team approval relayed by the user; both frozen 500-user scored bundles, paired intervals, table, and execution provenance |
+| Still subject to team approval | Full evaluation contract, additional method/settings freezes, and applicable authorization beyond completed P1/B3 scoring |
+| Later evaluation work | Required P2 controls/protocol extension and owner outputs, broader joint final comparison, coverage, explanation/cost records, final report |
 
 The validator enforces watched-item exclusion from complete profile histories.
 Completed validation evidence is archived in the repository; model source,
@@ -443,7 +450,9 @@ starts from B3's pool but may expand it by re-retrieval. Its future protocol mus
 record initial/expanded pools, clarification simulation, information available
 to each control, decision/failure rates, and cost. Simulated clarification cannot
 establish real-user satisfaction. P1's unchanged-pool condition does not apply
-to P2's final expanded pool.
+to P2's final expanded pool. The current scorer accepts only `popularity`,
+`bm25`, `embedding`, and `p1`; P2 requires an explicit reviewed protocol/scorer
+extension before its outputs can enter the joint comparison.
 
 ## Repository references
 

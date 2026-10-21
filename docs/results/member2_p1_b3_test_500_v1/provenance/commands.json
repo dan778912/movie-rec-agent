@@ -1,0 +1,79 @@
+[
+  {
+    "name": "evaluate_b3",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent/.venv/bin/python",
+      "-m",
+      "src.evaluation.evaluate",
+      "--config",
+      "configs/evaluation_test_frozen_v1.json",
+      "--predictions",
+      "outputs/predictions/prepared/b3_test_500_v1/predictions.jsonl",
+      "--method",
+      "embedding",
+      "--output-dir",
+      "outputs/reports/b3_test_500_v1"
+    ],
+    "cwd": "/Users/priyankaamrute/Codex Projects/movie-rec-agent",
+    "exit_code": 0,
+    "elapsed_seconds": 1.586807
+  },
+  {
+    "name": "evaluate_p1",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent/.venv/bin/python",
+      "-m",
+      "src.evaluation.evaluate",
+      "--config",
+      "configs/evaluation_test_frozen_v1.json",
+      "--predictions",
+      "outputs/predictions/incoming/member6-p1-test-500-v1/p1_test_predictions_500_v1.jsonl",
+      "--method",
+      "p1",
+      "--candidate-pool",
+      "outputs/predictions/prepared/b3_test_500_v1/predictions.jsonl",
+      "--output-dir",
+      "outputs/reports/p1_test_500_v1"
+    ],
+    "cwd": "/Users/priyankaamrute/Codex Projects/movie-rec-agent",
+    "exit_code": 0,
+    "elapsed_seconds": 1.526872
+  },
+  {
+    "name": "compare_p1_vs_b3",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent/.venv/bin/python",
+      "-m",
+      "src.evaluation.bootstrap",
+      "--baseline-dir",
+      "outputs/reports/b3_test_500_v1",
+      "--challenger-dir",
+      "outputs/reports/p1_test_500_v1",
+      "--output-dir",
+      "outputs/reports/p1_vs_b3_test_500_v1"
+    ],
+    "cwd": "/Users/priyankaamrute/Codex Projects/movie-rec-agent",
+    "exit_code": 0,
+    "elapsed_seconds": 5.945851
+  },
+  {
+    "name": "generate_p1_b3_test_table",
+    "argv": [
+      "/Users/priyankaamrute/Codex Projects/movie-rec-agent/.venv/bin/python",
+      "-m",
+      "src.evaluation.report",
+      "--runs",
+      "outputs/reports/b3_test_500_v1",
+      "outputs/reports/p1_test_500_v1",
+      "--comparisons",
+      "outputs/reports/p1_vs_b3_test_500_v1",
+      "--kind",
+      "experiment",
+      "--output-dir",
+      "outputs/reports/p1_b3_test_table_500_v1"
+    ],
+    "cwd": "/Users/priyankaamrute/Codex Projects/movie-rec-agent",
+    "exit_code": 0,
+    "elapsed_seconds": 5.98631
+  }
+]

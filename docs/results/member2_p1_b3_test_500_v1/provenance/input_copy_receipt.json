@@ -1,0 +1,37 @@
+{
+  "source_checkout": "/Users/priyankaamrute/Codex Projects/movie-rec-agent-midterm-evaluation",
+  "destination_checkout": "/Users/priyankaamrute/Codex Projects/movie-rec-agent",
+  "files": [
+    {
+      "path": "outputs/predictions/prepared/b3_test_500_v1/predictions.jsonl",
+      "sha256": "44ec13348849458fa58746e126369afc5fa0c2cf4bbd867bc732b83f412b93a1",
+      "bytes": 1422338
+    },
+    {
+      "path": "outputs/predictions/incoming/member6-p1-test-500-v1/p1_test_predictions_500_v1.jsonl",
+      "sha256": "15d5d332f61224824f339bdd73275522dec71a93ae05d0a460f9bb7fb1412634",
+      "bytes": 1259715
+    },
+    {
+      "path": "outputs/predictions/incoming/member6-p1-test-500-v1/p1_test_inference_manifest_500_v1.json",
+      "sha256": "2b60261393bbddca8ff81b7cd0fb3cae6547c6d4705e384caebe1b4146fa15cd",
+      "bytes": 2137
+    },
+    {
+      "path": "outputs/predictions/prepared/b3_test_500_v1/preparation.json",
+      "sha256": "c5d61a92d09d71ebc87622e633bba0561685e279515b39cf4c5c4c7d5c96d244",
+      "bytes": 1516
+    },
+    {
+      "path": "outputs/predictions/prepared/b3_test_500_v1/source_validation.json",
+      "sha256": "d7fa45ba6fa36fc722360adb703bfe118bb5a853637a08750b69c4d06874a75f",
+      "bytes": 767
+    },
+    {
+      "path": "outputs/predictions/prepared/b3_test_500_v1/derived_validation.json",
+      "sha256": "5b3a08349c3e999e240d199d9784ec79cee59e6052378a0cf1b5022d901abe7f",
+      "bytes": 755
+    }
+  ],
+  "transformation": "byte-for-byte copies; no resampling, reranking, or reserialization"
+}

@@ -24,9 +24,13 @@ The [test archive](results/member2_test_500_v1/README.md) records the saved
 Member 6's test output passed structural validation with zero errors across
 25,000 recommendations. The LF/CRLF source-hash question is resolved against
 published commit `281cca11474b3bf680ec13444d57cd2df7420fd8`.
-Test metrics remain sealed; these preparation commands must not be repurposed
-for test data while scoring is unauthorized, because preparation/scoring can
-open target labels. Use the existing saved test selection without regenerating it.
+The user subsequently relayed explicit team approval to run and publish P1/B3
+test results; that [500-user comparison](results/member2_p1_b3_test_500_v1/README.md)
+is complete using unchanged frozen settings. P1 test NDCG@10 is **0.036421**, versus B3 **0.012429**: difference **+0.023992**, paired 95% interval **[0.016787, 0.031517]**. Both methods have 500 valid users and zero errors; Recall@50 is identical (**0.022180**).
+Earlier receipt records describe the label-blind stage; targets were accessed
+during later authorized scoring. Use the existing saved selection without
+regenerating it. The following examples document validation preparation, not
+the completed test execution.
 
 The remaining sections document interfaces and reproducible **validation**
 workflows. Generic incoming paths are templates; the archive records the actual
@@ -260,7 +264,8 @@ python -m unittest discover -s tests -v
 Publish code, tests, documentation, and small configurations through
 `member2-evaluation` and the group's review process. Include the exported plain
 user-ID array and its provenance. Large source/derived prediction files remain ignored. Reviewed lightweight
-validation reports and test integrity/freeze records are archived under
-`docs/results/`; `outputs/reports/` remains the local generation area. Publishing
-those actual validation findings does not approve the draft protocol or
-authorize final-test scoring.
+validation reports, test integrity/freeze records, and the separately authorized
+P1/B3 test comparison are archived under `docs/results/`; `outputs/reports/`
+remains the local generation area. The P1/B3 authorization is recorded with that
+comparison. It does not approve the whole draft protocol or complete Phase 2
+and the broader joint final comparison.

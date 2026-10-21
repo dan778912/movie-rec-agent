@@ -1,6 +1,6 @@
 # Member 2: frozen 500-user test record
 
-Current status: P1 inference is complete and its prediction file passed structural validation. **Test performance scores remain sealed.** This record does not authorize final scoring or certify that all baseline/P2 decisions are frozen.
+This archive preserves P1 inference and successful structural validation before scoring. The user subsequently relayed explicit team approval to run and publish P1/B3 test results; the [authorized 500-user comparison](../member2_p1_b3_test_500_v1/README.md) is now complete. Sealed/pending statements in preserved receipt/freeze records describe their earlier stage. This inference archive does not itself authorize scoring or certify all baseline/P2 decisions.
 
 ## Authoritative current records
 
@@ -31,12 +31,14 @@ All five source/configuration files listed in the inference manifest are account
 
 ## Historical preparation records
 
-The preparation subdirectory, original `configs/evaluation_test_v1.json`, saved selection metadata, and user-export provenance preserve their preparation-time pending labels and original bytes. The later freeze confirmation supersedes those labels for the P1/B3 inference scope. Its historical next-step text was written before predictions arrived; the current status is the completed validation described above. Do not edit those hashed historical files to update status.
+The preparation subdirectory, original `configs/evaluation_test_v1.json`, saved selection metadata, and user-export provenance preserve their preparation-time pending labels and original bytes. The later freeze confirmation supersedes those labels for the P1/B3 inference scope. Its historical next-step text was written before predictions arrived; the corrected receipt records later structural validation, and the separate scored archive records the subsequent authorized evaluation. Do not edit those hashed historical files to update status.
 
-No test targets or test ratings were opened during selection, handoff preparation, prediction validation, or publication. The expected target hash in the user metadata was copied from the canonical manifest; it was not verified by opening labels. The test prediction file and inference-input data remain in team storage rather than Git.
+No test targets or test ratings were opened during selection, handoff preparation, prediction validation, or initial receipt publication. The expected target hash in user metadata was copied from the canonical manifest; it was not verified by opening labels at that stage. The later authorized scoring accessed targets and verified the applicable frozen data identities, as recorded in the separate comparison archive. The test prediction file and inference-input data remain in team storage rather than Git.
 
 ## Remaining work
 
-Use validation results for ongoing development. After the team freezes all relevant final settings and authorizes the roadmap's final evaluation stage, Member 2 will score the available final systems (popularity, BM25, embeddings, P1, and P2) on the identical saved users, compute the appropriate paired intervals, and generate the final table. No test outcome should guide model selection.
+The authorized P1/B3 test comparison is complete. P1 test NDCG@10 is **0.036421**, versus B3 **0.012429**: difference **+0.023992**, paired 95% interval **[0.016787, 0.031517]**. Both methods have 500 valid users and zero errors; Recall@50 is identical (**0.022180**). See the [scored archive](../member2_p1_b3_test_500_v1/README.md) for complete metrics and commands.
+
+The broader final comparison needs remaining owner outputs and applicable settings/authorization, including popularity, BM25, and P2. P2 also needs an explicit protocol/scorer extension; the current scorer supports popularity, BM25, embeddings, and P1. Use validation for development; test outcomes must not guide model selection. No untuned-Qwen control has been evaluated.
 
 From this directory, run `shasum -a 256 -c SHA256SUMS.txt` to verify archived records. This reads only this documentation archive, not the test targets or test ratings.

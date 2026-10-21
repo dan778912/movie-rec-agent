@@ -1,6 +1,6 @@
 # Member 2: completed 500-user test-inference handoff
 
-The handoff is confirmed, Member 6's inference is complete, and the returned P1 predictions passed the official structural validator with zero errors. **Test performance metrics remain uncomputed.** The [tracked test record](results/member2_test_500_v1/README.md) is the current source for confirmations, hashes, the received manifest, and the corrected receipt.
+The handoff is confirmed, Member 6's inference is complete, and P1 predictions passed the official structural validator with zero errors. The [tracked inference record](results/member2_test_500_v1/README.md) preserves confirmations, hashes, the manifest, and corrected pre-scoring receipt. The user later relayed explicit team approval to run and publish P1/B3 test results; the [authorized 500-user comparison](results/member2_p1_b3_test_500_v1/README.md) is now complete.
 
 ## Fixed inputs and output contract
 
@@ -23,6 +23,6 @@ The two initially questioned source hashes match committed files exactly after L
 
 ## Configuration and remaining evaluation
 
-Use [evaluation_test_frozen_v1.json](../configs/evaluation_test_frozen_v1.json) for the later shared test scoring. The [original prepared configuration](../configs/evaluation_test_v1.json), saved metadata, and export provenance retain historical pending labels to preserve their recorded hashes. The later confirmation supersedes those labels for P1/B3 inference only.
+The authorized P1/B3 scoring used [evaluation_test_frozen_v1.json](../configs/evaluation_test_frozen_v1.json) unchanged. The [original prepared configuration](../configs/evaluation_test_v1.json), saved metadata, and export provenance retain historical pending labels to preserve their recorded hashes. The later confirmation supersedes those labels for P1/B3 inference only.
 
-The roadmap schedules final testing after the applicable model and evaluation decisions are frozen. P1 inference completion does not authorize opening targets or tuning P2 against test results. Member 2 will run the final comparison across the relevant frozen baselines, P1, and P2 when the team authorizes that stage.
+The separately recorded authorization enabled the completed P1/B3 comparison; targets were accessed during that scoring stage. P1 test NDCG@10 is **0.036421**, versus B3 **0.012429**: difference **+0.023992**, paired 95% interval **[0.016787, 0.031517]**. Both methods have 500 valid users and zero errors; Recall@50 is identical (**0.022180**). The broader joint final comparison, remaining baselines, and P2 remain separate work under their applicable settings/authorization. Test outcomes must not guide further tuning, including P2 selection.

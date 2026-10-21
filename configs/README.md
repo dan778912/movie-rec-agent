@@ -23,15 +23,19 @@ recreate/check it with `python -m src.evaluation.prepare users --config configs/
 - `evaluation_test_frozen_v1.json`: the later P1/B3 inference-only frozen copy;
   only administrative `status` and `subset_status` differ from the prepared copy.
 
-Use these saved files directly. Do not regenerate the test selection with the
-general subset/preparation commands while labels remain sealed: those commands
-can open targets. Preserve verified bytes and consult the
-[test archive](../docs/results/member2_test_500_v1/README.md) for the later
-confirmation that supersedes preparation-time pending labels. The scoped freeze
-does not approve the full draft protocol, freeze P2/other baseline decisions, or
-authorize test metric computation.
+Use these saved files directly without regenerating or resampling the test
+selection. General subset/preparation commands can open targets. Preserve
+verified bytes and consult the
+[test inference archive](../docs/results/member2_test_500_v1/README.md) for the
+confirmation superseding preparation-time pending labels. The scoped inference
+freeze did not itself authorize scoring. The user later relayed explicit team
+approval to run and publish P1/B3 test results; the
+[completed comparison](../docs/results/member2_p1_b3_test_500_v1/README.md)
+uses `evaluation_test_frozen_v1.json` unchanged. This does not approve the full
+draft protocol or freeze P2/other baseline decisions.
 
 The complete [300-user validation archive](../docs/results/member2_validation_300_v1/README.md)
 uses the unchanged `evaluation_v1.json`, whose status remains
-`draft_for_team_review`. Test predictions have passed structural checks; final
-test scores remain sealed pending authorization and the final experiment freeze.
+`draft_for_team_review`. P1/B3 test scoring is complete under separately recorded
+authorization. Sealed/pending statements in preserved receipt/preparation JSON
+describe their earlier pre-scoring stage.

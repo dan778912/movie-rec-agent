@@ -288,11 +288,13 @@ a different order, with no additions or omissions.
 
 The saved test population contains 500 users. Member 6's test predictions
 already passed this standalone validator without reading labels. Use the saved
-[test record](../../docs/results/member2_test_500_v1/README.md) and frozen
-selection for any further integrity check. **Keep test targets and performance
-metrics sealed until explicit team authorization and the final experiment
-freeze.** `evaluate`, `prepare`, and `subsets` can open target labels; do not
-repurpose the validation examples below for test scoring now.
+[test inference record](../../docs/results/member2_test_500_v1/README.md) and
+frozen selection for further integrity checks. The user subsequently relayed
+explicit team approval to run and publish P1/B3 test results; the
+[500-user comparison](../../docs/results/member2_p1_b3_test_500_v1/README.md)
+is now complete. `evaluate`, `prepare`, and `subsets` can open target labels;
+the new archive preserves exact authorized test commands separately from the
+validation examples below. Keep the saved IDs/settings unchanged.
 
 ## Score complete prediction files
 
@@ -502,10 +504,16 @@ conversion for two files. No extra source handoff or rerun is required for that
 issue. The model archive identity and label-access declaration remain owner
 reported; the adapter archive was not independently hashed by Member 2.
 
-The validation config retains `draft_for_team_review`. The separate P1/B3
-test-inference freeze does not approve the full protocol or authorize scoring.
-Test targets/metrics remain sealed pending explicit team authorization and the
-final model/evaluation freeze. Remaining group work includes protocol review,
-owner explanation/model/cost records, Phase 2 evaluation, and the authorized
-joint final comparison described in the roadmap. See the
-[current checklist](../../docs/member2_completion_checklist.md).
+The validation config retains `draft_for_team_review`. The separate inference
+freeze did not itself authorize scoring. After the user relayed explicit team
+approval to run and publish P1/B3 test results, the
+[authorized comparison](../../docs/results/member2_p1_b3_test_500_v1/README.md)
+was completed using frozen settings. P1 test NDCG@10 is **0.036421**, versus B3 **0.012429**: difference **+0.023992**, paired 95% interval **[0.016787, 0.031517]**. Both methods have 500 valid users and zero errors; Recall@50 is identical (**0.022180**).
+No untuned-Qwen control was evaluated. Historical receipt/freeze JSON describes
+the earlier pre-scoring stage.
+
+Remaining work includes broader protocol review, owner explanation/model/cost
+records, Phase 2, and the joint final comparison. The current scorer accepts
+`popularity`, `bm25`, `embedding`, and `p1`; P2 needs an explicit protocol/scorer
+extension. Completed test outcomes must not guide further model selection.
+See the [current checklist](../../docs/member2_completion_checklist.md).

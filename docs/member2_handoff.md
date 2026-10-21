@@ -35,11 +35,12 @@ published commit `281cca11474b3bf680ec13444d57cd2df7420fd8`; two manifest hashes
 correspond to CRLF versions of committed LF files. No extra source handoff or
 inference rerun is needed for that issue.
 
-Test scores remain sealed pending explicit team authorization and the final
-model/evaluation freeze. The scoped owner confirmation does not approve the
-whole draft protocol or other methods/P2. The test archive contains no test
-performance results. See the [current checklist](member2_completion_checklist.md)
-for the remaining responsibilities.
+The receipt archive preserves the pre-scoring history. The user subsequently
+relayed explicit team approval to run and publish P1/B3 test results; the
+[500-user comparison](results/member2_p1_b3_test_500_v1/README.md) is now
+complete. P1 test NDCG@10 is **0.036421**, versus B3 **0.012429**: difference **+0.023992**, paired 95% interval **[0.016787, 0.031517]**. Both methods have 500 valid users and zero errors; Recall@50 is identical (**0.022180**).
+This does not establish completion of other methods/P2 or full approval of
+the draft protocol. See the [current checklist](member2_completion_checklist.md).
 
 ## 1. Use the same data and user IDs
 
@@ -281,7 +282,8 @@ The core Phase 1 tooling and the four-method validation analysis are complete.
 The [portable archive](results/member2_validation_300_v1/README.md) supplies
 reviewable midterm evidence. Remaining work is team review of the findings and
 full protocol, model/explanation records from their owners, later P2 evaluation,
-and the authorized frozen final-test comparison. See the
+and the broader final-test comparison. The authorized P1/B3 test comparison is
+already complete. See the
 [completion checklist](member2_completion_checklist.md).
 
 Full 50-item pool equality means B3 and P1 have identical Recall@50 by

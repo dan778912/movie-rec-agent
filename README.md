@@ -74,9 +74,12 @@ manifest, and corrected receipt v2. All **500 users / 25,000 recommendations**
 passed structural validation with zero errors and exact frozen candidate sets.
 Published source commit `281cca11474b3bf680ec13444d57cd2df7420fd8` accounts for
 the manifest's source hashes; two files use CRLF rather than LF line endings.
-**No test targets were read or test performance metrics computed in this
-receipt/publication step. Test scores remain sealed pending explicit team
-authorization and the applicable final model/evaluation freeze.**
+That receipt records the earlier label-blind stage. The user subsequently
+relayed explicit team approval to run and publish P1/B3 test results. The
+[authorized 500-user comparison](docs/results/member2_p1_b3_test_500_v1/README.md)
+is now complete using unchanged frozen settings. P1 test NDCG@10 is **0.036421**, versus B3 **0.012429**: difference **+0.023992**, paired 95% interval **[0.016787, 0.031517]**. Both methods have 500 valid users and zero errors; Recall@50 is identical (**0.022180**).
+Earlier receipt/freeze JSON retains its historical sealed/pending statements;
+targets were accessed during the later authorized scoring.
 
 Use the saved [500-user metadata](configs/test_users_500_v1.json) and
 [plain IDs](configs/test_users_500_export_v1/user_ids.json).
@@ -84,8 +87,9 @@ Use the saved [500-user metadata](configs/test_users_500_v1.json) and
 prepared configuration; [evaluation_test_frozen_v1.json](configs/evaluation_test_frozen_v1.json)
 records the later P1/B3 inference-only freeze. Historical pending labels remain
 unchanged in hashed preparation artifacts. The freeze record explains their
-scope and supersession. P2 implementation/evaluation and the final frozen
-comparison remain later work under the roadmap.
+scope and supersession. The completed test comparison covers P1 and B3;
+P2 implementation/evaluation and the broader final comparison remain later
+work under the roadmap. Test outcomes must not guide further model selection.
 
 ## Fixed validation users
 
