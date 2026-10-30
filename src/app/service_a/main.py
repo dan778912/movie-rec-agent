@@ -58,6 +58,8 @@ def _recommendation_items_out(db: DbSession, items) -> list[RecommendationItemOu
             movie_id=item.movie_id,
             title=movies[item.movie_id].title if item.movie_id in movies else None,
             genres=movies[item.movie_id].genres if item.movie_id in movies else None,
+            rating_avg=movies[item.movie_id].rating_avg if item.movie_id in movies else None,
+            rating_count=movies[item.movie_id].rating_count if item.movie_id in movies else None,
             rank=item.rank,
             score=item.score,
             explanation=item.explanation,
@@ -106,7 +108,12 @@ def _advance_turn(db: DbSession, session: SessionModel, client: ServiceBClient):
 def search_movies(q: str = "", limit: int = 8, db: DbSession = Depends(get_db)) -> list[MovieSearchResult]:
     limit = max(1, min(limit, 25))
     movies = repo.search_movies(db, q, limit=limit)
-    return [MovieSearchResult(movie_id=m.movie_id, title=m.title, genres=m.genres) for m in movies]
+    return [
+        MovieSearchResult(
+            movie_id=m.movie_id, title=m.title, genres=m.genres, rating_avg=m.rating_avg, rating_count=m.rating_count
+        )
+        for m in movies
+    ]
 
 
 @app.post("/sessions", response_model=SessionOut, status_code=201)

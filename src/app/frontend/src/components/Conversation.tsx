@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type RecommendationItemOut, type SessionOut } from "../api";
-import { primaryGenres } from "../movieTitle";
+import { formatRating, primaryGenres } from "../movieTitle";
 
 interface Props {
   session: SessionOut;
@@ -131,7 +131,10 @@ function RecommendationList({ items }: { items: RecommendationItemOut[] }) {
               <span className="notes-row-meta">#{item.rank}</span>
               <span className="notes-row-title">{title}</span>
               <span className="notes-row-genres">{primaryGenres(item.genres)}</span>
-              <span className="notes-tag">{item.score.toFixed(2)}</span>
+              <span className="notes-row-rating">{formatRating(item.rating_avg, item.rating_count)}</span>
+              <span className="notes-tag" title="Agent relevance score, not a user rating">
+                match {item.score.toFixed(2)}
+              </span>
             </button>
             {expanded && (
               <div className="notes-detail">{item.explanation ?? "No justification was provided."}</div>

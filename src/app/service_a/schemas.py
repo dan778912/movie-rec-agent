@@ -11,6 +11,8 @@ class MovieSearchResult(BaseModel):
     movie_id: int
     title: str
     genres: str
+    rating_avg: float | None
+    rating_count: int | None
 
 
 class WatchedItemIn(BaseModel):
@@ -40,6 +42,8 @@ class RecommendationItemOut(BaseModel):
     movie_id: int
     title: str | None
     genres: str | None
+    rating_avg: float | None
+    rating_count: int | None
     rank: int
     score: float
     explanation: str | None

@@ -291,6 +291,14 @@ button.secondary:hover {
   color: var(--ink-muted);
 }
 
+.notes-row-rating {
+  flex-shrink: 0;
+  width: 110px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
 .notes-tag {
   flex-shrink: 0;
   border: 1px solid var(--ink);
@@ -339,6 +347,11 @@ button.secondary:hover {
   }
 
   .notes-row-genres {
+    width: auto;
+    order: 2;
+  }
+
+  .notes-row-rating {
     width: auto;
     order: 2;
   }

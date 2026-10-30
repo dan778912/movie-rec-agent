@@ -32,6 +32,10 @@ class Movie(Base):
     # formatter exactly as Member 1's offline pipeline does (src/data/build.py).
     genome_tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     user_tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    # Real aggregates from Member 1's frozen train_ratings.csv (training split
+    # only, not validation/test — see seed_catalog.py). Null until seeded.
+    rating_avg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rating_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class AppUser(Base):

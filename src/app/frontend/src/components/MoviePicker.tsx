@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type MovieSearchResult } from "../api";
-import { primaryGenres, splitYear } from "../movieTitle";
+import { formatRating, primaryGenres, splitYear } from "../movieTitle";
 
 interface Props {
   selected: MovieSearchResult | null;
@@ -97,6 +97,7 @@ export function MoviePicker({ selected, onSelect }: Props) {
                       <span className="notes-row-meta">{year ?? "—"}</span>
                       <span className="notes-row-title">{name}</span>
                       <span className="notes-row-genres">{primaryGenres(movie.genres)}</span>
+                      <span className="notes-row-rating">{formatRating(movie.rating_avg, movie.rating_count)}</span>
                     </button>
                   </div>
                 );

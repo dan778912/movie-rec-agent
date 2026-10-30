@@ -13,6 +13,8 @@ export interface MovieSearchResult {
   movie_id: number;
   title: string;
   genres: string;
+  rating_avg: number | null;
+  rating_count: number | null;
 }
 
 export interface SessionOut {
@@ -26,6 +28,8 @@ export interface RecommendationItemOut {
   movie_id: number;
   title: string | null;
   genres: string | null;
+  rating_avg: number | null;
+  rating_count: number | null;
   rank: number;
   score: number;
   explanation: string | null;
