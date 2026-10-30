@@ -1,0 +1,195 @@
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+  text-align: left;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+header h1 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+}
+
+nav button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #444);
+  background: transparent;
+  cursor: pointer;
+}
+
+nav button.active {
+  background: var(--accent-bg, #2a2a2a);
+  font-weight: 600;
+}
+
+nav button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rating-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hint {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.rating-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 90px 32px;
+  gap: 8px;
+}
+
+.rating-row input {
+  padding: 8px;
+}
+
+.rating-form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bubble {
+  padding: 10px 14px;
+  border-radius: 10px;
+  max-width: 85%;
+}
+
+.bubble.system {
+  background: var(--accent-bg, #2a2a2a);
+  align-self: flex-start;
+}
+
+.bubble.user {
+  background: #2d5a7a;
+  color: white;
+  align-self: flex-end;
+}
+
+.bubble.error {
+  background: #5a2d2d;
+  color: white;
+}
+
+.answer-form {
+  display: flex;
+  gap: 8px;
+}
+
+.answer-form input {
+  flex: 1;
+  padding: 10px;
+}
+
+.recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recommendation-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border, #444);
+  border-radius: 8px;
+}
+
+.recommendation-rank {
+  font-weight: 700;
+  font-size: 1.1rem;
+  min-width: 32px;
+}
+
+.recommendation-title {
+  font-weight: 600;
+}
+
+.recommendation-score {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.recommendation-explanation {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+}
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.history-session {
+  border: 1px solid var(--border, #444);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.history-session-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.status {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.status-completed {
+  background: #2d5a3a;
+}
+
+.status-awaiting_clarification {
+  background: #5a4a2d;
+}
+
+.status-active {
+  background: #2d3a5a;
+}
+
+.history-session-time {
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+.history-items {
+  margin: 0;
+  padding-left: 18px;
+}
