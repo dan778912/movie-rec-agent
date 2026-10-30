@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type RecommendationItemOut, type SessionOut } from "../api";
+import { posterColor } from "../poster";
 
 interface Props {
   session: SessionOut;
@@ -110,16 +111,22 @@ function MessageBubble({ message }: { message: Message }) {
   }
   return (
     <div className="recommendations">
-      {message.items.map((item) => (
-        <div className="recommendation-card" key={item.movie_id}>
-          <div className="recommendation-rank">#{item.rank}</div>
-          <div className="recommendation-body">
-            <div className="recommendation-title">{item.title ?? `Movie ${item.movie_id}`}</div>
-            <div className="recommendation-score">score {item.score.toFixed(2)}</div>
-            {item.explanation && <p className="recommendation-explanation">{item.explanation}</p>}
+      {message.items.map((item) => {
+        const title = item.title ?? `Movie ${item.movie_id}`;
+        return (
+          <div className="recommendation-card" key={item.movie_id}>
+            <span className="poster-block recommendation-poster" style={{ background: posterColor(title) }}>
+              <span className="poster-block-title">{title}</span>
+              <span className="poster-rank">#{item.rank}</span>
+            </span>
+            <div className="recommendation-body">
+              <div className="recommendation-title">{title}</div>
+              <div className="recommendation-score">score {item.score.toFixed(2)}</div>
+              {item.explanation && <p className="recommendation-explanation">{item.explanation}</p>}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type MovieSearchResult } from "../api";
+import { posterColor } from "../poster";
 
 interface Props {
   selected: MovieSearchResult | null;
@@ -50,6 +51,7 @@ export function MoviePicker({ selected, onSelect }: Props) {
   if (selected) {
     return (
       <div className="movie-picker movie-picker-selected">
+        <span className="poster-swatch" style={{ background: posterColor(selected.title) }} aria-hidden="true" />
         <span className="movie-picker-title">{selected.title}</span>
         <button type="button" className="link-button" onClick={() => onSelect(null)}>
           change
@@ -60,35 +62,45 @@ export function MoviePicker({ selected, onSelect }: Props) {
 
   return (
     <div className="movie-picker" ref={containerRef}>
-      <input
-        type="text"
-        placeholder="Search a movie title..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => results.length > 0 && setOpen(true)}
-      />
+      <div className="search-bar">
+        <span className="search-icon" aria-hidden="true">
+          &#8981;
+        </span>
+        <input
+          type="text"
+          placeholder="search a title..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => results.length > 0 && setOpen(true)}
+        />
+      </div>
       {open && (
-        <div className="movie-picker-dropdown">
-          {loading && <div className="movie-picker-hint">Searching...</div>}
+        <div className="poster-grid-panel">
+          {loading && <div className="movie-picker-hint">searching...</div>}
           {!loading && results.length === 0 && (
-            <div className="movie-picker-hint">No matches — try fewer words or a different spelling.</div>
+            <div className="movie-picker-hint">no matches — try fewer words or a different spelling.</div>
           )}
-          {!loading &&
-            results.map((movie) => (
-              <button
-                type="button"
-                key={movie.movie_id}
-                className="movie-picker-option"
-                onClick={() => {
-                  onSelect(movie);
-                  setQuery("");
-                  setOpen(false);
-                }}
-              >
-                <span>{movie.title}</span>
-                <span className="movie-picker-genres">{movie.genres.replaceAll("|", " / ")}</span>
-              </button>
-            ))}
+          {!loading && results.length > 0 && (
+            <div className="poster-grid">
+              {results.map((movie) => (
+                <button
+                  type="button"
+                  key={movie.movie_id}
+                  className="poster-card"
+                  onClick={() => {
+                    onSelect(movie);
+                    setQuery("");
+                    setOpen(false);
+                  }}
+                >
+                  <span className="poster-block" style={{ background: posterColor(movie.title) }}>
+                    <span className="poster-block-title">{movie.title}</span>
+                  </span>
+                  <span className="poster-meta">{movie.genres.split("|")[0] || "—"}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type HistorySessionOut } from "../api";
+import { posterColor } from "../poster";
 
 interface Props {
   userId: number;
@@ -37,11 +38,15 @@ export function HistoryPanel({ userId, refreshKey }: Props) {
           </div>
           {session.latest_recommendation ? (
             <ul className="history-items">
-              {session.latest_recommendation.map((item) => (
-                <li key={item.movie_id}>
-                  #{item.rank} {item.title ?? `Movie ${item.movie_id}`} ({item.score.toFixed(2)})
-                </li>
-              ))}
+              {session.latest_recommendation.map((item) => {
+                const title = item.title ?? `Movie ${item.movie_id}`;
+                return (
+                  <li key={item.movie_id}>
+                    <span className="poster-swatch" style={{ background: posterColor(title) }} aria-hidden="true" />
+                    #{item.rank} {title} ({item.score.toFixed(2)})
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="hint">No recommendations yet for this session.</p>
