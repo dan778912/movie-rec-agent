@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type MovieSearchResult } from "../api";
+import { primaryGenres, splitYear } from "../movieTitle";
 
 interface Props {
   selected: MovieSearchResult | null;
@@ -80,22 +81,26 @@ export function MoviePicker({ selected, onSelect }: Props) {
           )}
           {!loading && results.length > 0 && (
             <div className="notes-list">
-              {results.map((movie) => (
-                <div className="notes-entry" key={movie.movie_id}>
-                  <button
-                    type="button"
-                    className="notes-row"
-                    onClick={() => {
-                      onSelect(movie);
-                      setQuery("");
-                      setOpen(false);
-                    }}
-                  >
-                    <span className="notes-row-title">{movie.title}</span>
-                    <span className="notes-tag">{movie.genres.split("|")[0] || "—"}</span>
-                  </button>
-                </div>
-              ))}
+              {results.map((movie) => {
+                const { name, year } = splitYear(movie.title);
+                return (
+                  <div className="notes-entry" key={movie.movie_id}>
+                    <button
+                      type="button"
+                      className="notes-row"
+                      onClick={() => {
+                        onSelect(movie);
+                        setQuery("");
+                        setOpen(false);
+                      }}
+                    >
+                      <span className="notes-row-meta">{year ?? "—"}</span>
+                      <span className="notes-row-title">{name}</span>
+                      <span className="notes-row-genres">{primaryGenres(movie.genres)}</span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

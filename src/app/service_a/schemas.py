@@ -39,6 +39,7 @@ class ClarificationAnswerRequest(BaseModel):
 class RecommendationItemOut(BaseModel):
     movie_id: int
     title: str | None
+    genres: str | None
     rank: int
     score: float
     explanation: str | None

@@ -57,6 +57,7 @@ def _recommendation_items_out(db: DbSession, items) -> list[RecommendationItemOu
         RecommendationItemOut(
             movie_id=item.movie_id,
             title=movies[item.movie_id].title if item.movie_id in movies else None,
+            genres=movies[item.movie_id].genres if item.movie_id in movies else None,
             rank=item.rank,
             score=item.score,
             explanation=item.explanation,

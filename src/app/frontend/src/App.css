@@ -272,6 +272,13 @@ button.secondary:hover {
   color: var(--accent);
 }
 
+.notes-row-genres {
+  flex-shrink: 0;
+  width: 160px;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+}
+
 .notes-tag {
   flex-shrink: 0;
   border: 1px solid var(--ink);
@@ -316,6 +323,11 @@ button.secondary:hover {
     font-size: 1.1rem;
     order: 1;
     flex-basis: 100%;
+  }
+
+  .notes-row-genres {
+    width: auto;
+    order: 2;
   }
 }
 

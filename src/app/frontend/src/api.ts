@@ -25,6 +25,7 @@ export interface SessionOut {
 export interface RecommendationItemOut {
   movie_id: number;
   title: string | null;
+  genres: string | null;
   rank: number;
   score: number;
   explanation: string | null;

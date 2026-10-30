@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type HistorySessionOut } from "../api";
+import { primaryGenres } from "../movieTitle";
 
 interface Props {
   userId: number;
@@ -46,6 +47,7 @@ export function HistoryPanel({ userId, refreshKey }: Props) {
               >
                 <span className="notes-row-meta">{new Date(session.created_at).toLocaleDateString()}</span>
                 <span className="notes-row-title">{headline}</span>
+                <span className="notes-row-genres">{topTitle ? primaryGenres(topTitle.genres) : ""}</span>
                 <span className={`notes-tag status-${session.status}`}>{session.status}</span>
               </button>
               {expanded && (
