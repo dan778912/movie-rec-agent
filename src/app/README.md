@@ -50,12 +50,15 @@ Run from the repo root (`alembic.ini` lives there):
 ```bash
 export DATABASE_URL=postgresql+psycopg://movierec:movierec@localhost:5432/movierec
 ./.venv/bin/alembic upgrade head
-./.venv/bin/python -m src.app.db.seed_catalog   # loads Member 1's movie_documents.jsonl
+./.venv/bin/python -m src.app.db.seed_catalog   # ~60-90s, reads train_ratings.csv (20M rows)
 ```
 
 `seed_catalog.py` expects `data/processed/ml25m-global-v1/movie_documents.jsonl`
-to exist (Member 1's frozen output, or a symlink to it — `data/processed/` is
-git-ignored, so each teammate points it at their own copy/symlink).
+and `train_ratings.csv` to exist (Member 1's frozen output, or a symlink to it —
+`data/processed/` is git-ignored, so each teammate points it at their own
+copy/symlink). It also aggregates a real average rating and rating count per
+movie from `train_ratings.csv` (training split only, ~20.2M rows), which is
+why the first run takes roughly a minute.
 
 ### 4. Service A
 
