@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type HistorySessionOut } from "../api";
-import { posterColor } from "../poster";
 
 interface Props {
   userId: number;
@@ -10,6 +9,7 @@ interface Props {
 export function HistoryPanel({ userId, refreshKey }: Props) {
   const [sessions, setSessions] = useState<HistorySessionOut[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,30 +29,44 @@ export function HistoryPanel({ userId, refreshKey }: Props) {
   return (
     <div className="history">
       <h2>History</h2>
-      {sessions.map((session) => (
-        <div className="history-session" key={session.session_id}>
-          <div className="history-session-header">
-            <span>Session #{session.session_id}</span>
-            <span className={`status status-${session.status}`}>{session.status}</span>
-            <span className="history-session-time">{new Date(session.created_at).toLocaleString()}</span>
-          </div>
-          {session.latest_recommendation ? (
-            <ul className="history-items">
-              {session.latest_recommendation.map((item) => {
-                const title = item.title ?? `Movie ${item.movie_id}`;
-                return (
-                  <li key={item.movie_id}>
-                    <span className="poster-swatch" style={{ background: posterColor(title) }} aria-hidden="true" />
-                    #{item.rank} {title} ({item.score.toFixed(2)})
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="hint">No recommendations yet for this session.</p>
-          )}
-        </div>
-      ))}
+      <div className="notes-list">
+        {sessions.map((session) => {
+          const expanded = expandedId === session.session_id;
+          const topTitle = session.latest_recommendation?.[0];
+          const headline = topTitle
+            ? (topTitle.title ?? `Movie ${topTitle.movie_id}`)
+            : `Session #${session.session_id}`;
+          return (
+            <div className="notes-entry" key={session.session_id}>
+              <button
+                type="button"
+                className="notes-row"
+                onClick={() => setExpandedId(expanded ? null : session.session_id)}
+                aria-expanded={expanded}
+              >
+                <span className="notes-row-meta">{new Date(session.created_at).toLocaleDateString()}</span>
+                <span className="notes-row-title">{headline}</span>
+                <span className={`notes-tag status-${session.status}`}>{session.status}</span>
+              </button>
+              {expanded && (
+                <div className="notes-detail">
+                  {session.latest_recommendation ? (
+                    <ul className="plain-list">
+                      {session.latest_recommendation.map((item) => (
+                        <li key={item.movie_id}>
+                          #{item.rank} {item.title ?? `Movie ${item.movie_id}`} ({item.score.toFixed(2)})
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    "No recommendations yet for this session."
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

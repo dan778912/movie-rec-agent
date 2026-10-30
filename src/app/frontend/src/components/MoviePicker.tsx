@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type MovieSearchResult } from "../api";
-import { posterColor } from "../poster";
 
 interface Props {
   selected: MovieSearchResult | null;
@@ -51,7 +50,6 @@ export function MoviePicker({ selected, onSelect }: Props) {
   if (selected) {
     return (
       <div className="movie-picker movie-picker-selected">
-        <span className="poster-swatch" style={{ background: posterColor(selected.title) }} aria-hidden="true" />
         <span className="movie-picker-title">{selected.title}</span>
         <button type="button" className="link-button" onClick={() => onSelect(null)}>
           change
@@ -75,29 +73,28 @@ export function MoviePicker({ selected, onSelect }: Props) {
         />
       </div>
       {open && (
-        <div className="poster-grid-panel">
+        <div className="notes-list-panel">
           {loading && <div className="movie-picker-hint">searching...</div>}
           {!loading && results.length === 0 && (
             <div className="movie-picker-hint">no matches — try fewer words or a different spelling.</div>
           )}
           {!loading && results.length > 0 && (
-            <div className="poster-grid">
+            <div className="notes-list">
               {results.map((movie) => (
-                <button
-                  type="button"
-                  key={movie.movie_id}
-                  className="poster-card"
-                  onClick={() => {
-                    onSelect(movie);
-                    setQuery("");
-                    setOpen(false);
-                  }}
-                >
-                  <span className="poster-block" style={{ background: posterColor(movie.title) }}>
-                    <span className="poster-block-title">{movie.title}</span>
-                  </span>
-                  <span className="poster-meta">{movie.genres.split("|")[0] || "—"}</span>
-                </button>
+                <div className="notes-entry" key={movie.movie_id}>
+                  <button
+                    type="button"
+                    className="notes-row"
+                    onClick={() => {
+                      onSelect(movie);
+                      setQuery("");
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="notes-row-title">{movie.title}</span>
+                    <span className="notes-tag">{movie.genres.split("|")[0] || "—"}</span>
+                  </button>
+                </div>
               ))}
             </div>
           )}

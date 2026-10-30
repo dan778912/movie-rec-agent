@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type RecommendationItemOut, type SessionOut } from "../api";
-import { posterColor } from "../poster";
 
 interface Props {
   session: SessionOut;
@@ -109,21 +108,32 @@ function MessageBubble({ message }: { message: Message }) {
   if (message.kind === "error") {
     return <div className="bubble error">{message.text}</div>;
   }
+  return <RecommendationList items={message.items} />;
+}
+
+function RecommendationList({ items }: { items: RecommendationItemOut[] }) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
   return (
-    <div className="recommendations">
-      {message.items.map((item) => {
+    <div className="notes-list">
+      {items.map((item) => {
         const title = item.title ?? `Movie ${item.movie_id}`;
+        const expanded = expandedId === item.movie_id;
         return (
-          <div className="recommendation-card" key={item.movie_id}>
-            <span className="poster-block recommendation-poster" style={{ background: posterColor(title) }}>
-              <span className="poster-block-title">{title}</span>
-              <span className="poster-rank">#{item.rank}</span>
-            </span>
-            <div className="recommendation-body">
-              <div className="recommendation-title">{title}</div>
-              <div className="recommendation-score">score {item.score.toFixed(2)}</div>
-              {item.explanation && <p className="recommendation-explanation">{item.explanation}</p>}
-            </div>
+          <div className="notes-entry" key={item.movie_id}>
+            <button
+              type="button"
+              className="notes-row"
+              onClick={() => setExpandedId(expanded ? null : item.movie_id)}
+              aria-expanded={expanded}
+            >
+              <span className="notes-row-meta">#{item.rank}</span>
+              <span className="notes-row-title">{title}</span>
+              <span className="notes-tag">{item.score.toFixed(2)}</span>
+            </button>
+            {expanded && (
+              <div className="notes-detail">{item.explanation ?? "No justification was provided."}</div>
+            )}
           </div>
         );
       })}
