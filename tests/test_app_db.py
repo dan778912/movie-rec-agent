@@ -90,6 +90,23 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(movies[1].title, "Toy Story")
         self.assertNotIn(2, movies)
 
+    def test_search_movies_ranks_prefix_matches_first(self) -> None:
+        self.db.add_all(
+            [
+                Movie(movie_id=1, title="Heat (1995)", genres="", text=""),
+                Movie(movie_id=2, title="The Great Heat Wave", genres="", text=""),
+                Movie(movie_id=3, title="Unrelated (2000)", genres="", text=""),
+            ]
+        )
+        self.db.commit()
+        results = repo.search_movies(self.db, "heat")
+        self.assertEqual([movie.movie_id for movie in results], [1, 2])
+
+    def test_search_movies_blank_query_returns_nothing(self) -> None:
+        self.db.add(Movie(movie_id=1, title="Heat (1995)", genres="", text=""))
+        self.db.commit()
+        self.assertEqual(repo.search_movies(self.db, "   "), [])
+
     def test_list_candidate_movies_excludes_given_ids(self) -> None:
         for movie_id in range(1, 6):
             self.db.add(Movie(movie_id=movie_id, title=f"Movie {movie_id}", genres="", text=""))

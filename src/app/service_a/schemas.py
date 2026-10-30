@@ -7,6 +7,12 @@ import datetime
 from pydantic import BaseModel, Field
 
 
+class MovieSearchResult(BaseModel):
+    movie_id: int
+    title: str
+    genres: str
+
+
 class WatchedItemIn(BaseModel):
     movie_id: int
     title: str

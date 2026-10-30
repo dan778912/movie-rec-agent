@@ -7,7 +7,7 @@ from __future__ import annotations
 import datetime
 from collections.abc import Iterable, Mapping
 
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.orm import Session as DbSession
 from sqlalchemy.orm import selectinload
 
@@ -181,6 +181,26 @@ def get_movies_by_ids(db: DbSession, movie_ids: Iterable[int]) -> dict[int, Movi
         return {}
     stmt = select(Movie).where(Movie.movie_id.in_(ids))
     return {movie.movie_id: movie for movie in db.scalars(stmt)}
+
+
+def search_movies(db: DbSession, query: str, limit: int = 8) -> list[Movie]:
+    """Case-insensitive title search for the frontend's search-as-you-type
+    picker, so users never have to know a MovieLens ID. Matches any
+    substring (not just a prefix) and ranks prefix matches first. This is
+    plain SQL LIKE, not fuzzy/typo-tolerant matching — see src/app/README.md
+    for that gap and the options for closing it."""
+
+    cleaned = query.strip()
+    if not cleaned:
+        return []
+    is_prefix_match = case((Movie.title.ilike(f"{cleaned}%"), 0), else_=1)
+    stmt = (
+        select(Movie)
+        .where(Movie.title.ilike(f"%{cleaned}%"))
+        .order_by(is_prefix_match, Movie.title)
+        .limit(limit)
+    )
+    return list(db.scalars(stmt))
 
 
 def list_candidate_movies(db: DbSession, exclude_ids: Iterable[int], limit: int) -> list[Movie]:

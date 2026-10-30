@@ -23,6 +23,7 @@ from src.app.service_a.schemas import (
     ClarificationAnswerRequest,
     CreateSessionRequest,
     HistorySessionOut,
+    MovieSearchResult,
     RecommendationItemOut,
     RecommendTurnResponse,
     SessionOut,
@@ -98,6 +99,13 @@ def _advance_turn(db: DbSession, session: SessionModel, client: ServiceBClient):
         )
 
     raise HTTPException(status_code=502, detail=f"Service B returned an unknown action: {action!r}")
+
+
+@app.get("/movies/search", response_model=list[MovieSearchResult])
+def search_movies(q: str = "", limit: int = 8, db: DbSession = Depends(get_db)) -> list[MovieSearchResult]:
+    limit = max(1, min(limit, 25))
+    movies = repo.search_movies(db, q, limit=limit)
+    return [MovieSearchResult(movie_id=m.movie_id, title=m.title, genres=m.genres) for m in movies]
 
 
 @app.post("/sessions", response_model=SessionOut, status_code=201)

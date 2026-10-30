@@ -9,6 +9,12 @@ export interface RatingInput {
   rating: number;
 }
 
+export interface MovieSearchResult {
+  movie_id: number;
+  title: string;
+  genres: string;
+}
+
 export interface SessionOut {
   id: number;
   user_id: number;
@@ -69,6 +75,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  searchMovies(query: string): Promise<MovieSearchResult[]> {
+    if (!query.trim()) return Promise.resolve([]);
+    return request<MovieSearchResult[]>(`/movies/search?q=${encodeURIComponent(query)}`);
+  },
   createSession(ratings: RatingInput[], userId?: number): Promise<SessionOut> {
     return request<SessionOut>("/sessions", {
       method: "POST",
