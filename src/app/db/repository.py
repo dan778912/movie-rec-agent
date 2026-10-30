@@ -181,3 +181,14 @@ def get_movies_by_ids(db: DbSession, movie_ids: Iterable[int]) -> dict[int, Movi
         return {}
     stmt = select(Movie).where(Movie.movie_id.in_(ids))
     return {movie.movie_id: movie for movie in db.scalars(stmt)}
+
+
+def list_candidate_movies(db: DbSession, exclude_ids: Iterable[int], limit: int) -> list[Movie]:
+    """Placeholder candidate lookup for `MockServiceBClient` only — NOT the
+    real retrieval stage. Member 3's online retrieval module replaces this
+    once Service B exists; plain catalog order has no relevance ranking."""
+
+    exclude = set(exclude_ids)
+    stmt = select(Movie).order_by(Movie.movie_id).limit(limit + len(exclude))
+    candidates = [movie for movie in db.scalars(stmt) if movie.movie_id not in exclude]
+    return candidates[:limit]

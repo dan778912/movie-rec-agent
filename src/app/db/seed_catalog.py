@@ -31,6 +31,8 @@ def _iter_movies(source: Path):
                 "title": record["title"],
                 "genres": "|".join(record.get("genres", [])),
                 "text": record["text"],
+                "genome_tags": record.get("genome_tags", []),
+                "user_tags": record.get("user_tags", []),
             }
 
 

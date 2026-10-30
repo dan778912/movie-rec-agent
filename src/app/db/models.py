@@ -28,6 +28,10 @@ class Movie(Base):
     title: Mapped[str] = mapped_column(String, nullable=False)
     genres: Mapped[str] = mapped_column(String, nullable=False, default="")
     text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Kept so live profile text can reuse src/profiles/text.py's user_profile()
+    # formatter exactly as Member 1's offline pipeline does (src/data/build.py).
+    genome_tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    user_tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
 
 
 class AppUser(Base):
