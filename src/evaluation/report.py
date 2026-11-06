@@ -22,9 +22,10 @@ from pathlib import Path
 from . import bootstrap
 from .evaluate import _canonical_bytes, _json_object, _sha256
 
-METHOD_ORDER = ("popularity", "bm25", "embedding", "p1")
+METHOD_ORDER = ("popularity", "bm25", "embedding", "p1", "p2")
 SYSTEMS = {"popularity": "B0 (popularity)", "bm25": "B2 (BM25)",
-           "embedding": "B3 (embedding)", "p1": "P1 (fine-tuned reranker)"}
+           "embedding": "B3 (embedding)", "p1": "P1 (fine-tuned reranker)",
+           "p2": "P2 (agent)"}
 COVERAGE_FIELDS = ("positive_targets", "in_catalog_positive_targets",
                    "out_of_catalog_positive_targets", "catalog_positive_coverage")
 DIFFERENCE_COLUMNS = ("baseline_method", "challenger_method", "metric", "baseline_mean",
@@ -159,7 +160,7 @@ def _markdown(summary: dict, rows: list[dict], comparisons: list[dict]) -> str:
               "|---|" + "---:|" * len(metrics)]
     for row in rows:
         lines.append("| " + row["system"] + " | " + " | ".join(f"{row[name]:.6f}" for name in metrics) + " |")
-    lines += ["", "Recall at the full candidate-pool size measures candidate coverage. P1 reorders its frozen B3 pool, so it cannot improve recall at that full size.", "",
+    lines += ["", "Recall at the full submitted ranking size measures the returned IDs. P1 reorders its frozen B3 pool; P2 may expand its candidate pool before selecting its final ranking.", "",
               "## Data and prediction coverage", "",
               "Catalog coverage is in-catalog positive targets divided by all positive targets. Full-split coverage includes users outside the selected subset; prediction-user coverage describes submitted records.", "",
               "| System | Full-split catalog coverage | Selected-user catalog coverage | Full-split positive / in-catalog / outside | Selected positive / in-catalog / outside | Prediction-user coverage |",
@@ -192,7 +193,7 @@ def build_table(run_dirs: Sequence[Path], *, comparison_dirs: Sequence[Path] = (
     if kind not in ("synthetic", "experiment"):
         raise ValueError("kind must be synthetic or experiment")
     if isinstance(run_dirs, (str, bytes, Path)) or not 1 <= len(run_dirs) <= len(METHOD_ORDER):
-        raise ValueError("provide between one and four scored run directories")
+        raise ValueError("provide between one and five scored run directories")
     if isinstance(comparison_dirs, (str, bytes, Path)):
         raise ValueError("comparison_dirs must be a sequence of directories")
     runs, directories = {}, {}
@@ -213,6 +214,11 @@ def build_table(run_dirs: Sequence[Path], *, comparison_dirs: Sequence[Path] = (
             raise ValueError("a P1 table requires its frozen embedding counterpart")
         if runs["p1"][0]["source_sha256"]["candidate_pool"] != runs["embedding"][0]["source_sha256"]["predictions"]:
             raise ValueError("P1 candidate pool hash does not match embedding predictions")
+    if "p2" in runs:
+        if "embedding" not in runs:
+            raise ValueError("a P2 table requires its frozen embedding counterpart")
+        if runs["p2"][0]["source_sha256"]["candidate_pool"] != runs["embedding"][0]["source_sha256"]["predictions"]:
+            raise ValueError("P2 candidate pool hash does not match embedding predictions")
     metrics = sorted(first[0]["metrics"])
     rows, hashes, paths = [], {}, {}
     for method in methods:

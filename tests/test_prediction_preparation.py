@@ -371,18 +371,30 @@ class PredictionPreparationTest(unittest.TestCase):
         output.mkdir()
         destination = output / "predictions.jsonl"
         original = self.source.read_bytes()
-        destination.symlink_to(self.source)
-        with self.assertRaises(ValueError):
-            write_prepared(output, result)
-        destination.unlink()
+        with self.subTest(kind="file_symlink"):
+            try:
+                destination.symlink_to(self.source)
+            except OSError as error:
+                if getattr(error, "winerror", None) != 1314:
+                    raise
+                self.skipTest("Windows symlink privilege is unavailable")
+            with self.assertRaises(ValueError):
+                write_prepared(output, result)
+            destination.unlink()
         os.link(self.source, destination)
         with self.assertRaises(ValueError):
             write_prepared(output, result)
         self.assertEqual(self.source.read_bytes(), original)
         linked_directory = self.work / "linked_directory"
-        linked_directory.symlink_to(output, target_is_directory=True)
-        with self.assertRaises(ValueError):
-            write_prepared(linked_directory, result)
+        with self.subTest(kind="directory_symlink"):
+            try:
+                linked_directory.symlink_to(output, target_is_directory=True)
+            except OSError as error:
+                if getattr(error, "winerror", None) != 1314:
+                    raise
+                self.skipTest("Windows symlink privilege is unavailable")
+            with self.assertRaises(ValueError):
+                write_prepared(linked_directory, result)
 
     def test_plain_user_export_preserves_frozen_file_and_records_provenance(self):
         frozen_path = self.data / "users.json"

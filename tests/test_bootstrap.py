@@ -400,9 +400,15 @@ class BootstrapRunComparisonTest(unittest.TestCase):
         self.assertEqual((self.baseline / "summary.json").read_bytes(), original)
         output = self.work / "aliased_output"
         output.mkdir()
-        (output / "comparison.json").symlink_to(self.baseline / "summary.json")
-        with self.assertRaises(ValueError):
-            write_comparison(output, result)
+        with self.subTest(kind="symlink"):
+            try:
+                (output / "comparison.json").symlink_to(self.baseline / "summary.json")
+            except OSError as error:
+                if getattr(error, "winerror", None) != 1314:
+                    raise
+                self.skipTest("Windows symlink privilege is unavailable")
+            with self.assertRaises(ValueError):
+                write_comparison(output, result)
         self.assertEqual((self.baseline / "summary.json").read_bytes(), original)
 
 

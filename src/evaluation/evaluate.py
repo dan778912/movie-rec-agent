@@ -1,4 +1,4 @@
-"""Score validated Phase 1 rankings against a frozen, complete held-out truth.
+"""Score validated rankings against a frozen, complete held-out truth.
 
 Configuration paths resolve from the repository root; CLI paths resolve from the
 working directory. This command performs no training or bootstrap comparison.
@@ -98,6 +98,17 @@ def _configuration(path: Path) -> dict:
     }
     for key, expected in fixed.items():
         if config.get(key) != expected:
+            raise ValueError(f"config.{key} must be {expected!r}")
+    p2_policy = {
+        "p2_trace_schema": "p2-trace-v1",
+        "p2_max_control_events": 8,
+        "p2_max_serialized_events": 10,
+        "p2_explanation_count": 10,
+        "p2_fallback_source": "frozen_b3_order",
+        "p2_final_ranking_policy": "subset_of_final_candidate_pool",
+    }
+    for key, expected in p2_policy.items():
+        if key in config and (type(config[key]) is not type(expected) or config[key] != expected):
             raise ValueError(f"config.{key} must be {expected!r}")
     threshold = config.get("positive_rating_at_least")
     if type(threshold) not in (int, float) or threshold != 4.0:
@@ -200,7 +211,8 @@ def _implementation(root: Path) -> dict:
 
 def evaluate(
     config_path: Path, predictions_path: Path, *, method: str,
-    candidate_pool_path: Path | None = None, repository_root: Path | None = None,
+    candidate_pool_path: Path | None = None, trace_path: Path | None = None,
+    repository_root: Path | None = None,
 ) -> EvaluationResult:
     """Validate provenance and predictions, then macro-average the frozen users.
 
@@ -222,6 +234,8 @@ def evaluate(
     }
     if candidate_pool_path is not None:
         paths["candidate_pool"] = Path(candidate_pool_path).resolve()
+    if trace_path is not None:
+        paths["trace"] = Path(trace_path).resolve()
     hashes = {key: _sha256(paths[key]) for key in ("config", "manifest", "catalog", "profiles", "targets", "users")}
     _check_hash(hashes["manifest"], config.get("manifest_sha256"), "config.manifest_sha256")
     _check_hash(hashes["users"], config.get("users_sha256"), "config.users_sha256")
@@ -268,7 +282,8 @@ def evaluate(
     relevant, positives = _targets(paths["targets"], context)
     validated = validate_predictions(predictions_path, context, method=method,
                                      required_count=config["required_predictions_per_user"],
-                                     candidate_pool_path=paths.get("candidate_pool"))
+                                     candidate_pool_path=paths.get("candidate_pool"),
+                                     trace_path=paths.get("trace"))
     hashes.update(validated.report["source_sha256"])
     rows, score_rows = [], []
     selected = sorted(context.expected_user_ids)
@@ -292,7 +307,7 @@ def evaluate(
         "status": "evaluated", "evaluation_version": config["evaluation_version"],
         "dataset_version": config["dataset_version"], "config_status": config["status"],
         "method": method, "split": split, "user_count": len(selected), "metrics": mean_metrics(score_rows),
-        "metric_description": "Binary relevance; macro mean over every frozen user; all in-catalog positive targets form truth, including retrieval misses. Each recall_at_K scores the submitted ranking order. For P1, recall_at_20 describes reranked positions, not original B3 retrieval; recall at the full pool size is candidate coverage and cannot improve through reordering.",
+        "metric_description": "Binary relevance; macro mean over every frozen user; all in-catalog positive targets form truth, including retrieval misses. Each recall_at_K scores the submitted ranking order. P1 preserves the B3 candidate set. P2 may expand the pool; recall at the final ranking size describes submitted IDs, not the entire expanded pool.",
         "coverage": {"full_split": _coverage(positives, relevant, positives),
                      "selected_users": _coverage(selected, relevant, positives)},
         "coverage_description": "Catalog positive coverage is in-catalog positive targets / all positive targets, counted per user/movie pair; full_split includes users with only out-of-catalog targets.",
@@ -374,10 +389,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--method", choices=METHODS, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--candidate-pool", type=Path)
+    parser.add_argument("--trace", type=Path, help="required P2 execution trace JSONL")
     args = parser.parse_args(argv)
     try:
         result = evaluate(args.config, args.predictions, method=args.method,
-                          candidate_pool_path=args.candidate_pool)
+                          candidate_pool_path=args.candidate_pool, trace_path=args.trace)
         write_results(args.output_dir, result)
     except PredictionValidationError as error:
         print(str(error), file=sys.stderr)

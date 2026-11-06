@@ -1,0 +1,2 @@
+# Keep checked-out text bytes identical to the hashed LF artifacts on Windows.
+* text=auto eol=lf

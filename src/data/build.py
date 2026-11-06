@@ -27,6 +27,11 @@ def write_jsonl(path: Path, records):
             output.write(json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
 
 
+def write_json(path: Path, record):
+    with path.open("w", encoding="utf-8", newline="\n") as output:
+        output.write(json.dumps(record, indent=2, sort_keys=True) + "\n")
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as source:
@@ -270,7 +275,7 @@ def build(raw: Path, output: Path, config: dict):
             "test_cutoff_unix": test_cutoff,
             "test_cutoff_utc": datetime.fromtimestamp(test_cutoff, timezone.utc).isoformat(),
         }
-        (output / "statistics.json").write_text(json.dumps(stats, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        write_json(output / "statistics.json", stats)
         files = sorted(p for p in output.iterdir() if p.is_file() and p.name not in {db.name, "manifest.json"})
         manifest = {
             "version": config["version"], "config": config,
@@ -278,7 +283,7 @@ def build(raw: Path, output: Path, config: dict):
                            ("ratings.csv", "movies.csv", "tags.csv", "genome-tags.csv", "genome-scores.csv")},
             "file_sha256": {p.name: sha256(p) for p in files},
         }
-        (output / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        write_json(output / "manifest.json", manifest)
         return stats
     finally:
         con.close()

@@ -8,6 +8,21 @@ The repository follows Section 8 of the roadmap. Each folder has a README descri
 
 See the [Member 2 evaluation instructions](src/evaluation/README.md) for runnable scoring and validation examples; the [Member 2 handoff](docs/member2_handoff.md) for teammate integration; and the [draft evaluation protocol](docs/evaluation_protocol.md) for proposed shared experiment rules. The scorer checks prediction integrity and data identity before calculating per-user metrics, macro means, and catalog-positive coverage. The saved [300-user validation subset](configs/validation_users_300_v1.json) identifies the shared experiment population. The protocol remains a draft for team review. Completing validation or freezing the P1/B3 test-inference inputs does not approve the full evaluation contract.
 
+## Member 2 Phase 2 work
+
+The proposed [Phase 2 evaluation protocol](docs/phase2_evaluation_protocol.md)
+and [interface contract](docs/phase2_interface_contract.md) specify how P2
+starts from the frozen B3 pool, records clarification and re-retrieval actions,
+and submits a comparable final ranking. The [Member 2 runbook](docs/phase2_member2_runbook.md),
+[artifact reproduction guide](docs/phase2_artifact_reproduction.md),
+[results status](docs/phase2_results_status.md),
+[failure-analysis plan](docs/phase2_failure_analysis_plan.md),
+[acceptance checklist](docs/phase2_acceptance_checklist.md), and
+[demo plan](docs/phase2_demo_plan.md) prepare the remaining deliverables. These
+are working documents for team review; no P2 model result or real Service B
+integration is claimed yet. The historical Phase 1 artifacts and published
+B3/P1 test comparison remain unchanged.
+
 The [integration guide](docs/member2_integration.md) covers the reviewed Member
 3/4/5 interfaces. It prepares their full-population Top 100/50 exports as explicit,
 provenance-recorded subset files and exports a plain user-ID array for existing
@@ -22,11 +37,13 @@ file is validated before any user selection or prefix operation.
 | Member 4 | `src/retrieval/` | BM25 retrieval |
 | Member 5 | `src/retrieval/` | Embedding retrieval and candidate pools |
 | Member 6 | `src/reranking/` | P1 and P2 fine-tuning and inference |
-| Phase 2 team | `src/agent/`, `src/app/` | Agent loop and application; assignment follows Phase 1 |
+| Phase 2 team | `src/agent/`, `src/app/` | Agent loop and application; current ownership is listed below |
+
+For Phase 2, the current team split assigns training samples and catalog seed to Member 1; the protocol, evaluator, comparisons, acceptance, and documentation to Member 2; online retrieval and Service B to Member 3; agent logic and traces to Member 4; PostgreSQL, Service A, and the frontend to Member 5; and P1-to-P2 fine-tuning/checkpoints to Member 6. The Phase 1 owner rows above describe the existing branch history.
 
 Shared experiment settings belong in `configs/`; model artifact references in `models/`; standard prediction JSONL files in `outputs/predictions/`; generated tables and reports in `outputs/reports/`; unit and smoke tests in `tests/`. Large datasets, model weights, and generated outputs are Git-ignored. Commit code, small configuration files, documentation, and tests. Small, reviewed result bundles are archived under `docs/results/` for lasting access. To collaborate, clone the repository, create a branch for your task, and open a pull request into `main` after your checks pass.
 
-The GitHub repository is private. Its owner must invite each teammate as a collaborator before they can clone or push. Once invited, a teammate can start with:
+Teammates need write access before pushing branches or opening project pull requests. Start with:
 
 ```powershell
 git clone https://github.com/dan778912/movie-rec-agent.git

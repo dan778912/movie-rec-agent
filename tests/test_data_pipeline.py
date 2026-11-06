@@ -48,6 +48,11 @@ class DataPipelineTest(unittest.TestCase):
             self.assertEqual(stats["eligible_users"], 4)
             self.assertGreater(stats["evaluation"]["test"]["users_with_in_catalog_positive"], 0)
             self.assertEqual(verify(output)["version"], "fixture-v1")
+            for name in ("statistics.json", "manifest.json"):
+                with self.subTest(name=name):
+                    data = (output / name).read_bytes()
+                    self.assertNotIn(b"\r\n", data)
+                    self.assertTrue(data.endswith(b"\n"))
             first_hashes = json.loads((output / "manifest.json").read_text())["file_sha256"]
             build(raw, output, config)
             self.assertEqual(first_hashes, json.loads((output / "manifest.json").read_text())["file_sha256"])

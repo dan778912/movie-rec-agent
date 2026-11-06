@@ -22,10 +22,9 @@ from .evaluate import (
     _canonical_bytes, _check_hash, _configuration, _json_object, _positive_int,
     _sha256, _targets,
 )
-from .validate import (
-    METHODS, PredictionValidationError, ValidationContext, load_context,
-    validate_predictions,
-)
+from .validate import PredictionValidationError, ValidationContext, load_context, validate_predictions
+
+PREPARE_METHODS = ("popularity", "bm25", "embedding", "p1")
 
 
 @dataclass(frozen=True)
@@ -125,8 +124,8 @@ def prepare_predictions(
     P1 must already rank exactly the configured candidate count and use the
     matching source-population embedding pool. P1 is never truncated.
     """
-    if method not in METHODS:
-        raise ValueError(f"method must be one of {METHODS}")
+    if method not in PREPARE_METHODS:
+        raise ValueError(f"method must be one of {PREPARE_METHODS}; P2 requires a trace-aware preparation workflow")
     if source_users not in ("all", "selected"):
         raise ValueError("source_users must be 'all' or 'selected'")
     if not _positive_int(source_count):
@@ -302,7 +301,7 @@ def main(argv: list[str] | None = None) -> int:
     predictions = subparsers.add_parser("predictions", help="validate an entire export, then select frozen users and prefixes")
     predictions.add_argument("--config", required=True, type=Path)
     predictions.add_argument("--source", required=True, type=Path)
-    predictions.add_argument("--method", required=True, choices=METHODS)
+    predictions.add_argument("--method", required=True, choices=PREPARE_METHODS)
     predictions.add_argument("--source-count", required=True, type=int)
     predictions.add_argument("--source-users", required=True, choices=("all", "selected"))
     predictions.add_argument("--source-label", required=True)

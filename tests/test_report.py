@@ -98,7 +98,7 @@ class ExperimentTableTest(unittest.TestCase):
         self.assertEqual(result.summary["kind"], "synthetic")
         self.assertEqual(result.summary["run_count"], 2)
         self.assertEqual(result.summary["methods"], ["embedding", "p1"])
-        self.assertEqual(result.summary["missing_methods"], ["popularity", "bm25"])
+        self.assertEqual(result.summary["missing_methods"], ["popularity", "bm25", "p2"])
         self.assertEqual([row["method"] for row in result.rows], ["embedding", "p1"])
         before, after = result.rows
         for key, value in {"recall_at_2": 0.5, "ndcg_at_2": 0.5,
@@ -114,7 +114,7 @@ class ExperimentTableTest(unittest.TestCase):
         bm25 = self.make_baseline("bm25")
         result = self.table(runs=[self.p1, bm25, self.embedding, popularity])
         self.assertEqual([row["method"] for row in result.rows], ["popularity", "bm25", "embedding", "p1"])
-        self.assertEqual(result.summary["missing_methods"], [])
+        self.assertEqual(result.summary["missing_methods"], ["p2"])
 
     def test_catalog_coverage_populations_have_separate_labels(self):
         for row in self.table().rows:
@@ -359,16 +359,27 @@ class ExperimentTableTest(unittest.TestCase):
         source = self.embedding / "summary.json"
         before = source.read_bytes()
         linked_dir = self.work / "linked-dir"
-        linked_dir.symlink_to(self.embedding, target_is_directory=True)
-        with self.assertRaises(ValueError):
-            write_table(linked_dir / "nested", result)
+        with self.subTest(kind="directory_symlink"):
+            try:
+                linked_dir.symlink_to(self.embedding, target_is_directory=True)
+            except OSError as error:
+                if getattr(error, "winerror", None) != 1314:
+                    raise
+                self.skipTest("Windows symlink privilege is unavailable")
+            with self.assertRaises(ValueError):
+                write_table(linked_dir / "nested", result)
         for kind in ("symlink", "hardlink"):
             with self.subTest(kind=kind):
                 output = self.work / kind
                 output.mkdir()
                 destination = output / "table.csv"
                 if kind == "symlink":
-                    destination.symlink_to(source)
+                    try:
+                        destination.symlink_to(source)
+                    except OSError as error:
+                        if getattr(error, "winerror", None) != 1314:
+                            raise
+                        self.skipTest("Windows symlink privilege is unavailable")
                 else:
                     os.link(source, destination)
                 with self.assertRaises(ValueError):
@@ -379,7 +390,7 @@ class ExperimentTableTest(unittest.TestCase):
         result = self.table(runs=[self.embedding])
         self.assertEqual(len(result.rows), 1)
         self.assertEqual(result.rows[0]["method"], "embedding")
-        self.assertEqual(result.summary["missing_methods"], ["popularity", "bm25", "p1"])
+        self.assertEqual(result.summary["missing_methods"], ["popularity", "bm25", "p1", "p2"])
         self.assertEqual(result.comparisons, [])
         output = self.work / "single"
         write_table(output, result)

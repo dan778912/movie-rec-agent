@@ -39,3 +39,23 @@ uses the unchanged `evaluation_v1.json`, whose status remains
 `draft_for_team_review`. P1/B3 test scoring is complete under separately recorded
 authorization. Sealed/pending statements in preserved receipt/preparation JSON
 describe their earlier pre-scoring stage.
+
+## Phase 2 scoring drafts
+
+`evaluation_phase2_validation_draft_v1.json` and
+`evaluation_phase2_test_draft_v1.json` copy the existing metric cutoffs, data
+hashes, and saved user populations into a new `eval-p2-draft-v1` scoring version.
+Both have status `draft_for_phase2_team_review`. They are review inputs, not a
+P2 inference freeze or approval to score final-test outputs. They also record
+the evaluator's fixed `p2-trace-v1` structure, eight-control-event cap,
+top-ten explanation requirement, final-pool subset rule, and B3-order fallback
+source. The scorer rejects any declared structural policy that disagrees with
+its implementation. The P2 checkpoint, prompt, simulator, index, operational
+loop caps, and fallback triggers belong in a separate versioned run manifest
+under the [Phase 2 protocol](../docs/phase2_evaluation_protocol.md).
+
+After team review, freeze a new shared scoring configuration before final-test
+inference. Re-score the original hash-verified B3 and P1 prediction JSONLs and
+score P2 with the *same* final configuration and evaluator source, so paired
+comparisons pass the strict configuration and implementation identity checks.
+Preserve all historical Phase 1 configurations and reports unchanged.

@@ -14,6 +14,11 @@ The [draft protocol](../../docs/evaluation_protocol.md) describes the data rules
 proposed prediction contract, and B3/P1 comparison. The contract awaits team
 review. The [teammate handoff](../../docs/member2_handoff.md) explains how to use
 the real data and saved IDs. The core Phase 1 evaluation tooling is implemented.
+For Phase 2, use the [proposed P2 protocol](../../docs/phase2_evaluation_protocol.md),
+[trace and Service A/B interface](../../docs/phase2_interface_contract.md), and
+[Member 2 runbook](../../docs/phase2_member2_runbook.md). P2 adds a required
+execution trace and permits the final 50 to come from an expanded candidate
+pool. The published Phase 1 reports remain separate historical artifacts.
 Actual B0/B2/B3/P1 validation is complete on the same 300 users. See the
 [portable validation archive](../../docs/results/member2_validation_300_v1/README.md)
 for complete run bundles, paired comparisons, and the four-method table.

@@ -337,11 +337,19 @@ class EvaluationPipelineTest(unittest.TestCase):
     def test_output_inside_data_dir_and_directory_alias_are_rejected(self):
         result = self.score()
         alias = self.work / "data_alias"
-        alias.symlink_to(self.data, target_is_directory=True)
-        for output in (self.data, self.data / "results", alias / "results"):
+        for output in (self.data, self.data / "results"):
             with self.subTest(output=output):
                 with self.assertRaises(ValueError):
                     write_results(output, result)
+        with self.subTest(output=alias / "results"):
+            try:
+                alias.symlink_to(self.data, target_is_directory=True)
+            except OSError as error:
+                if getattr(error, "winerror", None) != 1314:
+                    raise
+                self.skipTest("Windows symlink privilege is unavailable")
+            with self.assertRaises(ValueError):
+                write_results(alias / "results", result)
         self.assertFalse((self.data / "results").exists())
 
     def test_output_file_aliases_cannot_overwrite_input(self):
@@ -352,7 +360,12 @@ class EvaluationPipelineTest(unittest.TestCase):
                 output = self.work / kind
                 output.mkdir()
                 if kind == "symlink":
-                    (output / "summary.json").symlink_to(self.predictions)
+                    try:
+                        (output / "summary.json").symlink_to(self.predictions)
+                    except OSError as error:
+                        if getattr(error, "winerror", None) != 1314:
+                            raise
+                        self.skipTest("Windows symlink privilege is unavailable")
                 else:
                     os.link(self.predictions, output / "summary.json")
                 with self.assertRaises(ValueError):
