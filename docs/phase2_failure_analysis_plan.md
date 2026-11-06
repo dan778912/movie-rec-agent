@@ -10,6 +10,14 @@ The original 500-user B3 and P1 prediction JSONLs are held in team storage rathe
 
 For development, use the fixed validation population. Run the final test analysis only after the P2 experiment settings and artifacts are frozen. Published P1/B3 test scores must not select or tune P2.
 
+The [draft analysis specification](../configs/phase2_failure_analysis_spec_draft_v1.json)
+sets the starting-profile short/long boundary at **1,539 Unicode characters**.
+This is the floor of the median length (1,539.5) among the 300 saved validation
+profiles and divides those profiles 150/150. It was selected from profile text
+only, without validation or test targets or any P2 outputs. The spec remains a
+draft until the team records the pre-test freeze; the analysis command rejects
+a test run using a draft spec.
+
 ## Quantitative breakdown
 
 Report the full paired distribution of P2 minus P1 Recall@10 and NDCG@10: mean, median, better/worse/tie counts, and the prespecified paired-user bootstrap interval. Show absolute B3, P1, and P2 means from the shared evaluator. Keep all users in each denominator.

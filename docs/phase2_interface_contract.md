@@ -179,6 +179,11 @@ audit under the protocol.
 
 ## Run manifest and evidence
 
+The proposed machine-readable receipt and validation command are specified in
+[Phase 2 producer run receipt](phase2_run_manifest.md). The list below describes
+the broader evidence that must accompany it; the receipt alone cannot verify
+owner assertions or establish that the policy was frozen before inference.
+
 Each owner run supplies a machine-readable manifest or report identifying:
 
 - Dataset, catalog, profile, frozen users, B3 predictions, P2 predictions,

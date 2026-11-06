@@ -1,0 +1,7 @@
+{
+  "schema_version": "phase2-failure-analysis-spec-v1",
+  "status": "draft_for_validation",
+  "selection_basis": "validation_only",
+  "rank_cutoff": 10,
+  "profile_length_threshold_chars": 1539
+}

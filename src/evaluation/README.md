@@ -18,7 +18,10 @@ For Phase 2, use the [proposed P2 protocol](../../docs/phase2_evaluation_protoco
 [trace and Service A/B interface](../../docs/phase2_interface_contract.md), and
 [Member 2 runbook](../../docs/phase2_member2_runbook.md). P2 adds a required
 execution trace and permits the final 50 to come from an expanded candidate
-pool. The published Phase 1 reports remain separate historical artifacts.
+pool. The P2 trace validator, scorer, pool diagnostics, run-receipt check,
+quantitative failure breakdown, and grounding-audit worksheet are implemented
+with synthetic tests. The published Phase 1 reports remain separate historical
+artifacts; real P2 outputs are still pending.
 Actual B0/B2/B3/P1 validation is complete on the same 300 users. See the
 [portable validation archive](../../docs/results/member2_validation_300_v1/README.md)
 for complete run bundles, paired comparisons, and the four-method table.
@@ -518,7 +521,8 @@ No untuned-Qwen control was evaluated. Historical receipt/freeze JSON describes
 the earlier pre-scoring stage.
 
 Remaining work includes broader protocol review, owner explanation/model/cost
-records, Phase 2, and the joint final comparison. The current scorer accepts
-`popularity`, `bm25`, `embedding`, and `p1`; P2 needs an explicit protocol/scorer
-extension. Completed test outcomes must not guide further model selection.
+records, real P2 exports and services, and the joint final comparison. The
+Phase 2 scorer and validator now accept `p2`, subject to the proposed trace
+contract and a reviewed final-test freeze. Completed test outcomes must not
+guide further model selection.
 See the [current checklist](../../docs/member2_completion_checklist.md).

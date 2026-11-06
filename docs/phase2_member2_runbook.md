@@ -8,6 +8,12 @@
 2. The original 500-user B3 prediction JSONL and P1 prediction JSONL from team storage. Their historical SHA-256 digests are respectively `44ec13348849458fa58746e126369afc5fa0c2cf4bbd867bc732b83f412b93a1` and `15d5d332f61224824f339bdd73275522dec71a93ae05d0a460f9bb7fb1412634`. The archived scored reports cannot replace these files for P2 pool validation or same-revision rescoring.
 3. P2's prediction JSONL, `p2-trace-v1` JSONL, run manifest, checkpoint/index identifiers, simulator source/version, and latency/error records from Members 3, 4, and 6. A producer's file name is not evidence of its contents; verify its hash and validate every user.
 
+The saved 500-user popularity (B0) and BM25 (B2) prediction inputs have now
+been generated without reading test labels. See their
+[receipt](phase2_baseline_prediction_receipt.md) for hashes and producer
+commits. They are top-100 source exports; prepare their top 50 only after the
+shared Phase 2 scoring configuration is frozen.
+
 Keep original inputs immutable. Store large local inputs under Git-ignored `data/` or `outputs/predictions/`, and use a new versioned directory for each derived report. Do not edit published Phase 1 archives or frozen configs.
 
 ## Validate on the saved development users
@@ -36,9 +42,25 @@ python -m src.evaluation.evaluate --config configs/evaluation_phase2_validation_
 python -m src.evaluation.bootstrap --baseline-dir outputs/reports/phase2_validation/p1 --challenger-dir outputs/reports/phase2_validation/p2 --output-dir outputs/reports/phase2_validation/p1_vs_p2
 python -m src.evaluation.report --runs outputs/reports/phase2_validation/b3 outputs/reports/phase2_validation/p1 outputs/reports/phase2_validation/p2 --comparisons outputs/reports/phase2_validation/p1_vs_p2 --kind experiment --output-dir outputs/reports/phase2_validation/table
 python -m src.evaluation.p2_diagnostics --config configs/evaluation_phase2_validation_draft_v1.json --candidate-pool outputs/predictions/phase2_validation/b3.jsonl --predictions outputs/predictions/phase2_validation/p2.jsonl --trace outputs/predictions/phase2_validation/p2_trace.jsonl --output-dir outputs/reports/phase2_validation/p2_diagnostics
+
+python -m src.evaluation.p2_run_manifest --manifest outputs/predictions/phase2_validation/run_manifest.json --config configs/evaluation_phase2_validation_draft_v1.json --candidate-pool outputs/predictions/phase2_validation/b3.jsonl --predictions outputs/predictions/phase2_validation/p2.jsonl --trace outputs/predictions/phase2_validation/p2_trace.jsonl
+
+python -m src.evaluation.phase2_failure_analysis --p1-dir outputs/reports/phase2_validation/p1 --p2-dir outputs/reports/phase2_validation/p2 --diagnostics-dir outputs/reports/phase2_validation/p2_diagnostics --analysis-spec configs/phase2_failure_analysis_spec_draft_v1.json --output-dir outputs/reports/phase2_validation/failure_analysis
+
+python -m src.evaluation.p2_grounding_audit --catalog data/processed/ml25m-global-v1/catalog.csv --movie-documents data/processed/ml25m-global-v1/movie_documents.jsonl --profiles data/processed/ml25m-global-v1/validation_profiles.jsonl --users configs/validation_users_300_v1.json --split validation --candidate-pool outputs/predictions/phase2_validation/b3.jsonl --predictions outputs/predictions/phase2_validation/p2.jsonl --trace outputs/predictions/phase2_validation/p2_trace.jsonl --sample-size 30 --seed 20261002 --output-dir outputs/reports/phase2_validation/grounding_audit
 ```
 
 The table reports submitted ranking metrics; diagnostics separately reports initial and expanded-pool recall, added-candidate yield, action/fallback rates, and pool sizes. The [failure-analysis plan](phase2_failure_analysis_plan.md) specifies how to interpret these and select qualitative cases. The report writer refuses to overwrite a different existing bundle; choose a new versioned output directory for a changed run.
+
+The [run-manifest check](phase2_run_manifest.md) compares the producer's declared policy, source hashes,
+per-user telemetry, and output hashes with the validated export; it cannot
+prove the checkpoint actually ran or that the policy was frozen before
+inference. The failure-analysis command computes paired and subgroup summaries
+from compatible saved bundles, using the validation-only draft threshold. The
+[grounding audit](phase2_grounding_audit.md) creates a label-blind worksheet;
+human reviewers must judge explanation claims against its versioned evidence.
+Use a separately approved frozen analysis spec for test; the CLI rejects the
+draft status there.
 
 ## Before final-test scoring
 

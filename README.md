@@ -17,6 +17,9 @@ and submits a comparable final ranking. The [Member 2 runbook](docs/phase2_membe
 [artifact reproduction guide](docs/phase2_artifact_reproduction.md),
 [results status](docs/phase2_results_status.md),
 [failure-analysis plan](docs/phase2_failure_analysis_plan.md),
+[B0/B2 input receipt](docs/phase2_baseline_prediction_receipt.md),
+[P2 run-manifest schema](docs/phase2_run_manifest.md),
+[grounding-audit rubric](docs/phase2_grounding_audit.md),
 [acceptance checklist](docs/phase2_acceptance_checklist.md), and
 [demo plan](docs/phase2_demo_plan.md) prepare the remaining deliverables. These
 are working documents for team review; no P2 model result or real Service B

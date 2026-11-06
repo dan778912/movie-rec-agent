@@ -39,6 +39,18 @@ The archive reports that 380 of 500 users had no relevant held-out movie in
 the initial B3 top-50 pool. That is the historical retrieval limitation P2's
 re-retrieval may address. It is not evidence that P2 actually improves it.
 
+## Additional baseline inputs prepared
+
+The frozen popularity (B0) and BM25 (B2) producers were run on the same saved
+500 test users, without reading test labels. Both top-100 prediction files
+passed the authoritative structural validator with 500/500 users and zero
+errors. Their hashes, producer commits, and local file paths are in the
+[B0/B2 prediction receipt](phase2_baseline_prediction_receipt.md). They remain
+**unscored** until the team freezes the shared Phase 2 test configuration;
+their top 50 can then be prepared and evaluated under the same revision as
+B3/P1/P2. This completes the label-blind B0/B2 input generation step but not
+the joint results table.
+
 ## Inputs required for the final comparison
 
 1. Obtain the original frozen 500-user B3 and P1 prediction JSONL files from
