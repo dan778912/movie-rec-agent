@@ -11,6 +11,11 @@ module (Member 4), and retrieval (Member 3) — does not exist yet. Service A
 is built against a `MockServiceBClient` so it is runnable and testable today;
 see "Mock vs. real Service B" below for the swap point.
 
+**Status and full narrative:** `docs/member5-phase2-status.md` (what's real
+vs. placeholder here, what's on the other members' unmerged branches as of
+its last-updated date, and what's still open). This README stays focused on
+how to run things; that doc covers why things are the way they are.
+
 ## Layout
 
 ```
@@ -83,6 +88,7 @@ npm run dev
 
 | Method & path | Purpose |
 |---|---|
+| `GET /movies/search?q=` | Title search (search-as-you-type picker), optional `limit` |
 | `POST /sessions` | Start a session from imported ratings |
 | `GET /sessions/{id}` | Session status |
 | `POST /sessions/{id}/turn` | Advance one agent turn — returns an `ask` or `recommend` action |
