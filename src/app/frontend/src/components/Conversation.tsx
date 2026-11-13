@@ -1,147 +1,29 @@
-import { useEffect, useState } from "react";
-import { api, ApiError, type RecommendationItemOut, type SessionOut } from "../api";
-import { formatRating, primaryGenres } from "../movieTitle";
+import type { Message } from '../useRecommendation';
+import { RecommendationList } from './RecommendationList';
 
 interface Props {
-  session: SessionOut;
-  onCompleted: () => void;
+  messages: Message[]; answer: string; onAnswerChange: (value: string) => void;
+  awaitingAnswer: boolean; loading: boolean; error: string | null;
+  onSend: () => void; onRetry: () => void; onEdit: () => void;
 }
 
-type Message =
-  | { kind: "question"; text: string }
-  | { kind: "answer"; text: string }
-  | { kind: "recommendations"; items: RecommendationItemOut[] }
-  | { kind: "error"; text: string };
-
-export function Conversation({ session, onCompleted }: Props) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [awaitingAnswer, setAwaitingAnswer] = useState(false);
-  const [answer, setAnswer] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .advanceTurn(session.id)
-      .then((result) => {
-        if (cancelled) return;
-        if (result.action === "ask") {
-          setMessages([{ kind: "question", text: result.question }]);
-          setAwaitingAnswer(true);
-        } else {
-          setMessages([{ kind: "recommendations", items: result.items }]);
-          onCompleted();
-        }
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setMessages([{ kind: "error", text: error instanceof ApiError ? error.message : "Something went wrong." }]);
-      })
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-    // Only re-run when the session identity changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.id]);
-
-  const submitAnswer = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const text = answer.trim();
-    if (!text) return;
-    setMessages((current) => [...current, { kind: "answer", text }]);
-    setAnswer("");
-    setAwaitingAnswer(false);
-    setLoading(true);
-    try {
-      const result = await api.answerClarification(session.id, text);
-      if (result.action === "ask") {
-        setMessages((current) => [...current, { kind: "question", text: result.question }]);
-        setAwaitingAnswer(true);
-      } else {
-        setMessages((current) => [...current, { kind: "recommendations", items: result.items }]);
-        onCompleted();
-      }
-    } catch (error) {
-      setMessages((current) => [
-        ...current,
-        { kind: "error", text: error instanceof ApiError ? error.message : "Something went wrong." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="conversation">
-      <h2>Session #{session.id}</h2>
-      <div className="transcript">
-        {messages.map((message, index) => (
-          <MessageBubble key={index} message={message} />
-        ))}
-        {loading && <div className="bubble system">Thinking...</div>}
-      </div>
-      {awaitingAnswer && !loading && (
-        <form className="answer-form" onSubmit={submitAnswer}>
-          <input
-            type="text"
-            placeholder="Your answer..."
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            autoFocus
-          />
-          <button type="submit" disabled={!answer.trim()}>
-            Send
-          </button>
-        </form>
-      )}
+export function Conversation({ messages, answer, onAnswerChange, awaitingAnswer, loading, error, onSend, onRetry, onEdit }: Props) {
+  const complete = messages.some(message => message.kind === 'recommendations');
+  return <section className="conversation" aria-busy={loading}>
+    <div className="page-intro compact"><p className="eyebrow">Your next watch</p><h1>{complete ? 'Something to watch.' : awaitingAnswer ? 'One more thing.' : 'Finding your next watch.'}</h1>
+      {complete && <p className="intro-copy">Open a title to see why it was suggested.</p>}
     </div>
-  );
-}
-
-function MessageBubble({ message }: { message: Message }) {
-  if (message.kind === "question") {
-    return <div className="bubble system">{message.text}</div>;
-  }
-  if (message.kind === "answer") {
-    return <div className="bubble user">{message.text}</div>;
-  }
-  if (message.kind === "error") {
-    return <div className="bubble error">{message.text}</div>;
-  }
-  return <RecommendationList items={message.items} />;
-}
-
-function RecommendationList({ items }: { items: RecommendationItemOut[] }) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-
-  return (
-    <div className="notes-list">
-      {items.map((item) => {
-        const title = item.title ?? `Movie ${item.movie_id}`;
-        const expanded = expandedId === item.movie_id;
-        return (
-          <div className="notes-entry" key={item.movie_id}>
-            <button
-              type="button"
-              className="notes-row"
-              onClick={() => setExpandedId(expanded ? null : item.movie_id)}
-              aria-expanded={expanded}
-            >
-              <span className="notes-row-meta">#{item.rank}</span>
-              <span className="notes-row-title">{title}</span>
-              <span className="notes-row-genres">{primaryGenres(item.genres)}</span>
-              <span className="notes-row-rating">{formatRating(item.rating_avg, item.rating_count)}</span>
-              <span className="notes-tag" title="Agent relevance score, not a user rating">
-                match {item.score.toFixed(2)}
-              </span>
-            </button>
-            {expanded && (
-              <div className="notes-detail">{item.explanation ?? "No justification was provided."}</div>
-            )}
-          </div>
-        );
-      })}
+    <div className="transcript">{messages.map((message, index) => message.kind === 'recommendations'
+      ? <RecommendationList key={index} items={message.items} />
+      : <div key={index} className={`message ${message.kind}`}><span className="message-label">{message.kind === 'question' ? 'Question' : 'You'}</span><p>{message.text}</p></div>)}
     </div>
-  );
+    {loading && <p className="loading-state" role="status"><span className="loading-dot" />{awaitingAnswer ? 'Updating your recommendations…' : 'Preparing recommendations…'}</p>}
+    {error && <div className="error-message" role="alert"><p>{error}</p>{!awaitingAnswer && <button type="button" className="link-button" disabled={loading} onClick={onRetry}>Try again</button>}</div>}
+    {awaitingAnswer && <form className="answer-form" onSubmit={event => { event.preventDefault(); if (!loading && answer.trim()) onSend(); }}>
+      <label className="sr-only" htmlFor="clarification-answer">Your answer</label>
+      <input id="clarification-answer" type="text" placeholder="Your answer…" value={answer} onChange={event => onAnswerChange(event.target.value)} disabled={loading} autoFocus />
+      <button className="primary" type="submit" disabled={loading || !answer.trim()}>Send<span aria-hidden="true">↑</span></button>
+    </form>}
+    {complete && <div className="result-actions"><button className="primary" onClick={onEdit}>Edit ratings<span aria-hidden="true">↗</span></button></div>}
+  </section>;
 }

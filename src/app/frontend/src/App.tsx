@@ -1,61 +1,50 @@
-import { useState } from "react";
-import "./App.css";
-import { api, ApiError, type RatingInput, type SessionOut } from "./api";
-import { Conversation } from "./components/Conversation";
-import { HistoryPanel } from "./components/HistoryPanel";
-import { RatingForm } from "./components/RatingForm";
+import { useRef, useState } from 'react';
+import './App.css';
+import { Conversation } from './components/Conversation';
+import { HistoryPanel } from './components/HistoryPanel';
+import { RatingForm } from './components/RatingForm';
+import { useRecommendation } from './useRecommendation';
 
-type View = "rate" | "chat" | "history";
+type View = 'rate' | 'chat' | 'history';
 
 function App() {
-  const [view, setView] = useState<View>("rate");
-  const [session, setSession] = useState<SessionOut | null>(null);
-  const [userId, setUserId] = useState<number | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
-
-  const startSession = async (ratings: RatingInput[]) => {
-    setSubmitting(true);
-    setError(null);
-    try {
-      const created = await api.createSession(ratings, userId ?? undefined);
-      setSession(created);
-      setUserId(created.user_id);
-      setView("chat");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not start a session.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const [view, setView] = useState<View>('rate');
+  const rec = useRecommendation();
+  const mainRef = useRef<HTMLElement>(null);
+  const demo = import.meta.env.VITE_SERVICE_B_MODE !== 'http';
+  function navigate(next: View) {
+    mainRef.current?.focus();
+    setView(next);
+  }
 
   return (
     <div className="app">
-      <header>
-        <h1>Movie Recommendation Agent</h1>
-        <nav>
-          <button className={view === "rate" ? "active" : ""} onClick={() => setView("rate")}>
-            Rate movies
-          </button>
-          <button className={view === "chat" ? "active" : ""} onClick={() => setView("chat")} disabled={!session}>
-            Chat
-          </button>
-          <button className={view === "history" ? "active" : ""} onClick={() => setView("history")} disabled={!userId}>
-            History
-          </button>
+      <a className="skip-link" href="#main">Skip to content</a>
+      <header className="site-header">
+        <button className="wordmark" onClick={() => navigate('rate')} aria-label="Movie Recommendation Agent home">
+          <span className="brand-mark" aria-hidden="true">m.</span><span>Movie Recommendation Agent</span>
+        </button>
+        <nav aria-label="Main navigation">
+          {rec.session && <button aria-current={view === 'rate' ? 'page' : undefined} onClick={() => navigate('rate')}>Edit ratings</button>}
+          {rec.session && <button aria-current={view === 'chat' ? 'page' : undefined} onClick={() => navigate('chat')}>Current recommendations</button>}
+          {rec.session && <button className="history-link" aria-current={view === 'history' ? 'page' : undefined} onClick={() => navigate('history')}>History</button>}
         </nav>
       </header>
-      <main>
-        {error && <div className="bubble error">{error}</div>}
-        {view === "rate" && <RatingForm onSubmit={startSession} submitting={submitting} />}
-        {view === "chat" && session && (
-          <Conversation session={session} onCompleted={() => setHistoryRefreshKey((key) => key + 1)} />
-        )}
-        {view === "history" && userId && <HistoryPanel userId={userId} refreshKey={historyRefreshKey} />}
+      {demo && <div className="demo-notice"><span className="status-dot" aria-hidden="true" />Demo mode · Recommendations are sample output, not personalized model results.</div>}
+      <main id="main" ref={mainRef} tabIndex={-1}>
+        <section hidden={view !== 'rate'} aria-label="Rate movies">
+          <RatingForm onSubmit={ratings => void rec.start(ratings, () => navigate('chat'))} submitting={rec.busy} />
+          {view === 'rate' && rec.creationError && <div className="error-message" role="alert">{rec.creationError}</div>}
+        </section>
+        {view === 'chat' && rec.session && <Conversation
+          messages={rec.messages} answer={rec.answer} onAnswerChange={rec.setAnswer}
+          awaitingAnswer={rec.awaitingAnswer} loading={rec.busy} error={rec.error}
+          onSend={rec.send} onRetry={rec.retry} onEdit={() => navigate('rate')}
+        />}
+        {view === 'history' && rec.session && <HistoryPanel userId={rec.session.user_id} refreshKey={rec.historyVersion} onStart={() => navigate('rate')} />}
       </main>
+      <footer className="site-footer"><span>MovieLens 25M catalog</span></footer>
     </div>
   );
 }
-
 export default App;

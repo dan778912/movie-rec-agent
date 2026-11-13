@@ -122,3 +122,26 @@ done and is not something this branch attempted.
    `member-4-bm25`, `member-3-training-data-popularity`) merge to `main`
    before this branch does, rebase rather than assuming `main` is still
    just the scaffold described above.
+
+## Frontend refresh reviewed for branch publication (2026-11-12)
+
+The working tree now includes a simplified first screen, responsive editorial
+recommendation lists, keyboard-accessible movie search, and explicit mock-mode
+labeling. Rating and clarification drafts survive navigation. Mutating requests
+were moved out of mount effects to avoid repeating turns under StrictMode or
+when revisiting the conversation. Search rejects stale responses and offers
+retry; requests have a 45-second deadline and clarification recovery checks
+session status before attempting another write.
+
+14 frontend regression tests and 4 Chromium browser tests pass, along with the
+production build and lint. Browser checks use an isolated SQLite fixture and
+mock Service B, not the real model or production PostgreSQL. Desktop and mobile
+screenshots were inspected. Full details and known recovery limitations are in
+[the frontend review handoff](member5-frontend-review.md).
+
+Independent review found one P2 issue: failed session creation could block an
+existing conversation. The fix separates creation errors from conversation
+recovery state and adds unit and browser regression coverage. The user authorized
+committing and pushing this refresh to `member5-service-a`. The `service-a-v1.0`
+tag still identifies the earlier baseline; this refresh does not move that tag,
+merge into `main`, or open a new PR.

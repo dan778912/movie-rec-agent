@@ -68,21 +68,40 @@ class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new ApiError(response.status, body.detail ?? `Request to ${path} failed with ${response.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45_000);
+  try {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      const detail = body?.detail;
+      const message = typeof detail === "string" ? detail
+        : Array.isArray(detail) ? detail.map((issue: { msg?: string }) => issue.msg ?? "Invalid input").join("; ")
+        : `Request failed (${response.status}). Please try again.`;
+      throw new ApiError(response.status, message);
+    }
+    return await response.json() as T;
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new ApiError(408, 'The request timed out. Your input is still here.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-  return response.json() as Promise<T>;
 }
 
 export const api = {
   searchMovies(query: string): Promise<MovieSearchResult[]> {
     if (!query.trim()) return Promise.resolve([]);
     return request<MovieSearchResult[]>(`/movies/search?q=${encodeURIComponent(query)}`);
+  },
+  getSession(sessionId: number): Promise<SessionOut> {
+    return request<SessionOut>(`/sessions/${sessionId}`);
   },
   createSession(ratings: RatingInput[], userId?: number): Promise<SessionOut> {
     return request<SessionOut>("/sessions", {
