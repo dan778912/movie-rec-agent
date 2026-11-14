@@ -135,6 +135,14 @@ class RerankingTests(unittest.TestCase):
             KeywordOverlapScorer(),
         )
 
+        untuned_predictions = rerank_candidate_pools(
+            pools,
+            profiles,
+            movies,
+            KeywordOverlapScorer(),
+            method="untuned_qwen",
+        )
+
         recommendations = predictions[0]["recommendations"]
         output_movies = [
             item["movie_id"]
@@ -142,6 +150,10 @@ class RerankingTests(unittest.TestCase):
         ]
 
         self.assertEqual(predictions[0]["method"], "p1")
+        self.assertEqual(
+            untuned_predictions[0]["method"],
+            "untuned_qwen",
+        )
         self.assertEqual(output_movies[0], 20)
         self.assertEqual(set(output_movies), {10, 20, 30})
         self.assertEqual(

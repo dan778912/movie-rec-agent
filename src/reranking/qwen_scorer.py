@@ -9,11 +9,13 @@ from .prompts import build_explanation_prompt, build_ranking_prompt
 
 
 class QwenLoRAScorer:
-    """Score candidates in GPU batches with a trained LoRA adapter."""
+    """Score candidates using either base Qwen or a LoRA adapter."""
 
     def __init__(
         self,
-        adapter_path: str | Path,
+        adapter_path: str | Path | None = None,
+        *,
+        base_model_name: str | None = None,
         max_length: int = 1024,
         batch_size: int = 2,
         generate_explanations: bool = False,
@@ -31,6 +33,11 @@ class QwenLoRAScorer:
         if batch_size <= 0:
             raise ValueError("batch_size must be positive")
 
+        if (adapter_path is None) == (base_model_name is None):
+            raise ValueError(
+                "Provide exactly one of adapter_path or base_model_name"
+            )
+
         self.torch = torch
         self.max_length = max_length
         self.batch_size = batch_size
@@ -39,12 +46,26 @@ class QwenLoRAScorer:
             "cuda" if torch.cuda.is_available() else "cpu"
         )
 
-        adapter_path = Path(adapter_path)
-        peft_config = PeftConfig.from_pretrained(adapter_path)
-        base_model_name = peft_config.base_model_name_or_path
+        resolved_adapter_path: Path | None = None
+
+        if adapter_path is not None:
+            resolved_adapter_path = Path(adapter_path)
+            peft_config = PeftConfig.from_pretrained(
+                resolved_adapter_path
+            )
+            resolved_base_model_name = (
+                peft_config.base_model_name_or_path
+            )
+            tokenizer_source: str | Path = resolved_adapter_path
+        else:
+            if base_model_name is None:
+                raise ValueError("base_model_name cannot be None")
+
+            resolved_base_model_name = base_model_name
+            tokenizer_source = base_model_name
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            adapter_path,
+            tokenizer_source,
             use_fast=True,
         )
 
@@ -61,13 +82,18 @@ class QwenLoRAScorer:
         )
 
         base_model = AutoModelForCausalLM.from_pretrained(
-            base_model_name,
+            resolved_base_model_name,
             dtype=dtype,
         )
-        self.model = PeftModel.from_pretrained(
-            base_model,
-            adapter_path,
-        )
+
+        if resolved_adapter_path is not None:
+            self.model = PeftModel.from_pretrained(
+                base_model,
+                resolved_adapter_path,
+            )
+        else:
+            self.model = base_model
+
         self.model.to(self.device)
         self.model.eval()
 

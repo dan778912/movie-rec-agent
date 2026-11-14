@@ -67,6 +67,19 @@ def parse_args() -> argparse.Namespace:
         help="Path to the trained Qwen LoRA adapter.",
     )
     parser.add_argument(
+        "--base-model",
+        default=None,
+        help=(
+            "Base Hugging Face model to run without a LoRA adapter. "
+            "Used for the untuned-Qwen control."
+        ),
+    )
+    parser.add_argument(
+        "--method",
+        default="p1",
+        help="Method name written into each prediction record.",
+    )
+    parser.add_argument(
         "--smoke-keyword-scorer",
         action="store_true",
         help=(
@@ -81,20 +94,28 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    if args.adapter is not None and args.smoke_keyword_scorer:
+    selected_scorers = sum(
+        (
+            args.adapter is not None,
+            args.base_model is not None,
+            args.smoke_keyword_scorer,
+        )
+    )
+
+    if selected_scorers != 1:
         raise SystemExit(
-            "Choose either --adapter or --smoke-keyword-scorer, not both."
+            "Choose exactly one of --adapter, --base-model, or "
+            "--smoke-keyword-scorer."
         )
 
     if args.adapter is not None:
-        scorer = QwenLoRAScorer(args.adapter)
-    elif args.smoke_keyword_scorer:
-        scorer = KeywordOverlapScorer()
-    else:
-        raise SystemExit(
-            "Select a trained model with --adapter, or use "
-            "--smoke-keyword-scorer for a pipeline-only test."
+        scorer = QwenLoRAScorer(adapter_path=args.adapter)
+    elif args.base_model is not None:
+        scorer = QwenLoRAScorer(
+            base_model_name=args.base_model,
         )
+    else:
+        scorer = KeywordOverlapScorer()
 
     profiles = load_profiles(args.profiles)
     movies = load_movie_documents(args.movies)
@@ -108,11 +129,11 @@ def main() -> None:
         profiles=profiles,
         movie_documents=movies,
         scorer=scorer,
+        method=args.method,
     )
-
     write_jsonl(args.output, predictions)
     print(
-        f"Wrote {len(predictions)} P1 prediction records "
+        f"Wrote {len(predictions)} {args.method} prediction records "
         f"to {args.output}"
     )
 

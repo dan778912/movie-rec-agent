@@ -117,6 +117,7 @@ def rerank_candidate_pools(
     profiles: dict[int, dict[str, Any]],
     movie_documents: dict[int, dict[str, Any]],
     scorer: CandidateScorer,
+    method: str = "p1",
 ) -> list[dict[str, Any]]:
     """Rerank each frozen candidate pool without changing its movie IDs."""
     output: list[dict[str, Any]] = []
@@ -212,7 +213,7 @@ def rerank_candidate_pools(
             {
                 "user_id": user_id,
                 "split": pool["split"],
-                "method": "p1",
+                "method": method,
                 "recommendations": recommendations,
             }
         )
