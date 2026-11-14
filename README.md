@@ -49,6 +49,18 @@ python -m unittest discover -s tests -v
 
 The raw dataset and derived artifacts are ignored by Git. **Do not redistribute the raw files or commit them.** The [GroupLens dataset terms](https://files.grouplens.org/datasets/movielens/ml-25m-README.html) allow research use with conditions and prohibit redistribution without separate permission. Cite the MovieLens data source in publications.
 
+## Phase 2 data — Member 1
+
+After preparing the data (raw CSVs must remain extracted in `data/raw/ml-25m/`), run:
+
+```bash
+python -m src.data.p2_samples      # P2 training samples for the six agent actions + episodes
+python -m src.data.catalog_seed    # movie catalog seed for Service A and the vector index
+python -m src.data.p2_checks       # data-quality and temporal-boundary report (exits 1 on any error)
+```
+
+Outputs go to `data/processed/p2-v1/` (Git-ignored). The shared prompt renderer (`src/profiles/agent_text.py`), action grammar (`src/data/p2_actions.py`), and clarification simulator (`src/data/clarification_sim.py`) are intended for reuse by the agent and offline evaluation. Method, results, checks, limitations, and handoff notes: [docs/member1_p2_report.md](docs/member1_p2_report.md).
+
 ## Frozen decisions
 
 The versioned settings are in [configs/data_v1.json](configs/data_v1.json). Every source rating is ordered by timestamp globally. The test boundary is the timestamp at zero-based index `floor((N−1)×0.90)` of the sorted source ratings. Ratings at that timestamp go into test, and earlier ratings go into the pretest portion. The validation boundary uses the same 90% rule inside pretest. Ratings at that timestamp go into validation; earlier ratings go into training. Timestamp ties stay wholly in the later split. This gives a single, leakage-safe cutoff for all users; split sizes may differ slightly from exact 81/9/10 percentages.
