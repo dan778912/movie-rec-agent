@@ -6,19 +6,19 @@
 
 ## Phase 2: P2 training samples, catalog seed, and checks
 
-These commands need the processed `ml25m-global-v1` folder **and** the extracted raw CSVs in `data/raw/ml-25m/` (titles, genres, and genome tags for out-of-catalog liked movies are rendered exactly as in the frozen profiles). They use the standard library only and never open `test_ratings.csv`, `test_targets.csv`, or `test_profiles.jsonl`.
+These commands need the processed `ml25m-global-v1` folder **and** the extracted raw CSVs in `data/raw/ml-25m/` (titles, genres, and genome tags for out-of-catalog liked movies are rendered exactly as in the frozen profiles). They use the standard library only. Sample generation reads training ratings only; it never opens validation or test ratings, targets, or test profiles.
 
 ```bash
-python -m src.data.p2_samples      # P2 samples + episodes, ~2 min
+python -m src.data.p2_samples      # P2 samples + episodes, ~15 min
 python -m src.data.catalog_seed    # catalog seed for Service A / vector index, ~1 min
 python -m src.data.p2_checks       # data-quality and temporal-boundary report, exits 1 on any error
 ```
 
-Outputs go to `data/processed/p2-v1/` (Git-ignored). Settings are in [`configs/p2_samples_v1.json`](../../configs/p2_samples_v1.json). Use `--train-users N --validation-users M` for a quick smoke run.
+Outputs go to `data/processed/p2-v1/` (Git-ignored). Settings are in [`configs/p2_samples_v1.json`](../../configs/p2_samples_v1.json). Use `--train-users N --dev-users M` for a quick smoke run.
 
 | Module | Purpose |
 |---|---|
-| `p2_samples.py` | Simulates per-user episodes and emits one SFT sample per agent decision across the six action types. |
+| `p2_samples.py` | Simulates per-user episodes, labels actions by comparing action sequences on NDCG@10 (midterm §3.4), and emits one SFT sample per agent decision across the six action types. |
 | `clarification_sim.py` | Frozen deterministic answer simulator `pre_cutoff_history_sim_v1`; answers only from ratings before the anchor/cutoff. |
 | `p2_actions.py` | Reference action grammar, strict JSON parser, and `p2-trace-v1` episode-order validator. |
 | `catalog_seed.py` | One record per catalog movie with canonical text, display fields, and training-only rating aggregates. |

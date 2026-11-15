@@ -12,10 +12,10 @@
     "canonical_fraction": 0.5,
     "sparse_rating_counts": [1, 2, 3, 5, 8]
   },
-  "validation": {
+  "dev": {
     "users": 400,
     "episodes_per_user": 1,
-    "canonical_fraction": 0.75,
+    "canonical_fraction": 0.5,
     "sparse_rating_counts": [1, 2, 3, 5, 8]
   },
   "min_history_before_anchor": 10,
@@ -25,12 +25,9 @@
   "future_negatives": 2,
   "max_questions": 2,
   "max_retrievals": 1,
-  "sufficiency_min_gain": 0.04,
-  "pool_min_gap": 0.05,
+  "pool_size": 50,
+  "retrieval_k": 50,
   "offtarget_pool_fraction": 0.35,
-  "pool_size": 20,
-  "retrieval_k": 20,
-  "quality_top_m": 10,
   "inject_positives": 3,
   "inject_negatives": 2,
   "explain_k": 10,

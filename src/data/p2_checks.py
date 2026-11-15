@@ -27,8 +27,8 @@ from pathlib import Path
 from src.data import clarification_sim as sim
 from src.data.build import csv_rows, sha256
 from src.data.p2_actions import ActionError, parse_action, validate_action, validate_episode
-from src.data.p2_samples import (CONFIG, DATA, OUTPUT, RAW, EpisodeBuilder, FeatureSpace, display,
-                                 load_metadata, load_user_list, select_profile, stream_histories,
+from src.data.p2_samples import (CONFIG, DATA, OUTPUT, RAW, SPLITS, EpisodeBuilder, FeatureSpace, display,
+                                 hash_key, load_metadata, load_user_list, select_profile, stream_histories,
                                  visible_rows)
 from src.data.verify import verify
 from src.profiles.agent_text import ACTIONS, render_prompt, serialize_action
@@ -108,6 +108,24 @@ def base_checks(data: Path, meta: dict, catalog: set[int], errors: Errors) -> di
     return result
 
 
+def formatter_parity(data: Path, meta: dict, catalog: set[int], data_config: dict, errors: Errors,
+                     sample_size: int = 500) -> dict:
+    """The P2 canonical formatter must reproduce frozen validation profile text from training history alone."""
+    stats = json.loads((data / "statistics.json").read_text(encoding="utf-8"))
+    profiles = {r["user_id"]: r["text"] for r in jsonl(data / "validation_profiles.jsonl")}
+    chosen = set(sorted(profiles, key=lambda u: hash_key("parity", "validation", u))[:sample_size])
+    checked = 0
+    for uid, history in stream_histories(data / "train_ratings.csv", stats["validation_cutoff_unix"]):
+        if uid in chosen:
+            liked, disliked = select_profile(meta, visible_rows(history, catalog, "canonical", None),
+                                             data_config["liked_movies_per_profile"],
+                                             data_config["disliked_movies_per_profile"])
+            errors.require(user_profile(liked, disliked) == profiles[uid], "formatter_parity", str(uid))
+            checked += 1
+    errors.require(checked == len(chosen), "formatter_parity", "sampled users missing from training history")
+    return {"validation_profiles_checked": checked, "reads": "train_ratings.csv and profile text only"}
+
+
 # --------------------------------------------------------------------------- explanation grounding
 
 GENRES = ("Action", "Adventure", "Animation", "Children", "Comedy", "Crime", "Documentary", "Drama",
@@ -158,6 +176,15 @@ def grounding_problems(text: str, candidate: dict, decade: str | None, state: di
 
 # --------------------------------------------------------------------------- sample checks
 
+# Titles appear in profile text after "movies: " or "; " and in answers after "enjoyed "/"enjoy ".
+_TITLE_PREFIXES = (": ", "; ", "enjoyed ", "enjoy ")
+
+
+def title_mentioned(title: str, text: str) -> bool:
+    """Whole-title mention (so "Fear (1996)" does not match inside "Primal Fear (1996)")."""
+    return text.startswith(title) or any(prefix + title in text for prefix in _TITLE_PREFIXES)
+
+
 def replay_state(episode: dict, history: list[tuple], meta: dict, catalog: set[int], data_config: dict):
     rows = visible_rows(history, catalog, episode["level"], episode["sparse_k"])
     liked, disliked = select_profile(meta, rows, data_config["liked_movies_per_profile"],
@@ -171,28 +198,22 @@ def replay_state(episode: dict, history: list[tuple], meta: dict, catalog: set[i
 def sample_checks(data: Path, raw_output: Path, meta: dict, catalog: set[int], config: dict,
                   data_config: dict, errors: Errors) -> dict:
     stats = json.loads((data / "statistics.json").read_text(encoding="utf-8"))
-    val_cutoff, test_cutoff = stats["validation_cutoff_unix"], stats["test_cutoff_unix"]
+    val_cutoff = stats["validation_cutoff_unix"]
     popularity = {int(r["movie_id"]): int(r["train_positives"]) for r in csv_rows(data / "catalog.csv")}
     space = FeatureSpace(meta, catalog, popularity, config)
     builder = EpisodeBuilder(meta, catalog, space, config, data_config)
     excluded = set()
     for path in config["exclude_user_lists"]:
         excluded |= load_user_list(Path(path))
-    official = {r["user_id"]: r["text"] for r in jsonl(data / "validation_profiles.jsonl")}
-    episodes = {split: list(jsonl(raw_output / f"p2_episodes_{split}.jsonl")) for split in ("train", "validation")}
+    episodes = {split: list(jsonl(raw_output / f"p2_episodes_{split}.jsonl")) for split in SPLITS}
     users = {split: {e["user_id"] for e in eps} for split, eps in episodes.items()}
-    errors.require(not users["train"] & users["validation"], "user_overlap", "train and validation users overlap")
-    errors.require(not (users["train"] | users["validation"]) & excluded, "excluded_user", "evaluation user used")
-    wanted = users["train"] | users["validation"]
+    errors.require(not users["train"] & users["dev"], "user_overlap", "train and dev users overlap")
+    errors.require(not (users["train"] | users["dev"]) & excluded, "excluded_user", "evaluation user used")
+    wanted = users["train"] | users["dev"]
     train_hist = {uid: h for uid, h in stream_histories(data / "train_ratings.csv", val_cutoff) if uid in wanted}
-    val_rows = defaultdict(list)
-    for row in csv_rows(data / "validation_ratings.csv"):
-        uid = int(row["user_id"])
-        if uid in users["validation"]:
-            val_rows[uid].append((int(row["movie_id"]), float(row["rating"]), int(row["timestamp"])))
 
     result = {}
-    for split in ("train", "validation"):
+    for split in SPLITS:
         samples = defaultdict(list)
         seen_ids = set()
         tasks = Counter()
@@ -208,15 +229,10 @@ def sample_checks(data: Path, raw_output: Path, meta: dict, catalog: set[int], c
             eid, uid, anchor = episode["episode_id"], episode["user_id"], episode["anchor_timestamp"]
             source = train_hist.get(uid, [])
             past = [r for r in source if r[2] < anchor]
-            if split == "train":
-                errors.require(anchor < val_cutoff and episode["boundary_timestamp"] == val_cutoff,
-                               "boundary", f"{eid} train anchor/boundary")
-                future = [r for r in source if r[2] >= anchor]
-            else:
-                errors.require(anchor == val_cutoff and episode["boundary_timestamp"] == test_cutoff,
-                               "boundary", f"{eid} validation anchor/boundary")
-                errors.require(len(past) == len(source), "boundary", f"{eid} history must be all training ratings")
-                future = val_rows[uid]
+            # Labels come from training-period ratings only (midterm section 3.4).
+            errors.require(anchor < val_cutoff and episode["boundary_timestamp"] == val_cutoff,
+                           "boundary", f"{eid} anchor/boundary outside the training period")
+            future = [r for r in source if r[2] >= anchor]
             errors.require(all(ts < anchor for _, _, ts in past) and len(past) == episode["history_count"]
                            and max(ts for _, _, ts in past) == episode["history_latest_timestamp"],
                            "history", f"{eid} history count/latest timestamp")
@@ -234,8 +250,6 @@ def sample_checks(data: Path, raw_output: Path, meta: dict, catalog: set[int], c
                                f"{eid} candidate watched or outside catalog")
             errors.require(set(episode["injected_movie_ids"]) <= set(future_by_id), "injection",
                            f"{eid} injected movie is not a held-out rating")
-            if split == "validation" and episode["level"] == "canonical":
-                errors.require(episode["profile_text"] == official[uid], "canonical_profile", eid)
             try:
                 validate_episode(episode["events"], episode["initial_candidate_movie_ids"])
             except ActionError as error:
@@ -258,7 +272,7 @@ def sample_checks(data: Path, raw_output: Path, meta: dict, catalog: set[int], c
                 state["turns"].append({"question": event["question"], **reply})
                 answers_checked += 1
             visible_text = state["profile_text"] + " " + " ".join(t["answer"] for t in state["turns"])
-            leak = [t for t in future_titles if t in visible_text and t not in {i["title"] for i in state["liked"]}]
+            leak = [t for t in future_titles if title_mentioned(t, visible_text)]
             errors.require(not leak, "future_title_leak", f"{eid}: {leak[:2]}")
             leak_checked += 1
 
@@ -333,6 +347,7 @@ def run(data: Path, raw: Path, output: Path, config: dict) -> dict:
     meta, catalog, _ = load_metadata(raw, data, manifest["config"], stats["validation_cutoff_unix"])
     report = {"data_version": manifest["version"], "data_manifest_sha256": sha256(data / "manifest.json")}
     report["base"] = base_checks(data, meta, catalog, errors)
+    report["base"]["formatter_parity"] = formatter_parity(data, meta, catalog, manifest["config"], errors)
     report["samples"] = sample_checks(data, output, meta, catalog, config, manifest["config"], errors)
     report["catalog_seed"] = seed_checks(data, output, catalog, errors)
     report["artifact_sha256"] = {p.name: sha256(p) for p in sorted(output.glob("*.jsonl"))}
@@ -355,7 +370,7 @@ def main():
     config = json.loads(args.config.read_text(encoding="utf-8"))
     sample_report = json.loads((args.output / "p2_samples.report.json").read_text(encoding="utf-8"))
     def without_user_counts(value):
-        return {**value, **{split: {**value[split], "users": None} for split in ("train", "validation")}}
+        return {**value, **{split: {**value[split], "users": None} for split in SPLITS}}
 
     if without_user_counts(sample_report["config"]) != without_user_counts(config):
         parser.error("Sample report config differs from --config (only user-count overrides are allowed)")

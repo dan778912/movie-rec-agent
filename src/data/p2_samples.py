@@ -1,30 +1,29 @@
 """Generate P2 agent training samples for the six action types.
 
-Each sample is one agent decision: a rendered prompt (``src/profiles/agent_text``)
-plus the JSON action the model should emit. Samples come from simulated
-episodes. An episode fixes a user, an anchor time ``t`` and a visible profile
-built only from ratings before ``t``; the user's ratings at or after ``t`` (and
-before the split boundary) are the held-out preferences that supervise each
-decision:
+Implements the action-supervision plan in the midterm report (section 3.4)
+and the roadmap's P2 example construction. Each sample is one agent decision:
+a rendered prompt (``src/profiles/agent_text``) plus the JSON action the model
+should emit. Samples come from simulated episodes. An episode fixes a user, an
+anchor time ``t`` inside the training period, and a visible profile built only
+from ratings before ``t`` -- either the canonical profile or a masked one that
+shows only the user's last few ratings. The user's training ratings at or after
+``t`` are the held-out interactions that supervise each decision:
 
-* ``assess_sufficiency`` / ``ask_clarification``: ask when the best answer the
-  simulator could give (from pre-``t`` history only) would move the preference
-  vector materially closer to the held-out positives. The question targets that
-  answer's intent.
-* ``evaluate_candidates`` / ``retrieve_candidates``: re-retrieve when a fresh
-  retrieval with the current information would match the held-out positives
-  materially better than the current pool. The query restates the displayed
-  preferences.
+* ``assess_sufficiency`` / ``ask_clarification`` / ``evaluate_candidates`` /
+  ``retrieve_candidates``: every action sequence within the budget (at most two
+  template questions answered by the simulator from hidden pre-``t`` history,
+  then at most one wider retrieval from 50 to 100 candidates) is scored by
+  NDCG@10 against the held-out positives; the episode follows the sequence with
+  the highest NDCG@10, preferring fewer actions on ties.
 * ``rank_candidates``: held-out positives first, unlabeled movies in pool
   order, held-out explicit dislikes last.
 * ``explain_recommendations``: template justifications citing only titles,
   genres, tags and answers shown in the prompt.
 
-Splits: ``train`` anchors fall inside the training period and use only training
-ratings. ``validation`` anchors sit at the validation cutoff, so the visible
-profile is the canonical validation profile and held-out preferences are
-validation ratings. No test file is opened. Users in the configured evaluation
-lists are excluded, and train/validation users are disjoint.
+Splits ``train`` and ``dev`` (user-disjoint, for checkpoint selection) both use
+training ratings only: validation and test targets never supply answers or
+labels. No validation or test rating file is opened. Users in the configured
+evaluation lists are excluded.
 """
 
 from __future__ import annotations
@@ -55,8 +54,8 @@ DATA = Path("data/processed/ml25m-global-v1")
 RAW = Path("data/raw/ml-25m")
 CONFIG = Path("configs/p2_samples_v1.json")
 OUTPUT = Path("data/processed/p2-v1")
-CONSUMED = ("catalog.csv", "movie_documents.jsonl", "statistics.json", "train_ratings.csv",
-            "validation_ratings.csv", "validation_profiles.jsonl")
+CONSUMED = ("catalog.csv", "movie_documents.jsonl", "statistics.json", "train_ratings.csv")
+SPLITS = ("train", "dev")
 YEAR = re.compile(r"\((\d{4})(?:[-–]\d{0,4})?\)\s*$")
 
 
@@ -224,15 +223,6 @@ def state_vector(space: FeatureSpace, state: dict) -> dict:
             vector, weight = fact_contribution(space, turn["fact"])
             _add(acc, vector, weight)
     return _normalize(acc)
-
-
-def pool_quality(space: FeatureSpace, pool: list[int], query: dict, target: dict, top_m: int) -> float:
-    """Cosine between held-out taste and the best ``top_m`` pool items under ``query``."""
-    order = sorted(range(len(pool)), key=lambda i: (-_dot(query, space.vector(pool[i])), i))[:top_m]
-    centroid: dict[str, float] = {}
-    for index in order:
-        _add(centroid, space.vector(pool[index]), 1.0)
-    return _dot(_normalize(centroid), target)
 
 
 # --------------------------------------------------------------------------- profiles
@@ -403,12 +393,64 @@ def feasible_anchors(history: list[tuple], catalog: set[int], config: dict) -> l
     return anchors
 
 
+def ndcg_at_10(ranked: list[int], relevant: set[int]) -> float:
+    """Binary NDCG@10, the project's primary metric."""
+    dcg = sum(1.0 / math.log2(i + 2) for i, mid in enumerate(ranked[:10]) if mid in relevant)
+    ideal = sum(1.0 / math.log2(i + 2) for i in range(min(10, len(relevant))))
+    return dcg / ideal if ideal else 0.0
+
+
+def rank_pool(space: FeatureSpace, vector: dict, pool: list[int]) -> list[int]:
+    """Order a pool by the preference vector (ties keep pool order)."""
+    order = sorted(range(len(pool)), key=lambda i: (-_dot(vector, space.vector(pool[i])), i))
+    return [pool[i] for i in order]
+
+
 class EpisodeBuilder:
     def __init__(self, meta, catalog, space: FeatureSpace, config: dict, data_config: dict):
         self.meta, self.catalog, self.space = meta, catalog, space
         self.config, self.data_config = config, data_config
         genre_counts = Counter(g for mid in catalog for g in meta[mid]["genres"])
         self.common_genres = [g for g, _ in sorted(genre_counts.items(), key=lambda p: (-p[1], p[0]))[:12]]
+
+    def plan(self, state: dict, facts: dict, pool: list[int], watched: set[int], relevant: set[int]):
+        """Midterm section 3.4 labelling rule.
+
+        Enumerate every action sequence within the budget (0..max_questions
+        clarifying questions, each answered by the simulator from pre-anchor
+        history, then optionally one wider retrieval), rank the resulting pool
+        with the preference vector, score NDCG@10 against held-out training-period
+        positives, and choose the highest NDCG@10, preferring fewer actions on ties.
+        """
+        cfg, space = self.config, self.space
+        sequences = [((), state)]
+        frontier = sequences
+        for _ in range(cfg["max_questions"]):
+            grown = []
+            for intents, current in frontier:
+                asked = [sim.question_for(i, 0) for i in intents]
+                for intent in sim.INTENTS:
+                    fact = sim.next_fact(intent, facts, asked)
+                    if fact is not None:
+                        child = {**current, "turns": current["turns"] + [{"informative": True, "fact": fact}]}
+                        grown.append((intents + (intent,), child))
+            sequences = sequences + grown
+            frontier = grown
+        results = []
+        for intents, current in sequences:
+            vector = state_vector(space, current)
+            results.append({"questions": list(intents), "retrieve": False,
+                            "ndcg": ndcg_at_10(rank_pool(space, vector, pool), relevant)})
+            if cfg["max_retrievals"]:
+                _, query_vector, _ = retrieval_query(space, current, vector)
+                added = space.retrieve(query_vector, cfg["retrieval_k"], watched | set(pool))
+                results.append({"questions": list(intents), "retrieve": True,
+                                "ndcg": ndcg_at_10(rank_pool(space, vector, pool + added), relevant)})
+        for result in results:
+            result["actions"] = len(result["questions"]) + result["retrieve"]
+        best = min(results, key=lambda r: (-r["ndcg"], r["actions"],
+                                           [sim.INTENTS.index(i) for i in r["questions"]], r["retrieve"]))
+        return best, results
 
     def build(self, split: str, user_id: int, episode_index: int, history: list[tuple], future: list[tuple],
               anchor: int, boundary: int, level: str, sparse_k: int | None) -> tuple[list[dict], dict]:
@@ -425,12 +467,9 @@ class EpisodeBuilder:
         visible_ids = {item["movie_id"] for item in liked + disliked}
         facts = sim.build_fact_pool(history, meta, visible_ids, state["profile_text"], cutoff=anchor)
         future_ratings = {mid: (rating, ts) for mid, rating, ts in future}
+        relevant = {r[0] for r in future if r[0] in self.catalog and r[1] >= 4}
         positives = [r for r in future if r[0] in self.catalog and r[1] >= 4][:cfg["future_positives"]]
         negatives = [r for r in future if r[0] in self.catalog and r[1] <= 2.5][:cfg["future_negatives"]]
-        target: dict[str, float] = {}
-        for mid, _, _ in positives:
-            _add(target, space.vector(mid), 1.0)
-        target = _normalize(target)
         samples, events = [], []
         step = 0
 
@@ -462,74 +501,60 @@ class EpisodeBuilder:
             pool = space.popular_in_genres(weakest, cfg["pool_size"], watched | {r[0] for r in positives})
         initial_pool = list(pool)
 
-        # Sufficiency loop.
-        questions = 0
-        forced = {"sufficiency": False, "pool": False}
-        while True:
-            vector = state_vector(space, state)
-            base = _dot(vector, target)
-            asked = [t["question"] for t in state["turns"]]
-            gains = {}
-            for intent in sim.INTENTS:
-                fact = sim.next_fact(intent, facts, asked)
-                if fact is not None:
-                    trial = {**state, "turns": state["turns"] + [{"informative": True, "fact": fact}]}
-                    gains[intent] = _dot(state_vector(space, trial), target) - base
-            best = max(sim.INTENTS, key=lambda i: (gains.get(i, float("-inf")), -sim.INTENTS.index(i)))
-            best_gain = gains.get(best, 0.0)
-            wants = best_gain >= cfg["sufficiency_min_gain"]
-            ask = wants and questions < cfg["max_questions"]
-            forced["sufficiency"] |= wants and not ask
-            basis = {"similarity": round(base, 6), "best_intent": best if gains else None,
-                     "best_gain": round(best_gain, 6), "min_gain": cfg["sufficiency_min_gain"],
-                     "forced_by_question_cap": wants and not ask}
+        best, results = self.plan(state, facts, initial_pool, watched, relevant)
+
+        def best_where(condition):
+            values = [r["ndcg"] for r in results if condition(r)]
+            return round(max(values), 6) if values else None
+
+        # Clarification loop: follow the chosen question sequence.
+        for k in range(len(best["questions"]) + 1):
+            prefix = best["questions"][:k]
+            ask = k < len(best["questions"])
+            basis = {"ndcg_if_stop": best_where(lambda r: r["questions"] == prefix),
+                     "ndcg_if_continue": best_where(lambda r: r["questions"][:k] == prefix and len(r["questions"]) > k),
+                     "chosen_questions": best["questions"], "chosen_ndcg": round(best["ndcg"], 6)}
             emit("assess_sufficiency", {"action": "assess_sufficiency", "sufficient": not ask}, basis=basis)
             events.append({"action": "assess_sufficiency", "sufficient": not ask})
             if not ask:
                 break
-            question = sim.question_for(best, rng.randrange(3))
+            intent = best["questions"][k]
+            asked = [t["question"] for t in state["turns"]]
+            question = sim.question_for(intent, rng.randrange(3))
             emit("ask_clarification", {"action": "ask_clarification", "question": question},
-                 basis={"intent": best, "gain": round(best_gain, 6)})
+                 basis={"intent": intent, "chosen_questions": best["questions"]})
             reply = sim.answer_question(question, facts, asked, prompt_text(state))
-            if reply["intent"] != best or not reply["informative"]:
+            if reply["intent"] != intent or not reply["informative"]:
                 raise AssertionError(f"Simulator did not answer intended question in {episode_id}")
             if reply["fact"]["source_max_timestamp"] >= anchor:
                 raise AssertionError(f"Clarification answer used a future rating in {episode_id}")
             state["turns"].append({"question": question, **reply})
             events.append({"action": "ask_clarification", "question": question, "answer": reply["answer"],
-                           "answer_source": sim.SIMULATOR_VERSION, "intent": best,
+                           "answer_source": sim.SIMULATOR_VERSION, "intent": intent,
                            "informative": True, "new_fact": reply["new_fact"],
                            "source_movie_ids": reply["source_movie_ids"]})
-            questions += 1
 
-        # Pool loop.
-        retrievals = 0
-        while True:
-            vector = state_vector(space, state)
-            fresh = space.retrieve(vector, cfg["pool_size"], watched)
-            current_q = pool_quality(space, pool, vector, target, cfg["quality_top_m"])
-            fresh_q = pool_quality(space, fresh, vector, target, cfg["quality_top_m"])
-            wants = fresh_q - current_q >= cfg["pool_min_gap"]
-            expand = wants and retrievals < cfg["max_retrievals"]
-            forced["pool"] |= wants and not expand
-            hits = sum(1 for mid in pool if future_ratings.get(mid, (0,))[0] >= 4)
-            basis = {"pool_quality": round(current_q, 6), "fresh_quality": round(fresh_q, 6),
-                     "min_gap": cfg["pool_min_gap"], "future_positive_hits": hits,
-                     "forced_by_retrieval_cap": wants and not expand}
-            emit("evaluate_candidates", {"action": "evaluate_candidates", "pool_sufficient": not expand},
-                 candidates=pool, basis=basis)
-            events.append({"action": "evaluate_candidates", "candidate_movie_ids": list(pool),
-                           "pool_sufficient": not expand})
-            if not expand:
-                break
+        # Pool decision: follow the chosen retrieval choice; the retrieval budget then ends the loop.
+        vector = state_vector(space, state)
+        same = lambda r: r["questions"] == best["questions"]
+        pool_basis = {"ndcg_keep_pool": best_where(lambda r: same(r) and not r["retrieve"]),
+                      "ndcg_after_retrieval": best_where(lambda r: same(r) and r["retrieve"]),
+                      "future_positive_hits": sum(1 for mid in pool if mid in relevant)}
+        emit("evaluate_candidates", {"action": "evaluate_candidates", "pool_sufficient": not best["retrieve"]},
+             candidates=pool, basis=pool_basis)
+        events.append({"action": "evaluate_candidates", "candidate_movie_ids": list(pool),
+                       "pool_sufficient": not best["retrieve"]})
+        if best["retrieve"]:
             query, query_vector, terms = retrieval_query(space, state, vector)
             added = space.retrieve(query_vector, cfg["retrieval_k"], watched | set(pool))
-            added_hits = sum(1 for mid in added if future_ratings.get(mid, (0,))[0] >= 4)
             emit("retrieve_candidates", {"action": "retrieve_candidates", "query": query}, candidates=pool,
-                 basis={"query_terms": terms, "added_movie_ids": added, "added_future_positive_hits": added_hits})
+                 basis={"query_terms": terms, "added_movie_ids": added,
+                        "added_future_positive_hits": sum(1 for mid in added if mid in relevant)})
             events.append({"action": "retrieve_candidates", "added_movie_ids": added, "index_version": INDEX_VERSION})
             pool = pool + added
-            retrievals += 1
+            emit("evaluate_candidates", {"action": "evaluate_candidates", "pool_sufficient": True},
+                 candidates=pool, basis={"retrieval_budget_used": True, "chosen_ndcg": round(best["ndcg"], 6)})
+            events.append({"action": "evaluate_candidates", "candidate_movie_ids": list(pool), "pool_sufficient": True})
 
         # Ranking over the final pool with held-out positives/dislikes injected for supervision.
         ranked_pool = list(pool)
@@ -564,12 +589,19 @@ class EpisodeBuilder:
             "history_latest_timestamp": max(ts for _, _, ts in history),
             "visible_movie_ids": [item["movie_id"] for item in liked + disliked],
             "profile_text": state["profile_text"],
+            "relevant_count": len(relevant),
             "future_positive_movie_ids": [r[0] for r in positives],
             "future_positive_timestamps": [r[2] for r in positives],
             "future_negative_movie_ids": [r[0] for r in negatives],
             "initial_candidate_movie_ids": initial_pool, "events": events,
             "final_candidate_movie_ids": pool, "injected_movie_ids": injected,
-            "termination_reason": "recommend", "forced": forced, "summary": summary,
+            "termination_reason": "recommend",
+            "plan": {"rule": "max NDCG@10, fewest actions on ties (midterm section 3.4)",
+                     "chosen_questions": best["questions"], "chosen_retrieve": best["retrieve"],
+                     "chosen_ndcg": round(best["ndcg"], 6), "sequences_evaluated": len(results),
+                     "no_action_ndcg": round(results[0]["ndcg"], 6),
+                     "decided_by_tie_break": any(r is not best and r["ndcg"] == best["ndcg"] for r in results)},
+            "summary": summary,
             "sample_ids": [s["sample_id"] for s in samples],
         }
         return samples, episode
@@ -583,18 +615,6 @@ def load_user_list(path: Path) -> set[int]:
     if not all(type(i) is int for i in ids):
         raise ValueError(f"{path} must contain integer user IDs")
     return set(ids)
-
-
-def read_validation_inputs(data: Path, catalog: set[int]):
-    ratings = defaultdict(list)
-    for row in csv_rows(data / "validation_ratings.csv"):
-        ratings[int(row["user_id"])].append((int(row["movie_id"]), float(row["rating"]), int(row["timestamp"])))
-    profiles = {}
-    with (data / "validation_profiles.jsonl").open(encoding="utf-8") as source:
-        for line in source:
-            record = json.loads(line)
-            profiles[record["user_id"]] = {"text": record["text"], "history": set(record["history_movie_ids"])}
-    return ratings, profiles
 
 
 def stream_histories(path: Path, cutoff: int):
@@ -631,7 +651,7 @@ def generate(data: Path, raw: Path, output: Path, config: dict) -> dict:
         if sha256(data / name) != manifest["file_sha256"][name]:
             raise ValueError(f"Input checksum mismatch: {name}")
     stats = json.loads((data / "statistics.json").read_text(encoding="utf-8"))
-    val_cutoff, test_cutoff = stats["validation_cutoff_unix"], stats["test_cutoff_unix"]
+    val_cutoff = stats["validation_cutoff_unix"]
     data_config = manifest["config"]
     meta, catalog, popularity = load_metadata(raw, data, data_config, val_cutoff)
     documents = check_documents(data, meta, catalog)
@@ -642,80 +662,60 @@ def generate(data: Path, raw: Path, output: Path, config: dict) -> dict:
         excluded |= load_user_list(Path(path))
     seed = config["seed"]
 
-    val_ratings, val_profiles = read_validation_inputs(data, catalog)
-    val_order = sorted((u for u in val_profiles if u not in excluded), key=lambda u: hash_key(seed, "validation", u))
-    val_chosen = []
-    for user_id in val_order:
-        history_ids = val_profiles[user_id]["history"]
-        future_pos = [r for r in val_ratings[user_id] if r[0] in catalog and r[1] >= 4 and r[0] not in history_ids]
-        if len(future_pos) >= config["min_future_positives"]:
-            val_chosen.append(user_id)
-        if len(val_chosen) == config["validation"]["users"]:
-            break
-    val_set = set(val_chosen)
-
-    val_histories: dict[int, list[tuple]] = {}
+    # One user-level draw from training-period data; dev users are a disjoint subset of it.
     heap: list[tuple] = []  # max-heap on hash key via negation
-    limit = config["train"]["users"]
+    limit = config["train"]["users"] + config["dev"]["users"]
     population = Counter()
     for user_id, history in stream_histories(data / "train_ratings.csv", val_cutoff):
         population["training_users"] += 1
-        if user_id in val_set:
-            val_histories[user_id] = history
-            continue
         if user_id in excluded:
             population["excluded_evaluation_users"] += 1
             continue
-        key = hash_key(seed, "train", user_id)
+        key = hash_key(seed, "users", user_id)
         if len(heap) == limit and -heap[0][0] <= key:
             continue
         anchors = feasible_anchors(history, catalog, config)
         if not anchors:
-            population["users_without_feasible_anchor"] += 1
+            population["examined_users_without_feasible_anchor"] += 1
             continue
         entry = (-key, user_id, history, anchors)
         if len(heap) < limit:
             heapq.heappush(heap, entry)
         else:
             heapq.heapreplace(heap, entry)
+    chosen = sorted(heap, key=lambda entry: hash_key(seed, "dev", entry[1]))
+    assignment = {"dev": chosen[:config["dev"]["users"]], "train": chosen[config["dev"]["users"]:]}
 
     output.mkdir(parents=True, exist_ok=True)
     report_splits = {}
-    for split in ("train", "validation"):
+    for split in SPLITS:
         split_config = config[split]
         samples_path = output / f"p2_samples_{split}.jsonl"
         episodes_path = output / f"p2_episodes_{split}.jsonl"
-        tasks, labels, forced, levels, regimes, intents = Counter(), Counter(), Counter(), Counter(), Counter(), Counter()
-        answers = Counter()
+        tasks, labels, levels, regimes, intents = Counter(), Counter(), Counter(), Counter(), Counter()
+        answers, plans = Counter(), Counter()
         prompt_chars, completion_chars = defaultdict(list), defaultdict(list)
         episodes = []
-        if split == "train":
-            users = sorted((uid, history, anchors) for _, uid, history, anchors in heap)
-        else:
-            users = [(uid, val_histories[uid], None) for uid in sorted(val_chosen)]
+        users = sorted((uid, history, anchors) for _, uid, history, anchors in assignment[split])
 
         def records():
             for user_id, history, anchors in users:
                 user_rng = random.Random(f"{seed}:{split}:{user_id}:anchors")
-                if split == "train":
-                    picks = sorted(user_rng.sample(anchors, min(split_config["episodes_per_user"], len(anchors))))
-                    plans = [(history[:i], history[i:], history[i][2], val_cutoff) for i in picks]
-                else:
-                    if {r[0] for r in history} != val_profiles[user_id]["history"]:
-                        raise AssertionError(f"Validation history mismatch for user {user_id}")
-                    plans = [(history, val_ratings[user_id], val_cutoff, test_cutoff)]
-                for index, (past, future, anchor, boundary) in enumerate(plans):
+                picks = sorted(user_rng.sample(anchors, min(split_config["episodes_per_user"], len(anchors))))
+                for index, i in enumerate(picks):
                     level, sparse_k = choose_level(random.Random(f"{seed}:{split}:{user_id}:{index}:level"),
                                                    split_config)
-                    samples, episode = builder.build(split, user_id, index, past, future, anchor, boundary,
-                                                     level, sparse_k)
-                    if split == "validation" and level == "canonical" and \
-                            episode["profile_text"] != val_profiles[user_id]["text"]:
-                        raise AssertionError(f"Canonical validation profile mismatch for user {user_id}")
+                    samples, episode = builder.build(split, user_id, index, history[:i], history[i:],
+                                                     history[i][2], val_cutoff, level, sparse_k)
                     episodes.append(episode)
                     levels[level if level == "canonical" else f"sparse_{sparse_k}"] += 1
                     regimes[episode["pool_regime"]] += 1
-                    forced.update(k for k, v in episode["forced"].items() if v)
+                    plan = episode["plan"]
+                    plans[f"questions_{len(plan['chosen_questions'])}"] += 1
+                    plans["retrieve" if plan["chosen_retrieve"] else "no_retrieve"] += 1
+                    plans["no_action_ndcg_zero"] += plan["no_action_ndcg"] == 0
+                    plans["chosen_ndcg_zero"] += plan["chosen_ndcg"] == 0
+                    plans["decided_by_tie_break"] += plan["decided_by_tie_break"]
                     for event in episode["events"]:
                         if event["action"] == "ask_clarification":
                             intents[event["intent"]] += 1
@@ -743,7 +743,7 @@ def generate(data: Path, raw: Path, output: Path, config: dict) -> dict:
             "users": len({e["user_id"] for e in episodes}), "episodes": len(episodes),
             "samples": sum(tasks.values()), "tasks": dict(sorted(tasks.items())),
             "decision_labels": dict(sorted(labels.items())), "levels": dict(sorted(levels.items())),
-            "pool_regimes": dict(sorted(regimes.items())), "forced_by_cap": dict(sorted(forced.items())),
+            "pool_regimes": dict(sorted(regimes.items())), "plans": dict(sorted(plans.items())),
             "clarification_intents": dict(sorted(intents.items())), "clarification_answers": dict(answers),
             "control_events": dict(sorted(Counter(e["summary"]["control_events"] for e in episodes).items())),
             "prompt_chars": {t: lengths(v) for t, v in sorted(prompt_chars.items())},
@@ -759,13 +759,13 @@ def generate(data: Path, raw: Path, output: Path, config: dict) -> dict:
         "data_manifest_sha256": sha256(data / "manifest.json"),
         "consumed_sha256": {name: manifest["file_sha256"][name] for name in CONSUMED},
         "test_files_read": False, "documents_verified": documents,
-        "validation_cutoff_unix": val_cutoff, "test_cutoff_unix": test_cutoff,
+        "validation_cutoff_unix": val_cutoff, "labels_from": "training-period ratings only",
         "excluded_users": len(excluded), "population": dict(population), "splits": report_splits,
         "runtime_seconds": round(time.perf_counter() - started, 1),
         **provenance(sources),
         "limitations": [
             "Clarification answers come from a deterministic simulator over pre-anchor ratings, not real users.",
-            "Decision labels use a genre/tag/decade vector proxy for held-out taste, not a trained retriever.",
+            "Action labels compare NDCG@10 of a genre/tag/decade preference-vector ranker, not the P2 model itself.",
             "Training pools come from a dependency-free feature index, not Member 3's vector index or B3 pools.",
             "Off-target pools simulate retrieval misses; ranking pools inject held-out positives and dislikes.",
             "Explanations are templates citing displayed overlap; they are grounded but not human-written.",
@@ -784,10 +784,10 @@ def main():
     parser.add_argument("--config", type=Path, default=CONFIG)
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument("--train-users", type=int, help="Override training user count for a smoke run")
-    parser.add_argument("--validation-users", type=int, help="Override validation user count for a smoke run")
+    parser.add_argument("--dev-users", type=int, help="Override dev user count for a smoke run")
     args = parser.parse_args()
     config = json.loads(args.config.read_text(encoding="utf-8"))
-    for name, value in (("train", args.train_users), ("validation", args.validation_users)):
+    for name, value in (("train", args.train_users), ("dev", args.dev_users)):
         if value is not None:
             if value < 1:
                 parser.error("user overrides must be positive")

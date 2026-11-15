@@ -9,7 +9,7 @@ from src.data import clarification_sim as sim
 from src.data.build import build, sha256
 from src.data.catalog_seed import build_seed, display_title
 from src.data.p2_actions import ActionError, parse_action, validate_action, validate_episode
-from src.data.p2_checks import grounding_problems, run as run_checks
+from src.data.p2_checks import grounding_problems, run as run_checks, title_mentioned
 from src.data.p2_samples import generate
 from src.profiles.agent_text import ACTIONS, render_prompt, serialize_action
 
@@ -64,11 +64,11 @@ def p2_config(exclude_path: Path) -> dict:
         "version": "p2-fixture", "data_version": "fixture-v1", "seed": 11,
         "exclude_user_lists": [str(exclude_path)],
         "train": {"users": 5, "episodes_per_user": 2, "canonical_fraction": 0.5, "sparse_rating_counts": [1, 2, 3]},
-        "validation": {"users": 3, "episodes_per_user": 1, "canonical_fraction": 0.5, "sparse_rating_counts": [1, 2, 3]},
+        "dev": {"users": 3, "episodes_per_user": 1, "canonical_fraction": 0.5, "sparse_rating_counts": [1, 2, 3]},
         "min_history_before_anchor": 8, "future_horizon_ratings": 20, "min_future_positives": 2,
         "future_positives": 5, "future_negatives": 1, "max_questions": 2, "max_retrievals": 1,
-        "sufficiency_min_gain": 0.02, "pool_min_gap": 0.02, "offtarget_pool_fraction": 0.5,
-        "pool_size": 5, "retrieval_k": 5, "quality_top_m": 3, "inject_positives": 2, "inject_negatives": 1,
+        "offtarget_pool_fraction": 0.5,
+        "pool_size": 5, "retrieval_k": 5, "inject_positives": 2, "inject_negatives": 1,
         "explain_k": 10, "popularity_prior": 0.2, "retrieval_length_norm": 0.5,
         "feature_weights": {"genre": 1.0, "genome_tag": 1.0, "user_tag": 0.5, "decade": 0.5},
     }
@@ -102,7 +102,7 @@ class FixturePipelineTest(unittest.TestCase):
             return [json.loads(line) for line in source]
 
     def test_all_six_actions_and_valid_targets(self):
-        samples = self.samples() + self.samples("validation")
+        samples = self.samples() + self.samples("dev")
         self.assertEqual({s["task"] for s in samples}, set(ACTIONS))
         for sample in samples:
             self.assertEqual(parse_action(sample["completion"]), sample["target"])
@@ -110,11 +110,13 @@ class FixturePipelineTest(unittest.TestCase):
         users = {s["user_id"] for s in samples}
         self.assertNotIn(1, users)
         train_users = {s["user_id"] for s in self.samples()}
-        self.assertFalse(train_users & {s["user_id"] for s in self.samples("validation")})
+        self.assertFalse(train_users & {s["user_id"] for s in self.samples("dev")})
 
     def test_temporal_boundaries_in_episodes(self):
-        for split in ("train", "validation"):
+        cutoff = json.loads((self.data / "statistics.json").read_text())["validation_cutoff_unix"]
+        for split in ("train", "dev"):
             for episode in self.episodes(split):
+                self.assertEqual(episode["boundary_timestamp"], cutoff)  # labels from training period only
                 self.assertLess(episode["history_latest_timestamp"], episode["anchor_timestamp"])
                 self.assertTrue(all(episode["anchor_timestamp"] <= ts < episode["boundary_timestamp"]
                                     for ts in episode["future_positive_timestamps"]))
@@ -123,7 +125,8 @@ class FixturePipelineTest(unittest.TestCase):
     def test_quality_checks_pass_and_replay(self):
         report = run_checks(self.data, self.raw, self.output, self.config)
         self.assertEqual(report["error_count"], 0, report["error_examples"])
-        for split in ("train", "validation"):
+        self.assertGreater(report["base"]["formatter_parity"]["validation_profiles_checked"], 0)
+        for split in ("train", "dev"):
             stats = report["samples"][split]
             self.assertEqual(stats["episodes_replayed"], stats["episodes"])
             self.assertEqual(stats["explanations_grounded"], stats["explanations"])
@@ -132,7 +135,7 @@ class FixturePipelineTest(unittest.TestCase):
     def test_generation_is_deterministic(self):
         second = Path(self.temp.name) / "p2-second"
         report = generate(self.data, self.raw, second, self.config)
-        for split in ("train", "validation"):
+        for split in ("train", "dev"):
             self.assertEqual(report["splits"][split]["samples_sha256"], self.report["splits"][split]["samples_sha256"])
             self.assertEqual(sha256(second / f"p2_episodes_{split}.jsonl"),
                              sha256(self.output / f"p2_episodes_{split}.jsonl"))
@@ -154,6 +157,17 @@ class FixturePipelineTest(unittest.TestCase):
         self.assertIn("grounding", report["errors_by_kind"])
         self.assertIn("replay", report["errors_by_kind"])
 
+    def test_labels_follow_ndcg_sequence_rule(self):
+        for episode in self.episodes() + self.episodes("dev"):
+            plan = episode["plan"]
+            asks = [e for e in episode["events"] if e["action"] == "ask_clarification"]
+            retrievals = [e for e in episode["events"] if e["action"] == "retrieve_candidates"]
+            self.assertEqual([e["intent"] for e in asks], plan["chosen_questions"])
+            self.assertEqual(bool(retrievals), plan["chosen_retrieve"])
+            self.assertGreaterEqual(plan["chosen_ndcg"], plan["no_action_ndcg"])
+            if plan["chosen_ndcg"] == plan["no_action_ndcg"]:
+                self.assertEqual((asks, retrievals), ([], []))  # ties prefer fewer actions
+
     def test_seed_matches_catalog(self):
         with (self.output / "catalog_seed.jsonl").open(encoding="utf-8") as source:
             seed = [json.loads(line) for line in source]
@@ -167,7 +181,8 @@ class FixturePipelineTest(unittest.TestCase):
     def test_generator_never_opens_test_files(self):
         for name in ("p2_samples.py", "clarification_sim.py", "catalog_seed.py"):
             source = (Path("src/data") / name).read_text(encoding="utf-8")
-            for forbidden in ("test_ratings", "test_targets", "test_profiles"):
+            for forbidden in ("test_ratings", "test_targets", "test_profiles", "validation_ratings",
+                              "validation_targets"):
                 self.assertNotIn(forbidden, source, f"{name} references {forbidden}")
 
 
@@ -264,6 +279,13 @@ class GroundingTest(unittest.TestCase):
                     'Like A (1990), which you rated 5/5, it is tagged "gore".',
                     'It is from the 1990s, the decade you said you enjoy most.'):
             self.assertTrue(grounding_problems(bad, candidate, "1990s", state), bad)
+
+    def test_whole_title_matching(self):
+        text = "Highly rated movies: Primal Fear (1996) (5/5). Low rated movies: Green Room (2015) (1/5)."
+        self.assertFalse(title_mentioned("Fear (1996)", text))
+        self.assertFalse(title_mentioned("Room (2015)", text))
+        self.assertTrue(title_mentioned("Green Room (2015)", text))
+        self.assertTrue(title_mentioned("Heat (1995)", "I really enjoyed Heat (1995) (5/5)."))
 
     def test_prompt_requires_candidates(self):
         with self.assertRaises(ValueError):
