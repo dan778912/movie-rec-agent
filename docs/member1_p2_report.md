@@ -1,6 +1,6 @@
 # Member 1 — Phase 2 data handoff: P2 samples, catalog seed, quality report
 
-**Status:** generated and checked on 2026-11-14 with zero check errors. Ready for review by Members 2–6. The label thresholds, simulator, and prompt template are **proposed v1** and should be ratified together with the [Phase 2 interface contract](https://github.com/dan778912/movie-rec-agent/blob/member2-phase2/docs/phase2_interface_contract.md) before P2 test inference.
+**Status:** generated and checked on 2026-11-14 with zero check errors. Ready for review by Members 2–6. The label thresholds, simulator, and prompt template are **proposed v1** and should be ratified together with the [Phase 2 interface contract](https://github.com/dan778912/movie-rec-agent/blob/member2-phase2/docs/phase2_interface_contract.md) before P2 test inference. The open choices, including one conflict with midterm report §3.4, are listed in [member1_p2_team_decisions.md](member1_p2_team_decisions.md).
 
 | Deliverable | Location (Git-ignored data) | Code |
 |---|---|---|
@@ -100,7 +100,7 @@ The cap-forced decisions — 218 episodes (5%) that still wanted a third questio
 
 ### Data-quality findings for the team
 
-1. **Test profiles often show out-of-catalog liked movies.** 1,172 of 3,779 test profiles (31%) list at least one liked movie outside the candidate catalog, against 174 of 4,751 validation profiles (3.7%). This follows the frozen rule that profiles include all history. However, Member 3's P1 training profiles render **catalog movies only**, so the P1/P2 training and test profile distributions differ more at test than at validation. P2 samples use the frozen rule, so canonical training profiles match evaluation profiles. **Member 6 should not mix the two profile styles unknowingly.**
+1. **Test profiles often show out-of-catalog liked movies — a train/test shift.** 1,172 of 3,779 test profiles (31%) list at least one liked movie outside the candidate catalog, against 174 of 4,751 validation profiles (3.7%). 2,412 of the 2,520 such entries were rated after the validation cutoff: they are newer movies that the training-defined catalog cannot contain. Training data under-represents this. Only 2 of 1,959 canonical P2 training profiles (0.1%) show one, and Member 3's P1 training profiles exclude such movies by construction. P2 samples use the frozen formatter, so the *format* matches evaluation; the *distribution* at test does not. See decision D7.
 2. **Catalog metadata gaps.** Of 21,333 catalog movies:
    - 8,443 lack genome tags and 4,054 lack user tags; 3,166 have no displayable tag at all;
    - 111 have no genre and 9 have no parseable year;
@@ -113,7 +113,7 @@ The cap-forced decisions — 218 episodes (5%) that still wanted a third questio
 ## 4. Limitations
 
 - Clarification answers are simulated from pre-anchor ratings, not real user replies. They support a controlled offline claim only.
-- Decision labels use a genre/tag/decade vector proxy for held-out taste. The 0.04 / 0.05 thresholds were set by inspecting label balance on a 150-user training-period smoke run, not on validation or test outcomes.
+- Decision labels use a genre/tag/decade vector proxy for held-out taste. The 0.04 / 0.05 thresholds were set by inspecting label balance on a 150-user training-period smoke run, not on validation or test outcomes. This rule differs from the NDCG@10 sequence comparison described in midterm §3.4; decision D1 measures both rules.
 - Training pools come from the simulator's feature index, not Member 3's vector index or the frozen B3 pools. Pools hold 20–40 items (45 with injections) rather than 50.
 - Off-target pools are a simulated retrieval miss. Ranking pools contain injected held-out items, so the share of positives is higher than in real B3 pools. Without injection, an initial 20-item pool contains on average 0.28 of the user's first ten held-out positives.
 - Explanations are deterministic templates — grounded but plain.
