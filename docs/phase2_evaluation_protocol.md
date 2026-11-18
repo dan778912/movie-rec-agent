@@ -39,6 +39,13 @@ inputs. Do not describe them as the primary P2 result.
 | Starting pool | The per-user frozen B3 50-item prediction file, including its order and SHA-256. P2's trace must reproduce this list exactly. |
 | P1 control | The existing frozen P1 50-item predictions on these 500 users, if P2 receives the same initial profile, catalog, and B3 pool. If any input representation changes, rerun a separately versioned matched P1 control before making a controlled P1/P2 claim. Preserve the historical P1 result either way. |
 
+Member 1's separate 400-user, training-period P2 `dev` samples are intended for
+checkpoint selection; they are distinct from the saved 300-user system-validation
+population above. The team has not yet frozen how these two stages choose the
+final checkpoint. The proposed division of roles, selection rule, and exact
+missing inputs are recorded in the [checkpoint-selection handoff](phase2_checkpoint_selection_handoff.md).
+Do not call a checkpoint-selection result final until that decision is recorded.
+
 The [published 500-user P1/B3 comparison](results/member2_p1_b3_test_500_v1/README.md)
 is historical evidence: P1 minus B3 NDCG@10 is +0.023992, with a paired 95%
 interval [0.016787, 0.031517]. Its prediction files, user set, settings,

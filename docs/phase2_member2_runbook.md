@@ -1,6 +1,6 @@
 # Member 2 Phase 2 runbook
 
-**Status:** validation workflow ready for synthetic checks; real P2 inputs and the team-reviewed final-test freeze are pending. Read the [experiment protocol](phase2_evaluation_protocol.md), [interface contract](phase2_interface_contract.md), and [artifact reproduction guide](phase2_artifact_reproduction.md) before accepting a producer export.
+**Status:** validation workflow ready for synthetic checks; real P2 inputs and the team-reviewed final-test freeze are pending. Read the [checkpoint-selection handoff](phase2_checkpoint_selection_handoff.md), [experiment protocol](phase2_evaluation_protocol.md), [interface contract](phase2_interface_contract.md), and [artifact reproduction guide](phase2_artifact_reproduction.md) before accepting a producer export.
 
 ## Artifacts to obtain
 
