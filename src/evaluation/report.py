@@ -22,9 +22,10 @@ from pathlib import Path
 from . import bootstrap
 from .evaluate import _canonical_bytes, _json_object, _sha256
 
-METHOD_ORDER = ("popularity", "bm25", "embedding", "p1", "p2")
+METHOD_ORDER = ("popularity", "bm25", "embedding", "qwen_base", "p1", "p2")
 SYSTEMS = {"popularity": "B0 (popularity)", "bm25": "B2 (BM25)",
-           "embedding": "B3 (embedding)", "p1": "P1 (fine-tuned reranker)",
+           "embedding": "B3 (embedding)", "qwen_base": "Qwen base (untuned reranker)",
+           "p1": "P1 (fine-tuned reranker)",
            "p2": "P2 (agent)"}
 COVERAGE_FIELDS = ("positive_targets", "in_catalog_positive_targets",
                    "out_of_catalog_positive_targets", "catalog_positive_coverage")
@@ -193,7 +194,7 @@ def build_table(run_dirs: Sequence[Path], *, comparison_dirs: Sequence[Path] = (
     if kind not in ("synthetic", "experiment"):
         raise ValueError("kind must be synthetic or experiment")
     if isinstance(run_dirs, (str, bytes, Path)) or not 1 <= len(run_dirs) <= len(METHOD_ORDER):
-        raise ValueError("provide between one and five scored run directories")
+        raise ValueError(f"provide between one and {len(METHOD_ORDER)} scored run directories")
     if isinstance(comparison_dirs, (str, bytes, Path)):
         raise ValueError("comparison_dirs must be a sequence of directories")
     runs, directories = {}, {}
@@ -209,16 +210,12 @@ def build_table(run_dirs: Sequence[Path], *, comparison_dirs: Sequence[Path] = (
         _compatible(first, runs[method])
     if kind == "experiment" and first[0]["dataset_version"].lower().startswith("synthetic"):
         raise ValueError("synthetic dataset reports require --kind synthetic")
-    if "p1" in runs:
-        if "embedding" not in runs:
-            raise ValueError("a P1 table requires its frozen embedding counterpart")
-        if runs["p1"][0]["source_sha256"]["candidate_pool"] != runs["embedding"][0]["source_sha256"]["predictions"]:
-            raise ValueError("P1 candidate pool hash does not match embedding predictions")
-    if "p2" in runs:
-        if "embedding" not in runs:
-            raise ValueError("a P2 table requires its frozen embedding counterpart")
-        if runs["p2"][0]["source_sha256"]["candidate_pool"] != runs["embedding"][0]["source_sha256"]["predictions"]:
-            raise ValueError("P2 candidate pool hash does not match embedding predictions")
+    for method in ("qwen_base", "p1", "p2"):
+        if method in runs:
+            if "embedding" not in runs:
+                raise ValueError(f"a {method} table requires its frozen embedding counterpart")
+            if runs[method][0]["source_sha256"]["candidate_pool"] != runs["embedding"][0]["source_sha256"]["predictions"]:
+                raise ValueError(f"{method} candidate pool hash does not match embedding predictions")
     metrics = sorted(first[0]["metrics"])
     rows, hashes, paths = [], {}, {}
     for method in methods:

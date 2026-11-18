@@ -203,12 +203,12 @@ def _load_run(directory: Path) -> tuple[dict, dict[int, dict], dict, dict]:
         raise ValueError("summary.source_paths is incomplete")
     if any(not isinstance(path, str) or not path or not Path(path).is_absolute() for path in sources.values()):
         raise ValueError("summary.source_paths must contain nonempty absolute paths")
-    if method in ("p1", "p2"):
+    if method in ("qwen_base", "p1", "p2"):
         if "candidate_pool" not in sources:
             raise ValueError(f"{method.upper()} source_paths requires candidate_pool")
         _hashes(hashes, ("candidate_pool",), f"{method.upper()} source_sha256")
     elif "candidate_pool" in hashes:
-        raise ValueError("only P1/P2 reports may contain a candidate_pool hash")
+        raise ValueError("only qwen_base/P1/P2 reports may contain a candidate_pool hash")
     if method == "p2":
         if "trace" not in sources:
             raise ValueError("P2 source_paths requires trace")
@@ -244,7 +244,7 @@ def _load_run(directory: Path) -> tuple[dict, dict[int, dict], dict, dict]:
             raise ValueError("comparison requires complete prediction user coverage")
     validation_hashes = _hashes(validation.get("source_sha256"), ("catalog", "profiles", "users", "predictions"), "validation.source_sha256")
     expected_validation_hashes = {"catalog", "profiles", "users", "predictions"}
-    if method in ("p1", "p2"):
+    if method in ("qwen_base", "p1", "p2"):
         expected_validation_hashes.add("candidate_pool")
     if method == "p2":
         expected_validation_hashes.add("trace")
@@ -318,9 +318,9 @@ def compare_runs(baseline_dir: Path, challenger_dir: Path) -> ComparisonResult:
         if any(left[user][key] != right[user][key] for key in COUNTS):
             raise ValueError(f"runs have different target or prediction counts for user {user}")
     pair = {baseline["method"], challenger["method"]}
-    if "p1" in pair or "p2" in pair:
-        if pair not in ({"p1", "embedding"}, {"p2", "embedding"}, {"p1", "p2"}):
-            raise ValueError("P1/P2 comparison requires B3 or the paired P1/P2 run")
+    if pair & {"qwen_base", "p1", "p2"}:
+        if len(pair) != 2 or not pair <= {"embedding", "qwen_base", "p1", "p2"}:
+            raise ValueError("qwen_base/P1/P2 comparison requires a distinct B3 or reranker run")
         if "embedding" in pair:
             reranker = baseline if baseline["method"] != "embedding" else challenger
             embedding = baseline if baseline["method"] == "embedding" else challenger
@@ -328,7 +328,7 @@ def compare_runs(baseline_dir: Path, challenger_dir: Path) -> ComparisonResult:
                 raise ValueError("candidate pool hash does not match embedding predictions")
         else:
             if baseline["source_sha256"]["candidate_pool"] != challenger["source_sha256"]["candidate_pool"]:
-                raise ValueError("P1/P2 candidate pool hashes differ")
+                raise ValueError("reranker candidate pool hashes differ")
     settings = baseline["settings"]["bootstrap"]
     metrics = {}
     for metric in sorted(baseline["metrics"]):

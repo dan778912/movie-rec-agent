@@ -23,6 +23,7 @@ This rule is **not yet approved**. Member 1's [decision record](https://github.c
 | 400-user P2 dev samples and episodes | Generator, config, examples, and quality report are on `member-1-samples-p2`; complete generated JSONLs are Git-ignored and absent locally. Regenerate or transfer the hash-verified outputs. | Member 1 to Member 6 |
 | Exact ordered B3 50-item prediction JSONL for the 300 users | Absent locally and from Git. Original prepared-file SHA-256: `c388c0fd10bb895c1e0710ec10fa96a7d87785939f2498a5bf23533d18d000a9`. The archive records the score but cannot reconstruct each ordered pool. Re-encoding on a new machine may produce a different pool and would require a separately versioned matched P1 control. | Member 5's original B3 export / team storage |
 | Original P1 50-item validation prediction JSONL | Absent locally and from Git. Original SHA-256: `b70ccd8ea374695c3bed24cd908caee65bffdfe96de7e30b693de990091c3ad2`. A saved score is not a prediction file. | Member 6 / team storage |
+| Untuned Qwen control prediction JSONL | Absent locally and from Git. The evaluator now accepts the distinct `qwen_base` method, requires the exact B3 candidate set, and can compute a paired P1-minus-base interval once a real 300-user export exists. Member 6 must explicitly export `method: "qwen_base"` and pin the base-model revision. | Member 6 |
 | P2 validation predictions, `p2-trace-v1` traces, and `p2-run-manifest-v1` | No real export yet. Each must cover all 300 saved users, name the checkpoint, prompt, simulator, index, code, and runtime policy, and be delivered as immutable files. | Members 3, 4, and 6 |
 
 Local input verification on 2026-11-18 passed `src.data.verify` for all ten
@@ -54,6 +55,6 @@ The run manifest must report checkpoint and index identities, action/error/fallb
 |---|---|
 | 1 | Provide or regenerate the hash-verified P2 train/dev sample and episode JSONLs and quality report; confirm the simulator version and the 400-dev role in checkpoint screening. |
 | 5 | Retrieve the original 300-user ordered B3 prediction JSONL with the SHA-256 above, plus the original 500-user B3 test JSONL from team storage. |
-| 6 | Retrieve the original 300-user P1 prediction JSONL and the 500-user P1 test JSONL; provide the P2 checkpoint candidates, training step/revision and loading evidence, generation settings, and the agreed stage-one dev metric/shortlist. |
+| 6 | Retrieve the original 300-user P1 prediction JSONL and the 500-user P1 test JSONL; export the 300-user untuned control with `method: "qwen_base"` and a pinned base-model revision; provide the P2 checkpoint candidates, training step/revision and loading evidence, generation settings, and the agreed stage-one dev metric/shortlist. |
 | 3 and 4 | Freeze the real Service B/index and agent/simulator/prompt/action policy, then export one P2 prediction, trace, and run-manifest record per validation user with measured calls, failures, and latency. |
 | 1, 2, 3, 4, and 6 | Review and record the checkpoint-selection rule, operational caps, fallback/timeout settings, and any numeric acceptance thresholds before final-test inference. |

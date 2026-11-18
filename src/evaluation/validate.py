@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
-METHODS = ("popularity", "bm25", "embedding", "p1", "p2")
+METHODS = ("popularity", "bm25", "embedding", "qwen_base", "p1", "p2")
 SPLITS = ("validation", "test")
 P2_TRACE_SCHEMA = "p2-trace-v1"
 P2_MAX_CONTROL_EVENTS = 8
@@ -454,8 +454,8 @@ def validate_predictions(
 ) -> ValidatedPredictions:
     """Return records only if every row and the entire expected population pass.
 
-    P1 exactly permutes an independently validated B3 pool. P2 starts with
-    that same pool and requires an independently validated execution trace.
+    P1 and the untuned Qwen control exactly permute an independently validated
+    B3 pool. P2 starts with that pool and requires an execution trace.
     Prediction/trace errors raise PredictionValidationError with all issues.
     Bad reference inputs or options raise ValueError/OSError instead.
     """
@@ -465,7 +465,7 @@ def validate_predictions(
     if type(required_count) is not int or required_count <= 0:
         raise ValueError("required_count must be a positive integer, excluding booleans")
     pools = None
-    if method in ("p1", "p2"):
+    if method in ("qwen_base", "p1", "p2"):
         if candidate_pool_path is None:
             raise ValueError(f"{method} requires --candidate-pool with the frozen embedding JSONL")
         try:
@@ -479,7 +479,7 @@ def validate_predictions(
             for user_id, record in pool_result.records.items()
         }
     elif candidate_pool_path is not None:
-        raise ValueError("--candidate-pool is supported only for p1 and p2")
+        raise ValueError("--candidate-pool is supported only for qwen_base, p1, and p2")
     if method == "p2" and trace_path is None:
         raise ValueError("p2 requires --trace with one execution trace per user")
     if method != "p2" and trace_path is not None:
@@ -558,10 +558,10 @@ def validate_predictions(
                     if method == "p2" and "explanation" in item and not _text(item["explanation"]):
                         _issue(errors, "invalid_explanation", f"{label}: explanation must be nonempty text",
                                line_number, user_id)
-                if method == "p1" and pools is not None and user_id in pools and set(movie_ids) != set(pools[user_id]):
+                if method in ("qwen_base", "p1") and pools is not None and user_id in pools and set(movie_ids) != set(pools[user_id]):
                     missing = sorted(set(pools[user_id]) - set(movie_ids))
                     extra = sorted(set(movie_ids) - set(pools[user_id]))
-                    _issue(errors, "candidate_pool_mismatch", f"P1 must permute the frozen B3 pool; missing IDs {missing}; extra IDs {extra}", line_number, user_id)
+                    _issue(errors, "candidate_pool_mismatch", f"{method} must permute the frozen B3 pool; missing IDs {missing}; extra IDs {extra}", line_number, user_id)
 
             if len(errors) == before:
                 records[user_id] = record
@@ -617,7 +617,7 @@ def main() -> int:
     parser.add_argument("--split", choices=SPLITS, default="validation")
     parser.add_argument("--method", choices=METHODS, required=True)
     parser.add_argument("--required-count", type=int, default=50)
-    parser.add_argument("--candidate-pool", type=Path, help="frozen B3 embedding JSONL; required for p1/p2")
+    parser.add_argument("--candidate-pool", type=Path, help="frozen B3 embedding JSONL; required for qwen_base/p1/p2")
     parser.add_argument("--trace", type=Path, help="P2 execution trace JSONL; required for p2")
     parser.add_argument("--report", type=Path, help="optionally save the JSON validation report")
     args = parser.parse_args()

@@ -24,7 +24,7 @@ from .evaluate import (
 )
 from .validate import PredictionValidationError, ValidationContext, load_context, validate_predictions
 
-PREPARE_METHODS = ("popularity", "bm25", "embedding", "p1")
+PREPARE_METHODS = ("popularity", "bm25", "embedding", "qwen_base", "p1")
 
 
 @dataclass(frozen=True)
@@ -121,8 +121,8 @@ def prepare_predictions(
 
     ``source_label`` and optional metadata record owner-supplied artifact identity;
     they do not establish which model actually produced the recommendations.
-    P1 must already rank exactly the configured candidate count and use the
-    matching source-population embedding pool. P1 is never truncated.
+    P1 and the untuned Qwen control must already rank exactly the configured
+    candidate count and use the matching embedding pool. Neither is truncated.
     """
     if method not in PREPARE_METHODS:
         raise ValueError(f"method must be one of {PREPARE_METHODS}; P2 requires a trace-aware preparation workflow")
@@ -132,16 +132,16 @@ def prepare_predictions(
         raise ValueError("source_count must be a positive integer, excluding booleans")
     if not isinstance(source_label, str) or not source_label.strip():
         raise ValueError("source_label must be a nonempty artifact/model label")
-    if method == "p1" and candidate_pool_path is None:
-        raise ValueError("p1 requires --candidate-pool with the matching frozen embedding JSONL")
-    if method != "p1" and candidate_pool_path is not None:
-        raise ValueError("--candidate-pool is supported only for p1")
+    if method in ("qwen_base", "p1") and candidate_pool_path is None:
+        raise ValueError(f"{method} requires --candidate-pool with the matching frozen embedding JSONL")
+    if method not in ("qwen_base", "p1") and candidate_pool_path is not None:
+        raise ValueError("--candidate-pool is supported only for qwen_base and p1")
     config, selected_context, paths, hashes = _inputs(config_path, repository_root)
     count = config["required_predictions_per_user"]
     if source_count < count:
         raise ValueError("source_count must be at least required_predictions_per_user")
-    if method == "p1" and source_count != count:
-        raise ValueError("P1 source_count must equal the configured candidate count; P1 cannot be truncated")
+    if method in ("qwen_base", "p1") and source_count != count:
+        raise ValueError(f"{method} source_count must equal the configured candidate count; {method} cannot be truncated")
     paths["predictions"] = Path(source_path).resolve()
     hashes["predictions"] = _sha256(paths["predictions"])
     if expected_source_sha256 is not None:
@@ -172,7 +172,7 @@ def prepare_predictions(
         for user in selected
     ]
     candidates = None
-    if method == "p1":
+    if method in ("qwen_base", "p1"):
         pool = validate_predictions(paths["candidate_pool"], source_context,
                                     method="embedding", required_count=count)
         candidates = [{**pool.records[user], "recommendations": pool.records[user]["recommendations"][:count]}

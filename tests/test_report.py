@@ -98,7 +98,7 @@ class ExperimentTableTest(unittest.TestCase):
         self.assertEqual(result.summary["kind"], "synthetic")
         self.assertEqual(result.summary["run_count"], 2)
         self.assertEqual(result.summary["methods"], ["embedding", "p1"])
-        self.assertEqual(result.summary["missing_methods"], ["popularity", "bm25", "p2"])
+        self.assertEqual(result.summary["missing_methods"], ["popularity", "bm25", "qwen_base", "p2"])
         self.assertEqual([row["method"] for row in result.rows], ["embedding", "p1"])
         before, after = result.rows
         for key, value in {"recall_at_2": 0.5, "ndcg_at_2": 0.5,
@@ -114,7 +114,7 @@ class ExperimentTableTest(unittest.TestCase):
         bm25 = self.make_baseline("bm25")
         result = self.table(runs=[self.p1, bm25, self.embedding, popularity])
         self.assertEqual([row["method"] for row in result.rows], ["popularity", "bm25", "embedding", "p1"])
-        self.assertEqual(result.summary["missing_methods"], ["p2"])
+        self.assertEqual(result.summary["missing_methods"], ["qwen_base", "p2"])
 
     def test_catalog_coverage_populations_have_separate_labels(self):
         for row in self.table().rows:
@@ -390,7 +390,7 @@ class ExperimentTableTest(unittest.TestCase):
         result = self.table(runs=[self.embedding])
         self.assertEqual(len(result.rows), 1)
         self.assertEqual(result.rows[0]["method"], "embedding")
-        self.assertEqual(result.summary["missing_methods"], ["popularity", "bm25", "p1", "p2"])
+        self.assertEqual(result.summary["missing_methods"], ["popularity", "bm25", "qwen_base", "p1", "p2"])
         self.assertEqual(result.comparisons, [])
         output = self.work / "single"
         write_table(output, result)

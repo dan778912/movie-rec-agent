@@ -254,8 +254,8 @@ class PredictionPreparationTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "candidate pool is invalid"):
                     self.p1(pool=pool)
 
-    def test_candidate_pool_is_required_only_for_p1(self):
-        with self.assertRaisesRegex(ValueError, "only for p1"):
+    def test_candidate_pool_is_required_only_for_fixed_pool_rerankers(self):
+        with self.assertRaisesRegex(ValueError, "only for qwen_base and p1"):
             self.prepare(candidate_pool_path=FIXTURES / "full_candidate_pool.jsonl")
         with self.assertRaisesRegex(ValueError, "requires"):
             self.prepare(method="p1", source_count=3)

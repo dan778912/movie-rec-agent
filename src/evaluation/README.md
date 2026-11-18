@@ -33,6 +33,31 @@ Top 50 file. Preparation validates their entire export, then derives the saved
 300-user/50-item input without changing original files. The 300-user/50-item
 contract remains a proposed team choice.
 
+## Untuned Qwen control
+
+The distinct method ID is `qwen_base`. Its prediction JSONL must declare
+`"method":"qwen_base"` and exactly permute each user's frozen B3 50-item pool;
+it has no P2 execution trace. The authoritative scorer requires
+`--method qwen_base --candidate-pool <ordered-B3.jsonl>`. `src.evaluation.prepare`
+can select frozen users from a larger export using the same method and pool,
+without truncating its 50-item ranking. The bootstrap and table tools can
+compare this control with P1 when both runs use the same users, config,
+evaluator revision, and B3 source bytes.
+
+From the repository root, after the producer exports the original ordered B3
+pool and control predictions:
+
+```powershell
+python -m src.evaluation.evaluate --config configs/evaluation_phase2_validation_draft_v1.json --predictions <qwen_base.jsonl> --method qwen_base --candidate-pool <b3.jsonl> --output-dir <new-qwen-base-report-dir>
+python -m src.evaluation.bootstrap --baseline-dir <qwen-base-report-dir> --challenger-dir <same-revision-p1-report-dir> --output-dir <new-comparison-dir>
+```
+
+Member 6's inference command defaults to `p1`, so an untuned export must set
+`--method qwen_base` explicitly. The producer must pin and record the exact
+base-model revision and decoding settings; structural evaluation cannot verify
+which weights generated a ranking. No untuned-Qwen prediction export or metric
+has been received.
+
 ## Activate the environment on your Mac
 
 Open Terminal and run:

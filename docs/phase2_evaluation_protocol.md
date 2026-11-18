@@ -15,6 +15,9 @@ Recall@10 and HitRate@10 are secondary final-ranking outcomes. Report B3, P1,
 and P2 together so the reader can distinguish the original retrieval order,
 one-shot reranking, and the agentic system. B0 popularity and B2 BM25 belong in
 the broader shared results table when their matching outputs are available.
+An untuned Qwen control may be scored as the distinct `qwen_base` method and
+compared with P1 on the same frozen B3 pool once its real prediction export is
+available; no control result exists yet.
 
 P2 starts from each user's **exact frozen B3 top-50 order**. It can ask a
 clarifying question and add candidates through re-retrieval before ranking 50
