@@ -111,6 +111,8 @@ class EpisodeState:
     decisions: list[dict] = field(default_factory=list)  # one entry per model call or fallback
     failures: list[dict] = field(default_factory=list)  # rejected outputs, exhausted budgets, errors
     retrieval_log: list[dict] = field(default_factory=list)  # what each retrieval returned and kept
+    grounding: list[dict] = field(default_factory=list)  # one record per screened explanation set
+    initial_index_version: str | None = None  # index that produced initial_pool, if the caller knows it
 
     termination_reason: str | None = None
     reason: str | None = None  # why the episode did not end in a plain "recommend"
@@ -177,6 +179,8 @@ class EpisodeState:
             decisions=_dict_list("decisions", data["decisions"]),
             failures=_dict_list("failures", data["failures"]),
             retrieval_log=_dict_list("retrieval_log", data["retrieval_log"]),
+            grounding=_dict_list("grounding", data["grounding"]),
+            initial_index_version=_opt_str("initial_index_version", data["initial_index_version"]),
             termination_reason=_opt_str("termination_reason", data["termination_reason"]),
             reason=_opt_str("reason", data["reason"]),
             fallback_source=_opt_str("fallback_source", data["fallback_source"]),

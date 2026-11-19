@@ -21,6 +21,13 @@ from dataclasses import asdict, dataclass
 # These two rules conflict and neither has been ratified (decision A1).
 EXHAUSTION_POLICIES = ("fallback_b3_order", "rank_available_pool")
 
+# What to do with an explanation the grounding screen marks "unsupported" (decision A4/A15):
+#   off     - do not screen (development only; recorded as "unchecked")
+#   flag    - keep the model's text, record the problems (default: changes nothing, hides nothing)
+#   repair  - replace that explanation with a text built only from the movie's displayed catalog fields
+#   reject  - treat the whole explanation as unusable (retries, then the episode ends "failed")
+GROUNDING_POLICIES = ("off", "flag", "repair", "reject")
+
 # The product shows ten recommendations, and the shared validator requires exactly this many
 # explanations (or fewer only when fewer movies are ranked).
 EXPLAINED_MOVIES = 10
@@ -67,6 +74,10 @@ class AgentConfig:
     # The ask prompt says "Do not repeat a question". When True the controller enforces it.
     reject_repeated_questions: bool = True
 
+    # See GROUNDING_POLICIES. Unratified: nobody has said what should happen to an ungrounded
+    # explanation, so the default records it and changes nothing.
+    grounding_policy: str = "flag"
+
     def __post_init__(self) -> None:
         if not isinstance(self.label, str) or not self.label.strip():
             raise ConfigError("label must be a nonempty string")
@@ -76,6 +87,8 @@ class AgentConfig:
             _require_int(name, getattr(self, name), 1)
         if self.exhaustion_policy not in EXHAUSTION_POLICIES:
             raise ConfigError(f"exhaustion_policy must be one of {EXHAUSTION_POLICIES}")
+        if self.grounding_policy not in GROUNDING_POLICIES:
+            raise ConfigError(f"grounding_policy must be one of {GROUNDING_POLICIES}")
         if type(self.reject_repeated_questions) is not bool:
             raise ConfigError("reject_repeated_questions must be a Boolean")
 

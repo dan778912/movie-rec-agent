@@ -68,7 +68,10 @@ def telemetry_record(state: EpisodeState) -> dict:
         "clarifications_used": state.asks,
         "clarifications_replayed": state.resumed_clarifications,
         "retrievals_used": state.retrievals,
+        "initial_index_version": state.initial_index_version,
         "decisions": copy.deepcopy(state.decisions),
         "failures": copy.deepcopy(state.failures),
         "retrieval_log": copy.deepcopy(state.retrieval_log),
+        # Deterministic screen results only. They are not the human audit and never say "supported".
+        "grounding": copy.deepcopy(state.grounding),
     }

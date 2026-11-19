@@ -16,6 +16,7 @@ import json
 import random
 import re
 import unittest
+from collections.abc import Mapping
 from pathlib import Path
 
 from src.agent import controller as ctl
@@ -33,6 +34,22 @@ POLICIES = ("fallback_b3_order", "rank_available_pool")
 def catalog_for(ids):
     return {i: {"movie_id": i, "title": f"Movie {i} (2001)", "genres": ["Drama", "Comedy"], "tags": ["quirky", "slow"]}
             for i in ids}
+
+
+class AutoCatalog(Mapping):
+    """Stands in for Member 3's catalog store: every positive movie id has a document."""
+
+    def __getitem__(self, movie_id):
+        if type(movie_id) is not int or movie_id <= 0:
+            raise KeyError(movie_id)
+        return {"movie_id": movie_id, "title": f"Movie {movie_id} (2001)", "genres": ["Drama", "Comedy"],
+                "tags": ["quirky", "slow"]}
+
+    def __iter__(self):
+        return iter(())
+
+    def __len__(self):
+        return 0
 
 
 class Unavailable(Exception):
@@ -68,7 +85,7 @@ def valid_output(task, state, *, decision=True, ranking=None):
     if task == "rank_candidates":
         return serialize_action({"action": task, "movie_ids": ranking or sorted(state.pool, reverse=True)})
     shown = (state.ranked or sorted(state.pool))[: state.config.explain_count]  # fuzz may ask before ranking
-    return serialize_action({"action": task, "explanations": [{"movie_id": i, "text": f"Because {i}."} for i in shown]})
+    return serialize_action({"action": task, "explanations": [{"movie_id": i, "text": "It is listed under Drama and Comedy."} for i in shown]})
 
 
 def default_retrieval():
@@ -80,16 +97,17 @@ def default_retrieval():
     return retrieve
 
 
-def drive(case, state, model, *, retrieval=None, answer="I like heists.", on_state=None, stop_at=None):
+def drive(case, state, model, *, retrieval=None, answer="I like heists.", on_state=None, stop_at=None, catalog=None):
     """Run the loop from the controller's docstring. Also proves each transition leaves its input alone."""
     retrieval = retrieval or default_retrieval()
+    catalog = AutoCatalog() if catalog is None else catalog
     for _ in range(120):
         step = ctl.next_step(state)
         if step.kind == "done" or step.kind == stop_at:
             return state
         before = copy.deepcopy(state.to_dict())
         if step.kind == "model":
-            new = ctl.apply_model_output(state, model.respond(step.task, state))
+            new = ctl.apply_model_output(state, model.respond(step.task, state), catalog=catalog)
         elif step.kind == "answer":
             new = ctl.apply_answer(state, answer, "test_double")
         else:
@@ -486,7 +504,7 @@ class PauseAndResumeTest(ControllerCase):
                 if step.kind == "done":
                     continue
                 if step.kind == "model":
-                    state = ctl.apply_model_output(state, model.respond(step.task, state))
+                    state = ctl.apply_model_output(state, model.respond(step.task, state), catalog=AutoCatalog())
                 elif step.kind == "answer":
                     state = ctl.apply_answer(state, "I like heists.", "test_double")  # same as drive()'s default
                 else:
@@ -511,13 +529,13 @@ class PromptTest(ControllerCase):
             self.assertNotIn("SENTINEL_TARGET_RATING", prompt)
             self.assertNotIn("4242", prompt)
             self.assertNotIn("4243", prompt)
-            state = ctl.apply_model_output(state, valid_output(task, state))
+            state = ctl.apply_model_output(state, valid_output(task, state), catalog=catalog)
 
     def test_explain_prompt_lists_the_top_ranked_movies_in_rank_order(self):
         catalog = catalog_for(range(1, 51))
         state = ctl.start_episode("p", list(range(1, 15)), [], config=AgentConfig())
         for task in ("assess_sufficiency", "evaluate_candidates", "rank_candidates"):
-            state = ctl.apply_model_output(state, valid_output(task, state))
+            state = ctl.apply_model_output(state, valid_output(task, state), catalog=catalog)
         lines = [line for line in ctl.build_prompt(state, catalog).splitlines() if line.startswith("[")]
         self.assertEqual([int(re.match(r"\[(\d+)\]", line)[1]) for line in lines], list(range(14, 4, -1)))
 
@@ -607,7 +625,8 @@ class MemberOneExampleReplayTest(unittest.TestCase):
         shown = accepted.ranked[:10]
         explanations = [{"movie_id": i, "text": f"Because {i}."} for i in shown]
         done = ctl.apply_model_output(
-            accepted, serialize_action({"action": "explain_recommendations", "explanations": explanations}))
+            accepted, serialize_action({"action": "explain_recommendations", "explanations": explanations}),
+            catalog=catalog)
         self.assertEqual(done.termination_reason, "recommend")
         # The whole replayed episode is legal under the strictest reading of the shared validator.
         summary = validate_episode(done.events, done.initial_pool)

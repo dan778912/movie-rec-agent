@@ -28,6 +28,7 @@ from dataclasses import dataclass
 
 from src.agent.actions import AgentActionError, parse_model_output
 from src.agent.config import AgentConfig
+from src.agent.grounding import UNGROUNDED, UNSUPPORTED, Evidence, check_explanations, repair_text
 from src.agent.state import CALLER_PHASES, PHASE_TASK, EpisodeState, StateError
 from src.profiles.agent_text import CANDIDATE_TASKS, render_prompt
 
@@ -68,6 +69,7 @@ def start_episode(
     *,
     config: AgentConfig | None = None,
     clarifications: Sequence[Mapping] = (),
+    initial_index_version: str | None = None,
     user_id: int | None = None,
     split: str | None = None,
 ) -> EpisodeState:
@@ -96,6 +98,7 @@ def start_episode(
         clarifications=turns,
         resumed_clarifications=len(turns),
         control_events=2 * len(turns),
+        initial_index_version=initial_index_version,
         user_id=user_id,
         split=split,
     )
@@ -145,8 +148,13 @@ def build_prompt(state: EpisodeState, catalog: Mapping[int, Mapping]) -> str:
 
 
 # --------------------------------------------------------------------------- model output
-def apply_model_output(state: EpisodeState, raw_text: str) -> EpisodeState:
-    """Parse and apply one model output for the step ``next_step`` requested."""
+def apply_model_output(state: EpisodeState, raw_text: str, *, catalog: Mapping[int, Mapping] | None = None) -> EpisodeState:
+    """Parse and apply one model output for the step ``next_step`` requested.
+
+    ``catalog`` (movie_id -> document with title, genres, tags) is needed only for the explanation
+    step, where the grounding screen compares the text with the movies that were displayed. It is
+    required there unless ``grounding_policy`` is ``"off"``.
+    """
     task = _model_task(state)
     new = state.copy()
     config = new.config
@@ -163,11 +171,21 @@ def apply_model_output(state: EpisodeState, raw_text: str) -> EpisodeState:
     except AgentActionError as error:
         return _on_invalid(new, task, digest, error)
 
+    if task == "explain_recommendations":
+        return _apply_explanation(new, action, digest, catalog)
     new.decisions.append({"index": len(new.decisions), "source": "model", "task": task,
                           "raw_sha256": digest, "valid": True, "error": None, "parsed": action})
     new.step_invalid_count = 0
     _HANDLERS[task](new, action)
     return new
+
+
+def apply_model_error(state: EpisodeState, reason: str) -> EpisodeState:
+    """The model call itself failed (exception, timeout). It follows the same path as an unusable
+    output: retries if configured, then the contract fallback, or "failed" for the explanation."""
+    task = _model_task(state)
+    detail = (str(reason) or "unspecified")[:200]
+    return _on_invalid(state.copy(), task, None, AgentActionError("model_error", detail))
 
 
 def _on_assess(state: EpisodeState, action: dict) -> None:
@@ -220,22 +238,58 @@ def _on_rank(state: EpisodeState, action: dict) -> None:
     state.phase = "explain"
 
 
-def _on_explain(state: EpisodeState, action: dict) -> None:
-    state.events.append({"action": "explain_recommendations",
-                         "explanations": [dict(item) for item in action["explanations"]]})
-    if state.termination_reason is None:
-        state.termination_reason = "recommend"
-    state.phase = "done"
-
-
 _HANDLERS = {
     "assess_sufficiency": _on_assess,
     "ask_clarification": _on_ask,
     "evaluate_candidates": _on_evaluate,
     "retrieve_candidates": _on_retrieve,
     "rank_candidates": _on_rank,
-    "explain_recommendations": _on_explain,
-}
+}  # explanations are handled by _apply_explanation, which also runs the grounding screen
+
+
+def _apply_explanation(state: EpisodeState, action: dict, digest, catalog) -> EpisodeState:
+    """Screen the explanations against what the model was shown, apply ``grounding_policy``, record.
+
+    Only "unsupported" results trigger repair or rejection; "needs_review", "insufficient_evidence"
+    and "no_checkable_claim" are recorded for the audit and never change the text.
+    """
+    policy = state.config.grounding_policy
+    explanations = [dict(item) for item in action["explanations"]]
+    attempt = state.step_invalid_count + 1
+    if policy == "off":
+        state.grounding.append({"attempt": attempt, "policy": policy, "outcome": "unchecked", "results": []})
+    else:
+        if catalog is None:
+            raise TransitionError("catalog is required to screen explanations (or set grounding_policy='off')")
+        shown_ids = state.ranked[: state.config.explain_count]
+        missing = [movie_id for movie_id in shown_ids if movie_id not in catalog]
+        if missing:
+            raise MissingCandidateError(f"no catalog entry for movies {missing[:5]}")
+        evidence = Evidence(state.profile_text, tuple(turn["answer"] for turn in state.clarifications),
+                            {movie_id: catalog[movie_id] for movie_id in shown_ids})
+        results = check_explanations(explanations, evidence)
+        flagged = [index for index, result in enumerate(results) if result["status"] == UNSUPPORTED]
+        outcome = "kept"
+        if flagged and policy == "reject":
+            outcome = "rejected"
+        elif flagged and policy == "repair":
+            outcome = "repaired"
+            for index in flagged:
+                results[index]["repaired"] = True
+                results[index]["original_sha256"] = hashlib.sha256(explanations[index]["text"].encode("utf-8")).hexdigest()
+                explanations[index]["text"] = repair_text(catalog[explanations[index]["movie_id"]])
+        state.grounding.append({"attempt": attempt, "policy": policy, "outcome": outcome, "results": results})
+        if outcome == "rejected":
+            message = f"{len(flagged)} explanation(s) cite evidence that was not shown"
+            return _on_invalid(state, "explain_recommendations", digest, AgentActionError(UNGROUNDED, message))
+    state.decisions.append({"index": len(state.decisions), "source": "model", "task": "explain_recommendations",
+                            "raw_sha256": digest, "valid": True, "error": None, "parsed": action})
+    state.step_invalid_count = 0
+    state.events.append({"action": "explain_recommendations", "explanations": explanations})
+    if state.termination_reason is None:
+        state.termination_reason = "recommend"
+    state.phase = "done"
+    return state
 
 
 def _on_invalid(state: EpisodeState, task: str, digest, error: AgentActionError) -> EpisodeState:
@@ -251,6 +305,8 @@ def _on_invalid(state: EpisodeState, task: str, digest, error: AgentActionError)
         # No contract rule says what to do with a ranking whose explanations are unusable, and
         # inventing text here would defeat the grounding audit. Report it (decision A4).
         _finish_failed(state, f"explanation_invalid:{error.code}")
+    elif error.code == "model_error":
+        _to_fallback(state, f"model_error:{task}")  # the call itself failed; the output was never judged
     else:
         _to_fallback(state, f"invalid_action:{task}:{error.code}")
     return state
