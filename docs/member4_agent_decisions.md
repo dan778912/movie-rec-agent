@@ -38,6 +38,7 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 | A14 | Validator coverage | Member 2's trace validator is on an unmerged branch. | The in-repo oracle is Member 1's `validate_episode`. A one-off cross-check against Member 2's validator at `9032fd1` is recorded below and was re-run after the grounding work with the same result. | n/a | Add a permanent test once the branches merge |
 | A15 | Which claims and evidence count as grounded? | The work split names a "grounding check" without criteria. Member 2 has a human audit rubric; Member 1 has a checker for its own template explanations. | A deterministic screen, `src/agent/grounding.py`, of what is mechanically checkable (see below). It never says "supported": that is the human audit's word. | `grounding_policy` | Members 2 and 4: are these the agreed criteria? |
 | A16 | Adapter shapes between the controller and Service B | Member 3's interfaces do not exist yet. | `ModelClient.generate(prompt)`, `Retriever.initial_pool(...)` / `search(...)`, a `catalog` mapping, and `decide` / `resume` returning a Service-A-shaped response plus the explicit state. Proposed in `src/agent/decide.py` and shown running in `src/agent/example.py`. Timeouts belong to the client. | n/a | Member 3 to accept or change |
+| A17 | Which fallback trigger codes do we declare, and what do the controller-derived manifest counts mean? | Member 2's proposed `p2-run-manifest-v1` wants per-user counts and a fallback trigger taken from a list the producer freezes. It does not say which codes. Its test fixture uses three examples: `timeout`, `invalid_action`, `loop_cap`. | `src/agent/manifest.py` proposes 11 codes, definitions of `invalid_action_count` and `loop_cap_hit`, and parser and explanation-policy version strings. Latency, cost, timeouts and answerability come from the caller. Details below. | constants in `manifest.py` | Member 2: accept or change the list and definitions |
 
 ## A1 in detail: the two fallback rules
 
@@ -145,10 +146,50 @@ free-text answers are matched leniently (a trailing run of words plus the year),
 pass; a test pins that limit. The positive control is that all ten of Member 1's committed template
 explanations pass; the negative controls are the fabrications in the table above.
 
+## A17 in detail: what the controller supplies for the run manifest
+
+`src/agent/manifest.py` computes the manifest values that the controller's state can show and takes the
+rest as explicit arguments. It is not the offline runner (A12): no I/O, no loop over users, no files.
+
+| Manifest value | Supplied by | How |
+|---|---|---|
+| `policy.agent` object | the controller (`agent_policy`) | parser and explanation-policy version strings, the event caps from the config, `frozen_b3_order`, the trigger list. `timeout_ms` is the caller's. |
+| `fallback_reason` | the controller | the exact trace text (`state.reason`) |
+| `fallback_trigger` | the controller (`fallback_trigger`) | a stable code derived from that text; unknown text raises |
+| `model_call_count` | the controller | model attempts in the state, including failed calls |
+| `invalid_action_count` | the controller | outputs that were parsed and rejected; a failed model call is not one |
+| `retrieval_call_count` | the controller | calls made, including ones that failed or added nothing |
+| `loop_cap_hit` | the controller | a question, retrieval, pool-size or event limit stopped a "no" judgment |
+| `timed_out`, `latency_ms`, `cost_usd` | the caller | only the caller can time or price a call |
+| informative and noninformative answer counts | the caller | the controller cannot judge an answer; the two must add up to the clarification events |
+
+**Proposed trigger codes (11):** `invalid_action`, `unexpected_action`, `unbound_ids`, `repeated_question`
+(an unusable model output); `model_error` (the call failed, timeouts included); `retrieval_error`,
+`retrieval_returned_no_new_candidates`; `clarification_budget_exhausted`, `retrieval_budget_exhausted`,
+`pool_size_cap_reached`, `control_event_cap_reached` (a limit stopped a "no" judgment).
+
+**Evidence (one-off, scripts not committed).** I ran 526 scripted episodes (190 fallbacks, 336 recommendations;
+all 11 triggers occur) through the episode checks of Member 2's validator at `9032fd1`, and all were accepted.
+The same run rejected five deliberate corruptions: a trigger missing from the frozen list, a fallback reason
+that differs from the trace, answerability counts off by one, a retrieval count below the successful
+retrievals, and a recommendation with no model call. Separately, my `policy.agent` block passed that
+validator's full manifest check and failed when `max_control_events` was changed to 9, when `parser_version`
+was removed, and when a trigger was listed twice. That shows the shapes agree, not that the definitions are
+the right ones.
+
+**Questions for Member 2.** (1) Do you want a coarse list like your fixture's `timeout`, `invalid_action`,
+`loop_cap`, or these finer codes? Timeouts are currently `model_error`, because the controller sees only that
+the call failed. (2) Should `invalid_action_count` exclude failed model calls, as proposed? (3) Is the
+`loop_cap_hit` definition what you meant by the loop cap?
+
+**Limit.** Counts come from the state. A state rebuilt from replayed clarifications (`decide`) does not know
+about model calls made while earlier turns were served, so whole-episode counts need a state carried through
+`resume`, or sums across calls.
+
 ## Things this increment deliberately does not do
 
 * No model call, retrieval call, timeout or HTTP. The controller is a state machine that a caller
   drives; the real adapters wait on Members 3 and 6.
-* No grounding check, no offline runner, no prompt chunking (A15, A12, A11).
+* No offline runner, no prompt chunking (A12, A11), and the grounding screen is only a screen (A15).
 * It does not claim that any real model emits valid actions, or that clarification or retrieval
   improves recommendations. Nothing here measures either.

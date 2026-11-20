@@ -40,6 +40,7 @@ there, not here.
 | `grounding.py` | Deterministic screen of explanations against the evidence the model was shown |
 | `controller.py` | The state machine: `start_episode`, `next_step`, `build_prompt`, `apply_model_output`, `apply_model_error`, `apply_answer`, `apply_retrieval`, `apply_retrieval_failure` |
 | `decide.py` | The entry point for Service B: `decide`, `resume`, `advance`, plus the proposed `ModelClient` / `Retriever` shapes |
+| `manifest.py` | The run-manifest fields the controller can supply: `agent_policy`, `fallback_trigger`, `controller_counts`, `manifest_episode` (A17; not the offline runner) |
 | `trace.py` | `to_trace_record` (the proposed `p2-trace-v1`) and `telemetry_record` (digests, config, retrieval log, grounding results) |
 | `example.py` | A runnable demonstration with stand-ins, `python -m src.agent.example` |
 
@@ -124,7 +125,7 @@ python -m src.agent.example
 ```
 
 ```bash
-python -m unittest tests.test_agent_state tests.test_agent_actions tests.test_agent_controller tests.test_agent_grounding tests.test_agent_decide tests.test_agent_action_reference -v
+python -m unittest tests.test_agent_state tests.test_agent_actions tests.test_agent_controller tests.test_agent_grounding tests.test_agent_decide tests.test_agent_action_reference tests.test_agent_manifest -v
 ```
 
 The tests need only the standard library. They read Member 1's committed
