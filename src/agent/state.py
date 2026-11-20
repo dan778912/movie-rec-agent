@@ -15,6 +15,7 @@ import copy
 from dataclasses import dataclass, field, fields
 
 from src.agent.config import AgentConfig, ConfigError
+from src.data.p2_actions import CONTROL_ACTIONS
 from src.profiles.agent_text import ACTIONS
 
 STATE_VERSION = "p2-agent-state-v1"
@@ -227,6 +228,44 @@ class EpisodeState:
             raise StateError("ranked is longer than ranking_size")
         if self.resumed_clarifications > len(self.clarifications):
             raise StateError("resumed_clarifications exceeds the clarifications present")
+        self._check_records()
+        self._check_counters_agree_with_records()
+
+    def _check_records(self) -> None:
+        """Shape of the records that later code (telemetry, the run manifest) reads without checking."""
+        for event in self.events:
+            if event.get("action") not in ACTIONS:
+                raise StateError(f"event has a missing or unknown action: {event.get('action')!r}")
+        for position, entry in enumerate(self.decisions):
+            if entry.get("index") != position or entry.get("source") not in ("model", "fallback"):
+                raise StateError(f"decision {position} has a wrong index or an unknown source")
+            if entry.get("task") not in ACTIONS or type(entry.get("valid")) is not bool:
+                raise StateError(f"decision {position} needs a known task and a Boolean valid")
+            error = entry.get("error")
+            if entry["valid"] and error is not None:
+                raise StateError(f"decision {position} is valid but carries an error")
+            if not entry["valid"] and not (
+                isinstance(error, dict) and isinstance(error.get("code"), str) and isinstance(error.get("message"), str)
+            ):
+                raise StateError(f"decision {position} is invalid but has no error code and message")
+        for position, failure in enumerate(self.failures):
+            if not all(isinstance(failure.get(key), str) for key in ("code", "stage", "detail")):
+                raise StateError(f"failure {position} needs text code, stage and detail")
+
+    def _check_counters_agree_with_records(self) -> None:
+        """Every counter the controller keeps has a record behind it, so editing one number alone is
+        caught. (Rewriting the counter and its records together is not; that needs a signature.)"""
+        control = sum(1 for event in self.events if event["action"] in CONTROL_ACTIONS)
+        if self.control_events != 2 * self.resumed_clarifications + control:
+            raise StateError("control_events disagrees with the events and replayed turns recorded")
+        asked = sum(1 for event in self.events if event["action"] == "ask_clarification")
+        if len(self.clarifications) != self.resumed_clarifications + asked:
+            raise StateError("clarifications disagree with the question events and replayed turns recorded")
+        retrieved = sum(1 for event in self.events if event["action"] == "retrieve_candidates")
+        if self.retrievals < max(retrieved, len(self.retrieval_log)):
+            raise StateError("retrievals is lower than the retrievals recorded")
+        if self.step_invalid_count > self.config.max_invalid_actions_per_step:
+            raise StateError("step_invalid_count exceeds the allowed retries")
 
     def copy(self) -> "EpisodeState":
         return copy.deepcopy(self)

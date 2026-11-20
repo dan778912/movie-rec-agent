@@ -4,6 +4,7 @@ import unittest
 from src.agent import controller as ctl
 from src.agent.config import AgentConfig, ConfigError
 from src.agent.state import STATE_VERSION, EpisodeState, StateError
+from tests.test_agent_controller import ScriptedModel, Unavailable, drive
 
 
 def fresh(**overrides):
@@ -102,6 +103,92 @@ class StateSerializationTest(unittest.TestCase):
         data["events"].append({"action": "x"})
         self.assertNotIn(555, state.pool)
         self.assertEqual(state.events, [])
+
+
+class ResumedStateConsistencyTest(unittest.TestCase):
+    """A state that leaves the process can be edited. The counters and records must agree with each
+    other, so editing one number (to regain budget, say) is caught. A rewrite that edits every related
+    field consistently is not caught here; signing the state would be the service's job."""
+
+    @classmethod
+    def setUpClass(cls):
+        # asks once, widens once: events, decisions, a retrieval log and a clarification all exist
+        done = drive(unittest.TestCase(), fresh(user_id=7, split="validation", initial_pool=list(range(1, 51))),
+                     ScriptedModel(decisions=[False, True, False, True]))
+        assert done.termination_reason == "recommend" and done.retrievals == 1 and done.asks == 1
+        cls.base = json.loads(json.dumps(done.to_dict()))
+
+    def mutate(self, **changes):
+        data = json.loads(json.dumps(self.base))
+        data.update(changes)
+        return data
+
+    def test_the_untouched_state_loads(self):
+        self.assertEqual(EpisodeState.from_dict(self.mutate()).to_dict(), self.base)
+
+    def test_edited_counters_are_rejected(self):
+        events = self.base["events"]
+        without = lambda action: [e for e in events if e["action"] != action]
+        cases = {
+            "fewer control events than the events show": self.mutate(control_events=0),
+            "more control events than the events show": self.mutate(control_events=self.base["control_events"] + 1),
+            "question event removed, answer kept": self.mutate(events=without("ask_clarification")),
+            "answer removed, question event kept": self.mutate(clarifications=[]),
+            "replayed count raised": self.mutate(resumed_clarifications=1),
+            "retrieval event removed": self.mutate(events=without("retrieve_candidates")),
+            "retrieval count below the log": self.mutate(retrievals=0, retrieval_log=self.base["retrieval_log"]),
+            "step retries beyond the allowance": self.mutate(step_invalid_count=5),
+            "retrieval count and log both cleared, event kept": self.mutate(retrievals=0, retrieval_log=[]),
+        }
+        for name, data in cases.items():
+            with self.subTest(name), self.assertRaises(StateError):
+                EpisodeState.from_dict(data)
+
+    def test_malformed_records_are_rejected_not_left_to_fail_later(self):
+        decision, failure = self.base["decisions"][0], {"code": "x", "stage": "y", "detail": "z"}
+        dropped = lambda record, key: {k: v for k, v in record.items() if k != key}
+        cases = {
+            "decision without valid": self.mutate(decisions=[dropped(decision, "valid")] + self.base["decisions"][1:]),
+            "decision with a wrong index": self.mutate(decisions=[{**decision, "index": 5}] + self.base["decisions"][1:]),
+            "decision from an unknown source": self.mutate(decisions=[{**decision, "source": "oracle"}] + self.base["decisions"][1:]),
+            "decision for an unknown task": self.mutate(decisions=[{**decision, "task": "dance"}] + self.base["decisions"][1:]),
+            "valid decision that carries an error": self.mutate(decisions=[{**decision, "error": {"code": "c", "message": "m"}}] + self.base["decisions"][1:]),
+            "invalid decision without an error": self.mutate(decisions=[{**decision, "valid": False, "error": None}] + self.base["decisions"][1:]),
+            "error without a code": self.mutate(decisions=[{**decision, "valid": False, "error": {"message": "m"}}] + self.base["decisions"][1:]),
+            "failure without a code": self.mutate(failures=[dropped(failure, "code")]),
+            "failure with a non-text stage": self.mutate(failures=[{**failure, "stage": 3}]),
+            "event without an action": self.mutate(events=[{"sufficient": True}] + self.base["events"]),
+            "event with an unknown action": self.mutate(events=[{"action": "dance"}] + self.base["events"]),
+        }
+        for name, data in cases.items():
+            with self.subTest(name), self.assertRaises(StateError):
+                EpisodeState.from_dict(data)
+
+    def test_every_state_the_controller_can_reach_survives_a_round_trip(self):
+        import itertools
+        seen = []
+
+        def check(state):
+            seen.append(1)
+            self.assertEqual(EpisodeState.from_dict(json.loads(json.dumps(state.to_dict()))).to_dict(), state.to_dict())
+
+        start = lambda **c: fresh(initial_pool=list(range(1, 51)), user_id=7, split="validation", **c)
+        for bits in itertools.product([True, False], repeat=9):
+            drive(self, start(), ScriptedModel(decisions=bits), on_state=check)
+        raw = {"assess_sufficiency": ["nonsense"]}
+        drive(self, start(), ScriptedModel(raw=raw), on_state=check)
+        drive(self, start(config=AgentConfig(max_invalid_actions_per_step=2)), ScriptedModel(raw=raw), on_state=check)
+        drive(self, start(), ScriptedModel(decisions=[True, False]), retrieval=lambda step: [], on_state=check)
+
+        def broken(step):
+            raise Unavailable("down")
+
+        drive(self, start(), ScriptedModel(decisions=[True, False]), retrieval=broken, on_state=check)
+        drive(self, start(), ScriptedModel(raw={"explain_recommendations": ["nonsense"]}), on_state=check)
+        replayed = ctl.start_episode("p", list(range(1, 51)), [90], clarifications=[{"question": "Q?", "answer": "A"}] * 4)
+        check(replayed)
+        drive(self, replayed, ScriptedModel(), on_state=check)
+        self.assertGreater(len(seen), 3000)  # the walk really visited thousands of states
 
 
 class StartEpisodeTest(unittest.TestCase):

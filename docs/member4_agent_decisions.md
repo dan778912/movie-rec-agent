@@ -239,10 +239,19 @@ with tests:
   (the original is `__cause__`) instead of escaping raw. There is no fallback, because the B3 order is what
   failed to arrive; the service should answer with its own error and tell it apart from a bad request (A16).
 
-Three lower-severity findings were not changed: resumed state is still only structurally validated (the
-budget counters in an untrusted state can be edited by whoever holds it), the grounding screen still
-rebuilds its evidence strings for each of the ten explanations, and `state.py` still keeps its own small
-copies of two helpers that Member 1's `p2_actions.py` has.
+Three lower-severity findings were handled afterwards:
+
+* **Resumed state** (fixed). `EpisodeState.from_dict` now checks that every counter agrees with the records behind it:
+  `control_events` equals twice the replayed turns plus the control events recorded, the clarification list equals the
+  replayed turns plus the question events, `retrievals` is not below the retrievals recorded, and `step_invalid_count`
+  is within the retry allowance. It also checks the shape of events, decisions and failures. Editing one number to regain
+  budget is now rejected, and 3,655 states reached by the controller (every yes/no path, invalid outputs, model and
+  retrieval failures, replayed turns) all still load. **Limit:** someone who rewrites a counter and its records
+  consistently is not caught. If a state leaves the service, signing it is the service's job.
+* **Grounding speed** (measured, left alone). One set of ten explanations takes about 0.4 ms on real profiles, against
+  seconds for a model call, so caching the evidence strings would add code for no visible gain.
+* **Duplicated helpers** (left). `state.py` keeps its own copies of two small helpers that Member 1's `p2_actions.py` has;
+  sharing them would mean editing another member's file.
 
 ## Things this increment deliberately does not do
 
