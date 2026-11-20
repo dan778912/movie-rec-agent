@@ -32,7 +32,7 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 | A8 | Repeated questions | The prompt says not to repeat. The protocol assigns the handling to Member 4. | A question matching an earlier one (ignoring case, punctuation, spacing) is an unusable output. | `reject_repeated_questions` | Member 4 proposes; Member 2 to acknowledge |
 | A9 | Strict versus lenient JSON | Training completions are one bare JSON object. No real P2 checkpoint output has been seen. | Strict (Member 1's `parse_action`): no code fences, no prose. Nothing is repaired silently. | none | Revisit with the measured invalid-output rate from the real checkpoint |
 | A10 | Live pause and resume | Service B is stateless. Service A resends `clarifications` (`{question, answer}`) on every call. The contract proposes envelope fields (`contract_version`, `request_id`, `decision_trace`) but names no error codes. | Two ways to continue are offered. `decide` rebuilds the state from the replayed clarifications: each counts as 2 control events against the cap, so the budget is not reset, and earlier events are not invented (replayed answers get `answer_source: "client_supplied"`). `resume` continues from a stored state and keeps its full event history. Both give the same recommendations in the example. A live trace is assembled across calls by Service A. | none | Members 3, 5, 2 |
-| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. | none | Members 4 and 6 (a changed renderer needs a new `PROMPT_VERSION` and regenerated samples) |
+| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | none | Members 4 and 6 (a changed renderer needs a new `PROMPT_VERSION` and regenerated samples) |
 | A12 | Who writes the offline runner (loops over the saved users, calls the controller and the answer simulator, writes prediction/trace/manifest files)? | Member 1 suggests it is Member 4's. The October work split does not list it. | Not written, and not started until ownership is confirmed. The online `decide` entry point is a different thing and is included. | n/a | Members 2, 3, 4 |
 | A13 | Termination labels outside the contract | The proposed contract defines only `recommend` and `fallback`. | `budget_exhausted_rank` (under `rank_available_pool`) and `failed` are this module's own labels. See the A1 evidence. | n/a | Member 2, if A1 picks rank-available |
 | A14 | Validator coverage | Member 2's trace validator is on an unmerged branch. | The in-repo oracle is Member 1's `validate_episode`. A one-off cross-check against Member 2's validator at `9032fd1` is recorded below and was re-run after the grounding work with the same result. | n/a | Add a permanent test once the branches merge |
@@ -187,6 +187,38 @@ the call failed. (2) Should `invalid_action_count` exclude failed model calls, a
 **Limit.** Counts come from the state. A state rebuilt from replayed clarifications (`decide`) does not know
 about model calls made while earlier turns were served, so whole-episode counts need a state carried through
 `resume`, or sums across calls.
+
+## Real-data rehearsal (stand-in model)
+
+On 2026-11-19, after Member 6 shared the original ordered B3 validation pool (`validation_candidates_300.jsonl`,
+SHA-256 `c388c0fd10bb895c1e0710ec10fa96a7d87785939f2498a5bf23533d18d000a9`, the hash in Member 2's checkpoint-selection
+handoff), I ran the controller on all 300 validation users with a rule-based **stand-in** model: the real B3 pools, the real
+profiles and watched histories from `data/processed/ml25m-global-v1`, and catalog documents built from
+`movie_documents.jsonl` with Member 1's `display_tags`. The stand-in judged every pool sufficient, asked one question for
+a third of the users, widened the pool for a fifth (with arbitrary catalog movies, not a real index), ranked the pool in its
+own order, and wrote an explanation from each movie's displayed fields. It says nothing about any model's quality.
+The scripts are scratch and are not committed; this is not the offline runner (A12).
+
+* **Structure.** All 300 pools started cleanly (none contains a watched movie, none repeats a movie) and every pool movie has a
+  catalog document. All 300 episodes finished as `recommend`. Member 2's validate-only command
+  (`python -m src.evaluation.validate`, branch `member2-phase2` at `9032fd1`) reported `status: valid`, 0 errors, 300 of 300
+  users, with that exact B3 file as the candidate pool.
+* **Catalog adapter.** The controller's catalog documents need `tags`, not the `genome_tags` and `user_tags` stored in
+  `movie_documents.jsonl`. They must be joined with `display_tags` (three genome tags then two user tags), or the prompt
+  will not match the training text. Whoever builds the service's catalog (Member 3) needs this (A16).
+* **Prompt sizes (A11).** Measured on the first 60 users, in characters, with tokens estimated at 3.9 characters per
+  token (the ratio implied by Member 1's "about 18k characters, about 4.6k tokens"; no tokenizer was run):
+
+| Prompt | Median chars | Max chars | About tokens (median / max) |
+|---|---|---|---|
+| assess (no candidates) | 1,951 | 2,211 | 500 / 566 |
+| evaluate, 50 candidates | 7,980 | 9,349 | 2,046 / 2,397 |
+| rank, 50 candidates | 7,972 | 9,341 | 2,044 / 2,395 |
+| rank, 100 candidates (simulated) | 14,183 | 15,687 | 3,636 / 4,022 |
+| explain, top 10 | 3,285 | 3,688 | 842 / 945 |
+
+  The 100-candidate row adds 50 arbitrary unwatched catalog movies to the B3 pool, so a real widened pool will differ a little.
+  Even before any widening, the evaluate and rank prompts are about twice P1's 1,024-token limit.
 
 ## Review fixes (2026-11-19)
 
