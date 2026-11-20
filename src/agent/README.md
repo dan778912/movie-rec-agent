@@ -12,6 +12,11 @@ the places where sources conflict are listed in
 need the team are summarised in [docs/member4_team_review_note.md](../../docs/member4_team_review_note.md).
 Read those before treating any behaviour as the team's decision.
 
+For what the model must write and what the parser does with bad output (action names, fields,
+examples, reason codes, settings), see
+[docs/member4_action_reference.md](../../docs/member4_action_reference.md). A test keeps it in step
+with the code.
+
 ## What is reused, not redefined
 
 | Reused from | What |
@@ -119,7 +124,7 @@ python -m src.agent.example
 ```
 
 ```bash
-python -m unittest tests.test_agent_state tests.test_agent_actions tests.test_agent_controller tests.test_agent_grounding tests.test_agent_decide -v
+python -m unittest tests.test_agent_state tests.test_agent_actions tests.test_agent_controller tests.test_agent_grounding tests.test_agent_decide tests.test_agent_action_reference -v
 ```
 
 The tests need only the standard library. They read Member 1's committed
