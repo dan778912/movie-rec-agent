@@ -517,6 +517,40 @@ class PauseAndResumeTest(ControllerCase):
         self.assertEqual(b.to_dict(), alone[1].to_dict())
 
 
+class ReplayBeyondTheEventCapTest(ControllerCase):
+    """Replayed turns each used two control events. If an assessment and a pool evaluation no longer fit
+    under the cap, no valid episode can follow, so the episode must not pretend to start one."""
+
+    def turns(self, count):
+        return [{"question": f"Q{i}?", "answer": "a"} for i in range(count)]
+
+    POOL = list(range(1, 51))
+
+    def start(self, count, **config):
+        return ctl.start_episode("profile", self.POOL, [900], config=AgentConfig(**config),
+                                 clarifications=self.turns(count))
+
+    def test_three_replayed_turns_still_fit(self):
+        state = self.start(3)
+        self.assertEqual((state.phase, state.termination_reason), ("assess", None))
+        self.assertEqual(state.control_events, 6)
+
+    def test_four_replayed_turns_leave_no_room_so_the_contract_fallback_applies(self):
+        state = self.start(4)
+        self.assertEqual((state.phase, state.termination_reason, state.reason), ("explain", "fallback", ctl.EVENT_CAP))
+        self.assertEqual(state.ranked, self.POOL[: state.config.ranking_size])
+        self.assertEqual(state.failures[-1]["code"], "budget_exhausted")
+        self.assertEqual(ctl.next_step(state).task, "explain_recommendations")
+
+    def test_the_other_exhaustion_rule_is_honoured_too(self):
+        state = self.start(4, exhaustion_policy="rank_available_pool")
+        self.assertEqual((state.phase, state.termination_reason), ("rank", "budget_exhausted_rank"))
+
+    def test_the_boundary_follows_the_configured_cap(self):
+        self.assertEqual(self.start(2, max_control_events=5).phase, "explain")  # 4 used, 2 needed, 5 allowed
+        self.assertEqual(self.start(1, max_control_events=5).phase, "assess")  # 2 used, 2 needed, fits
+
+
 class PromptTest(ControllerCase):
     def test_prompt_shows_only_catalog_fields_and_never_the_watched_list_or_extras(self):
         catalog = catalog_for(range(1, 51))

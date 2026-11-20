@@ -20,6 +20,8 @@ KNOWN LIMITS (deliberate, documented, tested where noted):
 * Titles are matched exactly against the profile, the simulator's answers and the displayed
   movies. A title in a FREE-TEXT answer is matched leniently: a trailing run of words plus the
   year found in an answer is accepted, so a partial title ("Street (1994)") can slip through.
+* A cited title is a name, not a claim: its words ("Mystery" in "Mystery Men (1999)") are left out of the
+  genre and tag scans. A title written without its "(YYYY)" is not recognised as a title.
 * Only genres, quoted tags, "(YYYY)" titles, "N/5" ratings, "1990s"-style decades, "you said"-style
   references and a short list of unavailable fields (director, cast, plot, ...) are looked for.
 """
@@ -121,19 +123,28 @@ def _known_titles(movie_id: int, evidence: Evidence) -> list[_Known]:
 
 
 def _resolve_cite(text: str, end: int, known: list[_Known], answers_folded: str):
-    """Which displayed title does the year-citation ending at ``end`` close? Returns a _Known, the
-    string "answer" (free text matched in a clarification answer), or None."""
+    """Which displayed title does the year-citation ending at ``end`` close? Returns
+    ``(resolved, start)``: ``resolved`` is a _Known, the string "answer" (free text matched in a
+    clarification answer), or None; ``start`` is where the cited title begins in ``text`` (None when
+    unresolved), so the caller can tell the title's own words from the explanation's prose."""
     prefix = text[:end]
     for item in known:
         start = end - len(item.title)
         if start >= 0 and prefix.endswith(item.title) and (start == 0 or not text[start - 1].isalnum()):
-            return item
+            return item, start
     year = text[end - 6:end]  # a "(YYYY)" citation is always six characters
-    words = text[: end - 6].split()
+    words = list(re.finditer(r"\S+", text[: end - 6]))
     for count in range(min(len(words), 8), 0, -1):
-        if " ".join(words[-count:] + [year]).casefold() in answers_folded:
-            return "answer"
-    return None
+        if " ".join([word.group() for word in words[-count:]] + [year]).casefold() in answers_folded:
+            return "answer", words[-count].start()
+    return None, None
+
+
+def _without_spans(text: str, spans: Sequence[tuple[int, int]]) -> str:
+    """``text`` with the given (start, end) character ranges blanked out, keeping offsets."""
+    for start, end in spans:
+        text = text[:start] + " " * (end - start) + text[end:]
+    return text
 
 
 def check_explanation(movie_id: int, text: str, evidence: Evidence) -> dict:
@@ -155,9 +166,12 @@ def check_explanation(movie_id: int, text: str, evidence: Evidence) -> dict:
 
     # Titles: every "(YYYY)" citation must close a displayed title.
     cites = []  # (end offset, resolved)
+    title_spans = []  # where cited titles sit: their words are names, not claims about genre
     for match in _YEAR_CITE.finditer(text):
-        resolved = _resolve_cite(text, match.end(), known, answers_folded)
+        resolved, title_start = _resolve_cite(text, match.end(), known, answers_folded)
         cites.append((match.end(), resolved))
+        if title_start is not None:
+            title_spans.append((title_start, match.end()))
         if resolved is None:
             flag(UNSUPPORTED, "title_not_displayed", f"cited title not shown: ...{text[max(0, match.end() - 40):match.end()]}")
         elif isinstance(resolved, _Known) and resolved.side == "other":
@@ -179,8 +193,10 @@ def check_explanation(movie_id: int, text: str, evidence: Evidence) -> dict:
         else:
             verified["ratings"] += 1
 
-    # Genres (outside quotes, which hold tags): listed for this movie, else shown for the user, else not shown.
-    unquoted = _QUOTED.sub("", text)
+    # Genres (outside quotes, which hold tags, and outside cited titles, which are names such as
+    # "Mystery Men (1999)"): listed for this movie, else shown for the user, else not shown.
+    prose = _without_spans(text, title_spans)
+    unquoted = _QUOTED.sub("", prose)
     own_genres = set(doc.get("genres") or [])
     for genre, pattern in _GENRE_PATTERNS.items():
         if not pattern.search(unquoted):
@@ -194,7 +210,7 @@ def check_explanation(movie_id: int, text: str, evidence: Evidence) -> dict:
 
     # Quoted tags.
     own_tags = {tag.lower() for tag in (doc.get("tags") or [])}
-    for tag in _QUOTED.findall(text):
+    for tag in _QUOTED.findall(prose):  # a quoted word inside a cited title is part of the title
         lowered = tag.lower()
         if lowered in own_tags:
             verified["tags"] += 1

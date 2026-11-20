@@ -143,8 +143,10 @@ text, so the trace and what a user sees agree, and the model's own output stays 
 **What this does not do**, deliberately: it cannot tell whether prose is true or sensible, whether a
 simulated answer used only pre-cutoff history, or whether decisions were autonomous. Titles in
 free-text answers are matched leniently (a trailing run of words plus the year), so a partial title can
-pass; a test pins that limit. The positive control is that all ten of Member 1's committed template
-explanations pass; the negative controls are the fabrications in the table above.
+pass; a test pins that limit. Words inside a cited title (the "Mystery" in "Mystery Men (1999)", or
+quotation marks in a title) are names, not claims, so cited titles are left out of the genre and tag
+scans; a title written without its "(YYYY)" is not recognised as a title. The positive control is that all ten of
+Member 1's committed template explanations pass; the negative controls are the fabrications in the table above.
 
 ## A17 in detail: what the controller supplies for the run manifest
 
@@ -185,6 +187,30 @@ the call failed. (2) Should `invalid_action_count` exclude failed model calls, a
 **Limit.** Counts come from the state. A state rebuilt from replayed clarifications (`decide`) does not know
 about model calls made while earlier turns were served, so whole-episode counts need a state carried through
 `resume`, or sums across calls.
+
+## Review fixes (2026-11-19)
+
+A review pass of the branch found four correctness problems, all confirmed by running the code and fixed
+with tests:
+
+* **Genre words inside titles** were scanned as genre claims, so a correct explanation of "Mystery Men
+  (1999)" came out `unsupported` (see A15). Cited titles are now excluded from the genre and tag scans.
+* **Replayed turns past the event cap.** Six replayed clarifications used to start a normal episode with
+  14 control events against a cap of 8. If the replayed turns leave no room for one assessment and one pool
+  evaluation, `start_episode` now treats the episode as budget-exhausted before any model call: under the
+  default policy that is the B3-order fallback with reason `control_event_cap_reached`. Three replayed turns
+  (6 events used, 2 needed) still run normally (A10).
+* **Request validation.** `decide` now rejects, as `RequestError`, a repeated history id, a `user_id` that is
+  not a positive integer, an empty or non-string `split`, and a non-string `answer_source`. These used to
+  surface as internal `TransitionError`s (A16).
+* **First-retrieval failure.** An exception from `Retriever.initial_pool` now raises `InitialRetrievalError`
+  (the original is `__cause__`) instead of escaping raw. There is no fallback, because the B3 order is what
+  failed to arrive; the service should answer with its own error and tell it apart from a bad request (A16).
+
+Three lower-severity findings were not changed: resumed state is still only structurally validated (the
+budget counters in an untrusted state can be edited by whoever holds it), the grounding screen still
+rebuilds its evidence strings for each of the ten explanations, and `state.py` still keeps its own small
+copies of two helpers that Member 1's `p2_actions.py` has.
 
 ## Things this increment deliberately does not do
 

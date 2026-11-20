@@ -12,7 +12,7 @@ import unittest
 from src.agent import controller as ctl
 from src.agent import example
 from src.agent.config import AgentConfig
-from src.agent.decide import RequestError, RetrievalResult, advance, decide, resume
+from src.agent.decide import InitialRetrievalError, RequestError, RetrievalResult, advance, decide, resume
 from src.agent.grounding import UNSUPPORTED
 from src.agent.state import EpisodeState, StateError
 from src.agent.trace import telemetry_record
@@ -163,6 +163,51 @@ class DecideTest(unittest.TestCase):
         for request in bad:
             with self.subTest(request=request), self.assertRaises(RequestError):
                 decide(request, **CALL)
+
+    def test_requests_the_state_would_reject_are_client_errors_not_internal_ones(self):
+        turn = {"question": "Q?", "answer": "A."}
+        bad = [{**REQUEST, "history_movie_ids": [1, 1]}, {**REQUEST, "history_movie_ids": [0]},
+               {**REQUEST, "user_id": "7"}, {**REQUEST, "user_id": 0}, {**REQUEST, "user_id": True},
+               {**REQUEST, "split": ""}, {**REQUEST, "split": 5},
+               {**REQUEST, "clarifications": [{**turn, "answer_source": 5}]},
+               {**REQUEST, "clarifications": [{**turn, "answer_source": "  "}]}]
+        for request in bad:
+            with self.subTest(request=request), self.assertRaises(RequestError):
+                decide(request, **CALL)
+
+    def test_the_optional_fields_are_accepted_when_well_formed(self):
+        request = {**REQUEST, "user_id": 7, "split": "validation",
+                   "clarifications": [{"question": "Which genres?", "answer": "Thriller.", "answer_source": "user"}]}
+        decision = decide(request, **CALL)
+        self.assertEqual(decision.state.clarifications[0]["answer_source"], "user")
+
+    def test_a_failed_first_retrieval_raises_a_named_error_with_the_cause(self):
+        class Down(example.DemoRetriever):
+            def initial_pool(self, **kwargs):
+                raise TimeoutError("index offline")
+
+        with self.assertRaises(InitialRetrievalError) as caught:
+            decide(REQUEST, model=example.DemoModel(), retriever=Down(), catalog=example.CATALOG)
+        self.assertIsInstance(caught.exception.__cause__, TimeoutError)
+        self.assertIn("index offline", str(caught.exception))
+
+    def test_replayed_turns_that_leave_no_room_for_a_judgment_go_straight_to_the_fallback(self):
+        cap = AgentConfig().max_control_events  # 8: each replayed turn used 2, and a recommendation needs 2 more
+        self.assertEqual(cap, 8)
+        for turns, expect_model_judgment in ((3, True), (4, False), (6, False)):
+            model = RecordingModel()
+            replay = {**REQUEST, "clarifications": [{"question": f"Q{i}?", "answer": "a"} for i in range(turns)]}
+            decision = decide(replay, model=model, retriever=example.DemoRetriever(), catalog=example.CATALOG)
+            first_task = model.prompts[0].split('Output format: {"action": "')[1].split('"')[0]
+            with self.subTest(turns=turns):
+                self.assertEqual(first_task == "assess_sufficiency", expect_model_judgment)
+                if not expect_model_judgment:
+                    self.assertEqual(first_task, "explain_recommendations")
+                    self.assertEqual(decision.state.termination_reason, "fallback")
+                    self.assertEqual(decision.state.reason, ctl.EVENT_CAP)
+                    self.assertEqual(decision.state.ranked, decision.state.initial_pool[: AgentConfig().ranking_size])
+                    self.assertEqual(decision.response["action"], "recommend")
+
 
     def test_the_request_is_not_modified(self):
         request = copy.deepcopy({**REQUEST, "clarifications": [{"question": "Q?", "answer": "A."}]})

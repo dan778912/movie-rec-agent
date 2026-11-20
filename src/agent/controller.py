@@ -80,6 +80,11 @@ def start_episode(
     budget, so a resumed conversation cannot be given fresh questions. Each earlier question took
     one assessment and one question event, which is why ``control_events`` starts at twice their
     number. Those earlier events are not reconstructed: the live trace is assembled across calls.
+
+    If that leaves no room for the one assessment and one pool evaluation any recommendation needs,
+    no valid episode can follow, so the episode is treated as budget-exhausted before any model call
+    (the configured ``exhaustion_policy`` decides what that means), instead of running judgments
+    that would breach the event cap.
     """
     config = config or AgentConfig()
     turns = []
@@ -107,6 +112,8 @@ def start_episode(
         EpisodeState.from_dict(state.to_dict())  # also checks types and duplicates
     except StateError as error:
         raise TransitionError(f"cannot start an episode: {error}") from error
+    if state.control_events + 2 > config.max_control_events:  # an assessment and a pool evaluation
+        _on_budget_exhausted(state, EVENT_CAP)
     return state
 
 

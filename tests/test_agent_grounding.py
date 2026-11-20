@@ -166,6 +166,52 @@ class FabricationDetectionTest(unittest.TestCase):
         self.assertTrue(all(len(p["detail"]) <= 160 for p in result["problems"]))
 
 
+class TitleWordsAreNotGenreClaimsTest(unittest.TestCase):
+    """A cited title is not prose. 'Mystery' inside 'Mystery Men (1999)' is not a claim about genre."""
+
+    PROFILE = ("Highly rated movies: Children of Men (2006) (5/5; genres: Drama; tags: dystopia). "
+               "Low rated movies: none.")
+
+    def evidence(self, shown, answers=()):
+        return Evidence(self.PROFILE, tuple(answers), shown)
+
+    def test_a_genre_word_inside_the_movies_own_title_is_not_a_genre_claim(self):
+        shown = {1: {"movie_id": 1, "title": "Mystery Men (1999)", "genres": ["Action", "Comedy", "Fantasy"], "tags": []}}
+        result = check_explanation(1, "Mystery Men (1999) is listed under Comedy.", self.evidence(shown))
+        self.assertEqual(result["status"], PASSED_SCREEN, result)
+
+    def test_a_genre_word_inside_a_users_rated_title_is_not_a_genre_claim(self):
+        shown = {1: {"movie_id": 1, "title": "Heat (1995)", "genres": ["Crime"], "tags": []}}
+        text = "Like Children of Men (2006), which you rated 5/5, it is listed under Crime."
+        result = check_explanation(1, text, self.evidence(shown))
+        self.assertEqual(result["status"], PASSED_SCREEN, result)
+
+    def test_a_genre_word_inside_a_free_text_answer_title_is_not_a_genre_claim(self):
+        shown = {2: {"movie_id": 2, "title": "Heat (1995)", "genres": ["Crime"], "tags": []}}
+        text = "Like Mystery Men (1999), which you mentioned, it is listed under Crime."
+        result = check_explanation(2, text, self.evidence(shown, answers=("My favourite is Mystery Men (1999).",)))
+        self.assertNotIn("genre_not_listed_for_movie", codes(result))
+        self.assertEqual(result["status"], PASSED_SCREEN, result)
+
+    def test_an_invented_genre_beside_such_a_title_is_still_caught(self):
+        shown = {1: {"movie_id": 1, "title": "Mystery Men (1999)", "genres": ["Action", "Comedy", "Fantasy"], "tags": []}}
+        result = check_explanation(1, "Mystery Men (1999) is listed under Western.", self.evidence(shown))
+        self.assertEqual(result["status"], UNSUPPORTED)
+        self.assertEqual([p["detail"].split()[0] for p in result["problems"] if p["code"] == "genre_not_displayed"],
+                         ["Western"])
+
+    def test_a_quoted_word_inside_a_cited_title_is_not_a_tag_claim(self):
+        shown = {1: {"movie_id": 1, "title": '"Crocodile" Dundee (1986)', "genres": ["Comedy"], "tags": []}}
+        result = check_explanation(1, '"Crocodile" Dundee (1986) is listed under Comedy.', self.evidence(shown))
+        self.assertNotIn("tag_not_displayed", codes(result))
+        self.assertEqual(result["status"], PASSED_SCREEN, result)
+
+    def test_the_same_word_outside_a_title_is_still_a_genre_claim(self):
+        shown = {1: {"movie_id": 1, "title": "Mystery Men (1999)", "genres": ["Action", "Comedy", "Fantasy"], "tags": []}}
+        result = check_explanation(1, "Mystery Men (1999) is a Mystery.", self.evidence(shown))
+        self.assertIn("genre_not_displayed", codes(result))
+
+
 class RobustnessTest(unittest.TestCase):
     def test_pathological_inputs_finish_quickly_without_crashing(self):
         hostile_profile = "Highly rated movies: " + "a (1/5; genres: " * 1500 + "x"
