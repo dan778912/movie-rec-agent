@@ -32,7 +32,7 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 | A8 | Repeated questions | The prompt says not to repeat. The protocol assigns the handling to Member 4. | A question matching an earlier one (ignoring case, punctuation, spacing) is an unusable output. | `reject_repeated_questions` | Member 4 proposes; Member 2 to acknowledge |
 | A9 | Strict versus lenient JSON | Training completions are one bare JSON object. No real P2 checkpoint output has been seen. | Strict (Member 1's `parse_action`): no code fences, no prose. Nothing is repaired silently. | none | Revisit with the measured invalid-output rate from the real checkpoint |
 | A10 | Live pause and resume | Service B is stateless. Service A resends `clarifications` (`{question, answer}`) on every call. The contract proposes envelope fields (`contract_version`, `request_id`, `decision_trace`) but names no error codes. | Two ways to continue are offered. `decide` rebuilds the state from the replayed clarifications: each counts as 2 control events against the cap, so the budget is not reset, and earlier events are not invented (replayed answers get `answer_source: "client_supplied"`). `resume` continues from a stored state and keeps its full event history. Both give the same recommendations in the example. A live trace is assembled across calls by Service A. | none | Members 3, 5, 2 |
-| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | none | Members 4 and 6 (a changed renderer needs a new `PROMPT_VERSION` and regenerated samples) |
+| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | `max_input_tokens` is not a setting yet (see [A11 in detail](#a11-in-detail-the-5120-token-proposal)) | Members 3 and 6 (Member 6 proposes 5,120 for training and serving, unconfirmed); Members 4 and 6 for a changed renderer (it needs a new `PROMPT_VERSION` and regenerated samples) |
 | A12 | Who writes the offline runner (loops over the saved users, calls the controller and the answer simulator, writes prediction/trace/manifest files)? | Member 1 suggests it is Member 4's. The October work split does not list it. | Not written, and not started until ownership is confirmed. The online `decide` entry point is a different thing and is included. | n/a | Members 2, 3, 4 |
 | A13 | Termination labels outside the contract | The proposed contract defines only `recommend` and `fallback`. | `budget_exhausted_rank` (under `rank_available_pool`) and `failed` are this module's own labels. See the A1 evidence. | n/a | Member 2, if A1 picks rank-available |
 | A14 | Validator coverage | Member 2's trace validator is on an unmerged branch. | The in-repo oracle is Member 1's `validate_episode`. A one-off cross-check against Member 2's validator at `9032fd1` is recorded below and was re-run after the grounding work with the same result. | n/a | Add a permanent test once the branches merge |
@@ -188,6 +188,41 @@ the call failed. (2) Should `invalid_action_count` exclude failed model calls, a
 about model calls made while earlier turns were served, so whole-episode counts need a state carried through
 `resume`, or sums across calls.
 
+## A11 in detail: the 5,120-token proposal
+
+Member 6 replied (2026-11-20, relayed in private chat) that P1's 1,024-token limit is not enough for the P2 ranking prompts and
+proposed a **5,120-token maximum sequence length for both LoRA training and Service B inference**. Member 6 will confirm after
+measuring the final training-data token lengths and running a GPU memory smoke test, does not want training or serving code to
+truncate candidates silently, and will say so before the policy is frozen if 5,120 does not fit, so that chunking can be added.
+Member 3 has been asked whether Service B can use the same limit; no answer yet. Nothing here is ratified.
+
+My own check of whether 5,120 leaves room (scratch script, not committed; **no tokenizer is installed, so every number is an
+estimate**):
+
+* **Output is small.** The longest valid rank completion is 50 six-digit ids, 444 characters, so at most about 450 tokens even if
+  every character were a token. Member 1's longest explanation sample is 1,512 characters, but that prompt is only about 950
+  tokens, so the explain step is not the constraint.
+* **The prompt is the constraint, and it depends on the tokenizer.** The earlier figure of 3,636 median and 4,022 maximum for
+  100 candidates used a flat 3.9 characters per token. These prompts are full of movie ids, years and ratings, and Qwen-family
+  tokenizers are believed to split numbers into single digits (an assumption, not checked here), so a flat ratio may understate.
+  On all 300 validation users with 50 arbitrary movies added to each pool:
+
+| Estimate for the rank prompt at 100 candidates | Median | 95th percentile | Max | Prompts leaving under 444 tokens of room (of 300) |
+|---|---|---|---|---|
+| flat 3.9 characters per token | 3,660 | 3,915 | 4,045 | 0 |
+| digits one token each, other text 4.0 per token | 4,233 | 4,477 | 4,601 | 0 |
+| digits one token each, other text 3.5 per token | 4,711 | 4,988 | 5,130 | 166 |
+
+  So 5,120 fits under the first two estimates (the second leaves about 75 tokens at the maximum) and does not under the third.
+  The margin is real but thin. The deciding number is the real tokenizer's count of the real rank prompts, which Member 6 is
+  already planning to measure; this document should not be read as saying 5,120 is safe.
+* **Serving never exceeds training.** The controller caps the pool at `max_pool_size=100`, while Member 1's samples have up to
+  105 candidates, so a prompt Service B builds is never longer than the longest training prompt.
+* **What I will add once the number is frozen** (not built now, because the limit and the tokenizer are not settled): an
+  optional `max_input_tokens` and a `count_tokens` callable passed to `decide`, so that an over-length prompt is a loud
+  `model_error`-style failure (B3-order fallback under the default policy) rather than silent truncation. Member 3 would
+  supply the callable, since the service owns the tokenizer. Chunking stays out unless Member 6 reports that 5,120 does not fit.
+
 ## Real-data rehearsal (stand-in model)
 
 On 2026-11-19, after Member 6 shared the original ordered B3 validation pool (`validation_candidates_300.jsonl`,
@@ -218,7 +253,8 @@ The scripts are scratch and are not committed; this is not the offline runner (A
 | explain, top 10 | 3,285 | 3,688 | 842 / 945 |
 
   The 100-candidate row adds 50 arbitrary unwatched catalog movies to the B3 pool, so a real widened pool will differ a little.
-  Even before any widening, the evaluate and rank prompts are about twice P1's 1,024-token limit.
+  Even before any widening, the evaluate and rank prompts are about twice P1's 1,024-token limit. The flat 3.9 ratio is optimistic for
+  digit-heavy text; see [A11 in detail](#a11-in-detail-the-5120-token-proposal) for a stricter estimate.
 
 ## Review fixes (2026-11-19)
 
