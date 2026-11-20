@@ -11,3 +11,6 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.venv-service-b/
+/data/indexes/
+/configs/service_b_local.json

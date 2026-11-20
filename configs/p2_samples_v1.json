@@ -1,0 +1,42 @@
+{
+  "version": "p2-samples-v1",
+  "data_version": "ml25m-global-v1",
+  "seed": 20261114,
+  "exclude_user_lists": [
+    "configs/validation_users_300_v1.json",
+    "configs/test_users_500_v1.json"
+  ],
+  "train": {
+    "users": 2000,
+    "episodes_per_user": 2,
+    "canonical_fraction": 0.5,
+    "sparse_rating_counts": [1, 2, 3, 5, 8]
+  },
+  "dev": {
+    "users": 400,
+    "episodes_per_user": 1,
+    "canonical_fraction": 0.5,
+    "sparse_rating_counts": [1, 2, 3, 5, 8]
+  },
+  "min_history_before_anchor": 10,
+  "future_horizon_ratings": 50,
+  "min_future_positives": 3,
+  "future_positives": 10,
+  "future_negatives": 2,
+  "max_questions": 2,
+  "max_retrievals": 1,
+  "pool_size": 50,
+  "retrieval_k": 50,
+  "offtarget_pool_fraction": 0.35,
+  "inject_positives": 3,
+  "inject_negatives": 2,
+  "explain_k": 10,
+  "popularity_prior": 0.2,
+  "retrieval_length_norm": 0.5,
+  "feature_weights": {
+    "genre": 1.0,
+    "genome_tag": 1.0,
+    "user_tag": 0.5,
+    "decade": 0.5
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "mode": "real",
+  "request_timeout_seconds": 25,
+  "simulator_raw_dir": "data/raw/ml-25m",
+  "index": {
+    "manifest": "data/indexes/movie-index-v1.json",
+    "documents": "data/processed/ml25m-global-v1/movie_documents.jsonl",
+    "path": "data/indexes/chroma",
+    "port": 8000,
+    "device": "cpu"
+  },
+  "model": {
+    "adapter_path": "models/p2-selected",
+    "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "base_revision": "775b11afaf83e0dc75bd5abaf90133e47b3ec082",
+    "device": "cuda",
+    "seed": 20261001,
+    "max_input_tokens": 6144,
+    "max_new_tokens": 2048,
+    "call_timeout_seconds": 20,
+    "startup_timeout_seconds": 300,
+    "max_worker_restarts": 2
+  },
+  "agent": {
+    "label": "development-only-unratified",
+    "max_clarifications": 2,
+    "max_retrievals": 1,
+    "max_pool_size": 100,
+    "max_control_events": 8,
+    "ranking_size": 50,
+    "exhaustion_policy": "fallback_b3_order",
+    "max_invalid_actions_per_step": 0,
+    "reject_repeated_questions": true,
+    "grounding_policy": "flag"
+  }
+}

@@ -1,5 +1,13 @@
 # Movie Recommendation Agent
 
+## Member 3 — Phase 2 Service B
+
+The `member-3-service-b-retrieval` branch adds Chroma ingestion/search, checkpoint hosting,
+Member 4's P2 agent integration, and an offline artifact producer. Start with
+[the Member 3 handoff](docs/member3_service_b_handoff.md). The earlier ownership table
+below describes Phase 1, not the Phase 2 assignment. Real P2 inference still needs the
+trained checkpoint and a ratified team policy; mock mode is explicitly labelled.
+
 This folder implements the **Member 1** workload from the [team roadmap](Movie_Recommendation_Agent_Roadmap.md): a frozen global temporal split, catalog, canonical movie documents, user profiles, targets, and data checks. It uses Python 3.10+ standard library only. Windows needs the built-in `curl.exe` for TLS downloads.
 
 ## Team repository layout

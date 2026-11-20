@@ -1,0 +1,9 @@
+.git
+.venv*
+data
+models
+outputs
+work
+__pycache__
+*.pyc
+.DS_Store

@@ -1,0 +1,35 @@
+{
+  "averaging": "macro",
+  "bootstrap": {
+    "confidence": 0.95,
+    "method": "paired_user_percentile",
+    "resamples": 10000,
+    "seed": 20261002
+  },
+  "candidate_pool_size": 3,
+  "data_dir": "tests/fixtures/evaluation_preparation",
+  "dataset_version": "synthetic-preparation-v1",
+  "evaluation_version": "synthetic-eval-v1",
+  "failure_policy": "reject_invalid_or_missing_prediction_records",
+  "ground_truth": "all_distinct_in_catalog_positive_targets",
+  "include_hit_rate": true,
+  "manifest_sha256": "6bf35a9c754f897d0b84f698196c64ea4e047b497d8d36e696e39e18487be987",
+  "p1_candidate_policy": "exact_permutation_of_frozen_embedding_pool",
+  "path_resolution": "repository_root",
+  "positive_rating_at_least": 4.0,
+  "ranking_k": [
+    2
+  ],
+  "relevance": "binary",
+  "required_predictions_per_user": 3,
+  "retrieval_k": [
+    3
+  ],
+  "sample_size": 2,
+  "selection_seed": 20261001,
+  "split": "validation",
+  "status": "draft_for_team_review",
+  "subset_status": "generated_and_verified",
+  "users_file": "tests/fixtures/evaluation_preparation/users.json",
+  "users_sha256": "241e1870428f5d3b5e8a24a13a17231b4b35adcd7691619868e1e0d7322524c1"
+}

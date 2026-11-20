@@ -1,0 +1,42 @@
+{
+  "averaging": "macro",
+  "bootstrap": {
+    "confidence": 0.95,
+    "method": "paired_user_percentile",
+    "resamples": 10000,
+    "seed": 20261002
+  },
+  "candidate_pool_size": 50,
+  "data_dir": "data/processed/ml25m-global-v1",
+  "dataset_version": "ml25m-global-v1",
+  "evaluation_version": "eval-p2-draft-v1",
+  "failure_policy": "reject_invalid_or_missing_prediction_records",
+  "ground_truth": "all_distinct_in_catalog_positive_targets",
+  "include_hit_rate": true,
+  "manifest_sha256": "f2e137ff374a8cfc02348cb42d04d9a04c9a1769685a7eccc21933383a500b5a",
+  "p1_candidate_policy": "exact_permutation_of_frozen_embedding_pool",
+  "p2_explanation_count": 10,
+  "p2_fallback_source": "frozen_b3_order",
+  "p2_final_ranking_policy": "subset_of_final_candidate_pool",
+  "p2_max_control_events": 8,
+  "p2_max_serialized_events": 10,
+  "p2_trace_schema": "p2-trace-v1",
+  "path_resolution": "repository_root",
+  "positive_rating_at_least": 4.0,
+  "ranking_k": [
+    10
+  ],
+  "relevance": "binary",
+  "required_predictions_per_user": 50,
+  "retrieval_k": [
+    20,
+    50
+  ],
+  "sample_size": 300,
+  "selection_seed": 20261001,
+  "split": "validation",
+  "status": "draft_for_phase2_team_review",
+  "subset_status": "generated_and_verified",
+  "users_file": "configs/validation_users_300_v1.json",
+  "users_sha256": "1617ca66255a3141e86036651d3e79698f249b7a809868931108d236143c2823"
+}

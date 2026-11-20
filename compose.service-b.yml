@@ -1,0 +1,51 @@
+services:
+  chroma:
+    image: chromadb/chroma:1.3.5
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /data
+    volumes:
+      - service-b-chroma:/data
+    ports:
+      - "127.0.0.1:8002:8000"
+  service-b:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile.service-b
+    environment:
+      SERVICE_B_CONFIG: ${SERVICE_B_CONFIG:-configs/service_b_mock_v1.json}
+      CHROMA_HOST: chroma
+      HF_HOME: /cache/huggingface
+      SERVICE_B_STATE_SECRET: ${SERVICE_B_STATE_SECRET:-}
+    volumes:
+      - ./data:/app/data:ro
+      - ./models:/app/models:ro
+      - ./configs:/app/configs:ro
+      - service-b-model-cache:/cache
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      - chroma
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health/ready', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      start_period: 300s
+  ingest:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile.service-b
+    environment:
+      HF_HOME: /cache/huggingface
+    volumes:
+      - ./data:/app/data
+      - service-b-model-cache:/cache
+    depends_on:
+      - chroma
+    command: ["python", "-m", "src.retrieval.online", "--chroma-host", "chroma", "--manifest", "data/indexes/compose-movie-index-v1.json"]
+volumes:
+  service-b-chroma:
+  service-b-model-cache:

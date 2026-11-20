@@ -1,0 +1,31 @@
+{
+  "evaluation_version": "synthetic-eval-v1",
+  "status": "draft_for_team_review",
+  "subset_status": "generated_and_verified",
+  "path_resolution": "repository_root",
+  "dataset_version": "synthetic-evaluation-v1",
+  "data_dir": "tests/fixtures/evaluation_scoring",
+  "manifest_sha256": "f730d8063f82553761432150fe40ca2df57c7df1c52d656d43ce2ca167013e8b",
+  "split": "validation",
+  "users_file": "tests/fixtures/evaluation_scoring/users.json",
+  "users_sha256": "045210a2124047e7fff6c6165488b5e7274a1d32242ab2808f37d23116f20ad8",
+  "sample_size": 2,
+  "selection_seed": 20261001,
+  "positive_rating_at_least": 4.0,
+  "relevance": "binary",
+  "ground_truth": "all_distinct_in_catalog_positive_targets",
+  "required_predictions_per_user": 3,
+  "candidate_pool_size": 3,
+  "p1_candidate_policy": "exact_permutation_of_frozen_embedding_pool",
+  "ranking_k": [2],
+  "retrieval_k": [3],
+  "include_hit_rate": true,
+  "averaging": "macro",
+  "failure_policy": "reject_invalid_or_missing_prediction_records",
+  "bootstrap": {
+    "resamples": 10000,
+    "confidence": 0.95,
+    "seed": 20261002,
+    "method": "paired_user_percentile"
+  }
+}

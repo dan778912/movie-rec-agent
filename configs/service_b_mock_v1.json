@@ -1,0 +1,5 @@
+{
+  "mode": "mock",
+  "request_timeout_seconds": 25,
+  "agent": {"label": "development-mock-unratified"}
+}

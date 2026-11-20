@@ -1,0 +1,2 @@
+{"user_id":1,"split":"validation","method":"p1","recommendations":[{"movie_id":10,"score":-1,"rank":1},{"movie_id":20,"score":-2,"rank":2},{"movie_id":70,"score":-3,"rank":3}]}
+{"user_id":2,"split":"validation","method":"p1","recommendations":[{"movie_id":50,"score":-1,"rank":1},{"movie_id":60,"score":-2,"rank":2},{"movie_id":40,"score":-3,"rank":3}]}

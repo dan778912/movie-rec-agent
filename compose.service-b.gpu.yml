@@ -1,0 +1,7 @@
+# Add to the base Compose file on a host with NVIDIA Container Toolkit installed.
+services:
+  service-b:
+    build:
+      args:
+        TORCH_INDEX_URL: https://download.pytorch.org/whl/cu128
+    gpus: all

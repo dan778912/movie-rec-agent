@@ -1,0 +1,35 @@
+{
+  "branch": "member-3-service-b-retrieval",
+  "tests": {
+    "command": ".venv-service-b/bin/python -m unittest discover -s tests -q",
+    "passed": 208,
+    "failed": 0
+  },
+  "checks": {
+    "whitespace": "passed",
+    "python_compilation": "passed",
+    "http_ask_recommend_smoke": "passed_with_labelled_demonstration_model",
+    "chroma_native_http_smoke": "passed",
+    "tiny_qwen_peft_loading": "passed_with_random_local_weights",
+    "full_catalog_chroma_ingestion_movies": 21333,
+    "full_metadata_simulator": "passed_with_62423_movies",
+    "signed_live_continuation": "passed",
+    "bounded_model_recovery": "passed",
+    "member5_http_client_compatibility": "passed",
+    "live_v1_http_smoke": "passed_with_labelled_demonstration_model"
+  },
+  "not_run": [
+    "real P2 inference",
+    "official 300-user P2 evaluation",
+    "GPU latency",
+    "Docker build/Compose execution",
+    "AWS deployment"
+  ],
+  "external_dependencies": [
+    "P2 checkpoint/tokenizer and loading settings from Member 6",
+    "original frozen B3 prediction JSONLs from Member 5",
+    "team ratification of simulator, action and fallback policies, timeouts, and checkpoint selection"
+  ],
+  "git_state": "local feature commit; remote push pending",
+  "ci": "Service B regression, Compose validation, CPU image build, and HTTP smoke workflow added; not yet run on GitHub"
+}
