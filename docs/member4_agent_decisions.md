@@ -27,7 +27,7 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 | A3 | A model output that cannot be used, or a failed model call | The contract allows the frozen fallback for it but ratifies no numeric validity threshold. With greedy decoding a retry repeats the same prompt. Timeouts belong to whoever owns the model client. | No retry; the first unusable output, or an exception from the model call, at a step triggers the B3 fallback (any policy). The raw output's SHA-256 (none for an exception) and the reason are recorded. | `max_invalid_actions_per_step` | Members 2, 4, 6 (after seeing real checkpoint output) |
 | A4 | What to do with an explanation the grounding screen marks `unsupported`, or with no usable explanation at all | No rule. The contract requires explanations in every episode, including fallbacks, and says the manifest states the explanation policy. The audit rubric is human. | `grounding_policy`: `flag` (default: keep the text, record the problems), `repair` (replace only that explanation with a text built from the movie's own displayed fields), `reject` (treat as unusable: retries, then `failed`), `off`. Unusable explanations end the episode `failed`: the ranking is kept, no text is invented, no trace is produced, and the caller returns an explicit error. | `grounding_policy` | Members 2 and 4 |
 | A5 | Ranking length | The prompt asks the model to rank the whole pool (50–100). The contract's rank event is the 50 prediction IDs. | The model's output must be a permutation of the pool shown; the top `ranking_size` are kept. The full ranking's digest is in telemetry. Explained movies are `min(10, ranking_size)` because the shared validator requires exactly that. | `ranking_size` | Member 2 to confirm |
-| A6 | Rank step: does training on pools with injected held-out items transfer to retriever-only pools at inference? | Member 1's report documents the injection as deliberate supervision (up to 3 held-out positives and 2 dislikes added to the final pool; the committed example has 105 candidates where the retriever returned 100, and all 3 injected positives land in the explained top ten). At inference no such movies exist. Whether that matters is unknown. | Strict: a ranking must be a permutation of the pool shown, and `injected_movie_ids` is never emitted. A test replays Member 1's example and pins this. A question, not a defect claim. | none | Members 1 and 6; see [member4_team_review_note.md](member4_team_review_note.md) |
+| A6 | Rank step: does training on pools with injected held-out items transfer to retriever-only pools at inference? | Member 1's report documents the injection as deliberate supervision (up to 3 held-out positives and 2 dislikes added to the final pool; the committed example has 105 candidates where the retriever returned 100, and all 3 injected positives land in the explained top ten). At inference no such movies exist. Member 6 has replied (relayed 2026-11-19): inference compatibility is intended and will be tested before checkpoint selection; Member 1's confirmation is pending ([details](#a6-in-detail-what-is-known-after-member-6s-reply)). Whether the mismatch costs anything is still unmeasured. | Strict: a ranking must be a permutation of the pool shown, and `injected_movie_ids` is never emitted. A test replays Member 1's example and pins this. A question, not a defect claim. | none | Member 1 (confirmation pending; Member 6 has replied); see [member4_team_review_note.md](member4_team_review_note.md) |
 | A7 | Retrieval interface and ownership | The model emits a free-text `query`. Member 3's interface does not exist yet. Unspecified: who removes duplicates, watched movies and over-cap results, and who updates the dynamic profile from clarification answers. | The caller receives `query` and `max_new`. The controller filters defensively (pool members, watched, duplicates, over-cap) and logs counts per retrieval. Answers go into the prompt's Clarifications block; `profile_text` is never edited. | none | Members 3 and 4 |
 | A8 | Repeated questions | The prompt says not to repeat. The protocol assigns the handling to Member 4. | A question matching an earlier one (ignoring case, punctuation, spacing) is an unusable output. | `reject_repeated_questions` | Member 4 proposes; Member 2 to acknowledge |
 | A9 | Strict versus lenient JSON | Training completions are one bare JSON object. No real P2 checkpoint output has been seen. | Strict (Member 1's `parse_action`): no code fences, no prose. Nothing is repaired silently. | none | Revisit with the measured invalid-output rate from the real checkpoint |
@@ -86,6 +86,37 @@ match the contract? Or is the submitted wording the intent, so the contract and 
 Under the contract, exhausted-budget users are scored on B3's order; under rank-available they are
 scored on the model's. That affects what P2's headline numbers mean, so it should be decided before
 validation runs, not after seeing results.
+
+## A6 in detail: what is known after Member 6's reply
+
+**Member 6's reply** (relayed by Priyanka on 2026-11-19; not independently confirmed by me): the P2
+checkpoint should be compatible with retriever-only pools at inference. The injected held-out items are
+understood as a training-only way to give the ranking step useful supervision, not an inference
+requirement. Member 6's code will not assume exactly 105 candidates, and the checkpoint will be tested on
+ordinary 100-item retriever-only pools before it is selected. Member 6 also asked Member 1 to confirm that
+(a) injected items come only from training-period data, (b) the model input does not mark which
+candidates were injected, and (c) the training or validation handoff includes some retriever-only
+examples, so the mismatch can be measured directly.
+
+**What the repository shows on those three points.** This is my reading of Member 1's code at `321c284`,
+offered as evidence for Member 1 to check, not as Member 1's confirmation.
+
+| Point | What I found | Where |
+|---|---|---|
+| (a) provenance | Users are drawn from `train_ratings.csv` (training-period data), excluding the frozen validation and test user lists. Injected movies are that user's own later ratings (positives rated 4 or more, dislikes rated 2.5 or less) after the episode's anchor, and the shared checks require each one to be a held-out rating. | `src/data/p2_samples.py` (user draw, `positives`/`negatives`, injection), `src/data/p2_checks.py` (`injection` check), `configs/p2_samples_v1.json` (`exclude_user_lists`) |
+| (b) marking | In the one committed rank example (`train:9:1`), the ids appear only in `provenance.label_basis.injected_movie_ids`, not in the `prompt`, `completion`, `state` or `target`. The five injected movies use the same line format as the rest and sit at scattered prompt positions (lines 14, 19, 63, 92, 115 of 120), consistent with random insertion. I checked one example, not the full training file, which is not in the repository. | `docs/p2_sample_examples.jsonl` record 9 |
+| (c) retriever-only examples | Not present as far as I can see. The `inject_*` settings are global and `build()` applies them whatever the split, so dev rank samples would also contain injected items. If so, a dev run would not by itself measure the retriever-only case. Member 1 should confirm this. | `src/data/p2_samples.py` (no split condition around the injection), `configs/p2_samples_v1.json` |
+
+**What this means for the controller.** Nothing changes. The controller already requires a ranking to be
+a permutation of the pool it showed, and it never assumes a pool size. That matches Member 6's
+description of inference. If the held-out items are not marked in the prompt, there is no marker the
+model could rely on at training time that disappears at inference. A subtler cue is still possible, for
+example injected movies being less similar to the profile than retrieved ones. That is a hypothesis, not a
+finding, and it is exactly what a retriever-only comparison would test.
+
+**Still open:** Member 1's confirmation of (a) to (c); whether retriever-only examples will be added to the
+dev handoff; the result of Member 6's retriever-only test. I have not changed the A6 setting: there is none,
+and the controller stays strict.
 
 ## A15 in detail: the grounding screen
 

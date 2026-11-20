@@ -57,6 +57,17 @@ completion for the rank step is rejected for exactly this reason (`tests/test_ag
 4. *Member 6:* the rank-step completion lists the injected movies too. Is a completion-only loss over
    such targets expected to transfer to pools that do not contain them?
 
+**Update (2026-11-19, Member 6's reply, relayed).** Member 6 says the P2 checkpoint should work on
+retriever-only pools, understands the injection as training-only supervision, will not assume 105
+candidates, and will test on normal 100-item retriever-only pools before checkpoint selection. Member 6
+also asked Member 1 to confirm that injected items come only from training-period data, that the model
+input does not mark them, and that some retriever-only examples are included in the handoff. Question 2
+is therefore answered in intent from Member 6's side, and question 4 is met by the planned test rather
+than by a prediction. Questions 1 and 3 and Member 6's three requests wait for Member 1. For Member 1's convenience, my reading of the code on those
+requests is in [A6 in detail](member4_agent_decisions.md#a6-in-detail-what-is-known-after-member-6s-reply),
+including one point worth checking: the injection settings do not depend on the split, so dev rank
+samples would also be injected.
+
 **What the controller does meanwhile.** It stays strict. If the team decides inference rankings may
 include something other than the shown pool, that is a one-line, configurable change on my side, but
 it should be a team decision because the evaluator also requires final movies to come from the pool.
