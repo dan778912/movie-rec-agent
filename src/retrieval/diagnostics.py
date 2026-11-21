@@ -81,11 +81,14 @@ def evaluate(predictions, targets, catalog, histories, ks=(10, 20, 50, 100)):
         in_catalog += flag
         if user in positives and flag:
             positives[user].add(movie)
-    if any(not ids for ids in positives.values()):
-        raise ValueError('Evaluation user has no in-catalog positives')
+    eligible = {user: ids for user, ids in positives.items() if ids}
+    if not eligible:
+        raise ValueError('No evaluation users have in-catalog positives')
     metrics = {f'{metric}@{k}': 0.0 for metric in ('recall', 'ndcg') for k in ks}
     for row in predictions:
-        relevant = positives[row['user_id']]
+        if row['user_id'] not in eligible:
+            continue
+        relevant = eligible[row['user_id']]
         recommendations = row['recommendations']
         if len(recommendations) < max(ks):
             raise ValueError('Not enough recommendations for requested metrics')
@@ -95,9 +98,10 @@ def evaluate(predictions, targets, catalog, histories, ks=(10, 20, 50, 100)):
             dcg = sum(hit / math.log2(rank + 2) for rank, hit in enumerate(hits))
             idcg = sum(1 / math.log2(rank + 2) for rank in range(min(k, len(relevant))))
             metrics[f'ndcg@{k}'] += dcg / idcg
-    return {**{key: value / len(histories) for key, value in metrics.items()},
+    return {**{key: value / len(eligible) for key, value in metrics.items()},
             'status': 'provisional_member5_diagnostic_not_team_evaluator',
-            'users': len(histories), 'positive_targets_all_users': total,
+            'users': len(eligible), 'excluded_users_no_positives': len(histories) - len(eligible),
+            'positive_targets_all_users': total,
             'excluded_positive_targets': total - in_catalog,
             'catalog_positive_coverage': in_catalog / total if total else None}
 

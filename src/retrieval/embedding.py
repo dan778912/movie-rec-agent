@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -141,7 +142,7 @@ def _cached_encode_locked(path: Path, key: str, texts: list[str], encode) -> tup
                 # Validate, but preserve bytes so cached and uncached search agree.
                 normalized(vectors)
                 return vectors, True
-        except (OSError, KeyError, json.JSONDecodeError) as exc:
+        except (OSError, KeyError, json.JSONDecodeError, zipfile.BadZipFile) as exc:
             raise ValueError(f'Invalid cache {path}') from exc
     vectors = normalized(encode(texts))
     if len(vectors) != len(texts):

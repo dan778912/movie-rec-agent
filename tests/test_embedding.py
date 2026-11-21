@@ -91,9 +91,6 @@ class DiagnosticTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             evaluate([bad], targets, {10}, {1: set()}, ks=(1,))
 
-if __name__ == '__main__':
-    unittest.main()
-
 class PipelineTests(unittest.TestCase):
     def test_pipeline_exports_matching_prefixes_and_reuses_cache(self):
         from src.retrieval.run_embedding import run
@@ -166,3 +163,7 @@ class ReviewRegressionTests(unittest.TestCase):
             targets.write_text('user_id,movie_id,in_catalog\n1,2,1\n')
             with self.assertRaises(ValueError):
                 diagnose(root, prediction_path, ks=(1,))
+
+
+if __name__ == '__main__':
+    unittest.main()
