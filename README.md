@@ -12,9 +12,9 @@ The repository follows Section 8 of the roadmap. Each folder has a README descri
 | Member 2 | `src/evaluation/` | Shared metrics, prediction validation, experiment subsets |
 | Member 3 | `src/baselines/` | Popularity baseline and P1 training-data support |
 | Member 4 | `src/retrieval/` | BM25 retrieval |
-| Member 5 | `src/retrieval/` | Embedding retrieval and candidate pools |
+| Member 5 | `src/retrieval/` (Phase 1), `src/app/db/`, `src/app/service_a/`, `src/app/frontend/` (Phase 2) | Phase 1: embedding retrieval and candidate pools. Phase 2 (per `worksplit_p2.md`): PostgreSQL schema/migrations/DAL, Service A (FastAPI business service), React + TypeScript frontend — see [src/app/README.md](src/app/README.md) |
 | Member 6 | `src/reranking/` | P1 and P2 fine-tuning and inference |
-| Phase 2 team | `src/agent/`, `src/app/` | Agent loop and application; assignment follows Phase 1 |
+| Phase 2 team | `src/agent/` | Agent loop (Member 4, per `worksplit_p2.md`); awaits Member 6's checkpoint |
 
 Shared experiment settings belong in `configs/`; model artifact references in `models/`; standard prediction JSONL files in `outputs/predictions/`; generated tables and reports in `outputs/reports/`; unit and smoke tests in `tests/`. Large datasets, model weights, and generated outputs are Git-ignored. Commit code, small configuration files, documentation, and tests. To collaborate, clone the repository, create a branch for your task, and open a pull request into `main` after your checks pass.
 

@@ -11,3 +11,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.venv/
+src/app/.env
+src/app/frontend/node_modules/
+src/app/frontend/dist/
