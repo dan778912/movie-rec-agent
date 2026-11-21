@@ -85,16 +85,21 @@ def _advance_turn(db: DbSession, session: SessionModel, client: ServiceBClient):
     action = decision.get("action")
 
     if action == "ask":
-        question = decision["question"]
+        question = decision.get("question")
+        if not isinstance(question, str):
+            raise HTTPException(status_code=502, detail="Service B 'ask' response is missing a 'question' string")
         exchange = repo.append_clarification(db, session.id, turn_index, question)
         repo.set_session_status(db, session.id, "awaiting_clarification")
         repo.append_action_trace(db, session.id, turn_index, "ask", {"question": question})
         return AskTurnResponse(session_id=session.id, clarification_id=exchange.id, question=question)
 
     if action == "recommend":
-        recommendation = repo.save_recommendations(db, session.id, turn_index, decision["items"])
+        items = decision.get("items")
+        if not isinstance(items, list):
+            raise HTTPException(status_code=502, detail="Service B 'recommend' response is missing an 'items' list")
+        recommendation = repo.save_recommendations(db, session.id, turn_index, items)
         repo.set_session_status(db, session.id, "completed")
-        repo.append_action_trace(db, session.id, turn_index, "recommend", {"item_count": len(decision["items"])})
+        repo.append_action_trace(db, session.id, turn_index, "recommend", {"item_count": len(items)})
         return RecommendTurnResponse(
             session_id=session.id,
             recommendation_id=recommendation.id,

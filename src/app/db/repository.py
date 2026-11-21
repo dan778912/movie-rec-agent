@@ -193,10 +193,11 @@ def search_movies(db: DbSession, query: str, limit: int = 8) -> list[Movie]:
     cleaned = query.strip()
     if not cleaned:
         return []
-    is_prefix_match = case((Movie.title.ilike(f"{cleaned}%"), 0), else_=1)
+    escaped = cleaned.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    is_prefix_match = case((Movie.title.ilike(f"{escaped}%", escape="\\"), 0), else_=1)
     stmt = (
         select(Movie)
-        .where(Movie.title.ilike(f"%{cleaned}%"))
+        .where(Movie.title.ilike(f"%{escaped}%", escape="\\"))
         .order_by(is_prefix_match, Movie.title)
         .limit(limit)
     )
