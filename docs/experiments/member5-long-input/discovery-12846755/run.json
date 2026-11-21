@@ -1,0 +1,98 @@
+{
+  "api_inference_cost_usd": 0,
+  "cache_files": {
+    "movies": "/scratch1/xianhanh/movie-rec-transfer/movie-rec-discovery/cache/qwen-cuda/movies-796454886bf8624f7485295dff14dc981a46c27efa110c13f55f71d5477ff843.npz",
+    "profiles": "/scratch1/xianhanh/movie-rec-transfer/movie-rec-discovery/cache/qwen-cuda/profiles-849ec30b2fd588d2c11991015a7fb57535c63dbdf1cd19c9b5588b65fa0dee0b.npz"
+  },
+  "cache_hits": {
+    "movies": false,
+    "profiles": false
+  },
+  "code": {
+    "git_commit": null,
+    "source_fingerprint": "d17162eff57055322a9065ff420183d960c42ac3430b5b9fe601d48d1ac158c7",
+    "source_sha256": {
+      "requirements-embedding.txt": "6703d1a48da7b528277d667aae9dae8047d176887291c09481ba78f86f17612c",
+      "src/retrieval/diagnostics.py": "8407fe011c55832bff811bc361399b6631fc6980b2f6ed1f724dda6bf60bb5c3",
+      "src/retrieval/embedding.py": "121a17347e2d7fed24547d1bc08d86383421accdfd9d416c7476931e9f6a5446",
+      "src/retrieval/long_input.py": "3baba2c29ae7c7637e65ad83d3f75249f30e56040b7ca9edca66b18e3e1ff01c",
+      "src/retrieval/run_embedding.py": "3306124704952933b82ec8cba8cb4695c4e84b88a282bbdb7896bd2b12f384c5"
+    },
+    "working_tree_dirty": null
+  },
+  "config": {
+    "batch_size": 4,
+    "device": "cuda",
+    "encoding_strategy": "full",
+    "max_seq_length": 2048,
+    "model_dtype": "float16",
+    "model_id": "Qwen/Qwen3-Embedding-0.6B",
+    "pool_size": 50,
+    "query_prompt": "Instruct: Given a user's movie rating history, retrieve unseen movies that match the user's preferences.\nQuery: ",
+    "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "seed": 20261001,
+    "threads": 4,
+    "top_k": 100
+  },
+  "data_version": "ml25m-global-v1",
+  "error_count": 0,
+  "index": "exact_numpy_cosine_float32",
+  "input_sha256": {
+    "movie_documents.jsonl": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+    "validation_profiles.jsonl": "e2c8fcbea2e9fa73b3b8d32d1df93e265d4b603f6dfbdf04b99498b27e097295"
+  },
+  "manifest_sha256": "f2e137ff374a8cfc02348cb42d04d9a04c9a1769685a7eccc21933383a500b5a",
+  "memory_note": "Process lifetime high-water RSS; includes model, tensors and outputs. Run each experiment in a fresh process.",
+  "movies": 21333,
+  "output_sha256": {
+    "candidates_top50.jsonl": "37a2ca0891eabddc04209c926d0fe90ce51b8afecfad2a2f079274f76bedb230",
+    "index.npz": "d59a145c7cb544614b5ed6d33b64cc82817108380bfdbaab57193e497ecd251c",
+    "predictions.jsonl": "48663faa5e47a4fd19dbbde389c996d12712376d06ce0785f98f3a27457f836e"
+  },
+  "peak_process_rss_bytes": 2383683584,
+  "platform": "Linux-4.18.0-553.126.1.el8_10.x86_64-x86_64-with-glibc2.28",
+  "python": "3.12.8",
+  "runtime": {
+    "numpy": "2.5.3",
+    "sentence-transformers": "5.7.0",
+    "tokenizers": "0.23.2",
+    "torch": "2.14.1",
+    "transformers": "5.18.0"
+  },
+  "split": "validation",
+  "timing_note": "Retrieval latency excludes query encoding; separate batch encoding times are reported.",
+  "timings": {
+    "model_load_seconds": 200.97144068102352,
+    "movies_encode_or_cache_seconds": 160.97357344604097,
+    "profiles_encode_or_cache_seconds": 84.76129296189174,
+    "retrieval_mean_ms": 4.400776935446481,
+    "retrieval_p50_ms": 4.347624024376273,
+    "retrieval_p95_ms": 4.769360995851457,
+    "retrieval_total_seconds": 20.908091220306233,
+    "total_seconds": 472.69514689897187
+  },
+  "training_seconds": 0,
+  "truncation": {
+    "movies": {
+      "includes_query_prompt": false,
+      "max_tokens_before_truncation": 241,
+      "model_dtype": "torch.float16",
+      "over_limit_before_strategy": 0,
+      "records": 21333,
+      "strategy": "full",
+      "token_limit": 2048,
+      "truncated": 0
+    },
+    "profiles": {
+      "includes_query_prompt": true,
+      "max_tokens_before_truncation": 660,
+      "model_dtype": "torch.float16",
+      "over_limit_before_strategy": 0,
+      "records": 4751,
+      "strategy": "full",
+      "token_limit": 2048,
+      "truncated": 0
+    }
+  },
+  "users": 4751
+}

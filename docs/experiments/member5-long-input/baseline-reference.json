@@ -1,0 +1,109 @@
+{
+  "original_run": {
+    "api_inference_cost_usd": 0,
+    "cache_files": {
+      "movies": "/Users/hxh/Documents/Codex/2026-10-01/woxianzaixianglianshangzhegexiangmuranhoududaima-https-github-com-dan778912-movi/work/embedding-cache/movies-676622103766b982e7fe08c606b55a0b6dfa6f3f5f887ec233dfbef89f01dc14.npz",
+      "profiles": "/Users/hxh/Documents/Codex/2026-10-01/woxianzaixianglianshangzhegexiangmuranhoududaima-https-github-com-dan778912-movi/work/embedding-cache/profiles-cee0a5869b355d13c147c9d0f1c99b013704fd4f7c5b7fa4ed18c30aedddd0c0.npz"
+    },
+    "cache_hits": {
+      "movies": false,
+      "profiles": false
+    },
+    "code": {
+      "git_commit": "bd97ede00913637a7bf73a3f909eb0a81ee2c5e9",
+      "source_fingerprint": "b0e4145cd4b87ec7af1d7ed485cc74915fda6d5b032fd7b907fd0cbe2c957db5",
+      "source_sha256": {
+        "requirements-embedding.txt": "6a620677751ecf0ebb73ab1d8c0a5ba12a29cec88bf1ca33ef069eab5b711b52",
+        "src/retrieval/diagnostics.py": "0c0294a3f108c5d6f9cece28fba2c7240d3349a21a38bff9faea98cd7ae21383",
+        "src/retrieval/embedding.py": "341fbf6c01c5dec292533fcf8e354027f9eaf08ae8bd113296c54dd56dc7c280",
+        "src/retrieval/run_embedding.py": "58cd0bdb48a095bd6dccb7f5e0d607bc4cb3d52d74e7a5d5cb2be770bd817237"
+      },
+      "working_tree_dirty": true
+    },
+    "config": {
+      "batch_size": 64,
+      "device": "cpu",
+      "max_seq_length": 256,
+      "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "pool_size": 50,
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "seed": 20261001,
+      "top_k": 100
+    },
+    "data_version": "ml25m-global-v1",
+    "error_count": 0,
+    "index": "exact_numpy_cosine_float32",
+    "input_sha256": {
+      "movie_documents.jsonl": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+      "validation_profiles.jsonl": "e2c8fcbea2e9fa73b3b8d32d1df93e265d4b603f6dfbdf04b99498b27e097295"
+    },
+    "manifest_sha256": "f2e137ff374a8cfc02348cb42d04d9a04c9a1769685a7eccc21933383a500b5a",
+    "movies": 21333,
+    "output_sha256": {
+      "candidates_top50.jsonl": "0f61c4d87a73062400bfeea26371efaf33a25caf1cfd342e250de729be3706df",
+      "index.npz": "d6959de8edcfdf9f5c3018b3c1984909170454bb527f5107b6e6d2ea7939474c",
+      "predictions.jsonl": "c19735fb8a2d80605b0ab3a44dd27f4b501751778e4926269ac2a9b7ebd756ef"
+    },
+    "platform": "macOS-15.4.1-arm64-arm-64bit",
+    "python": "3.12.14",
+    "runtime": {
+      "numpy": "2.5.3",
+      "sentence-transformers": "5.7.0",
+      "tokenizers": "0.23.2",
+      "torch": "2.14.1",
+      "transformers": "5.18.0"
+    },
+    "split": "validation",
+    "timing_note": "Retrieval latency excludes query encoding; separate batch encoding times are reported.",
+    "timings": {
+      "model_load_seconds": 24.55467049998697,
+      "movies_encode_or_cache_seconds": 61.85964583398891,
+      "profiles_encode_or_cache_seconds": 64.82024316702154,
+      "retrieval_mean_ms": 1.9229939320088716,
+      "retrieval_p50_ms": 1.8667080148588866,
+      "retrieval_p95_ms": 2.2440000029746443,
+      "retrieval_total_seconds": 9.136144170974148,
+      "total_seconds": 166.527438582998
+    },
+    "training_seconds": 0,
+    "truncation": {
+      "movies": {
+        "max_tokens_before_truncation": 266,
+        "records": 21333,
+        "token_limit": 256,
+        "truncated": 1
+      },
+      "profiles": {
+        "max_tokens_before_truncation": 607,
+        "records": 4751,
+        "token_limit": 256,
+        "truncated": 4749
+      }
+    },
+    "users": 4751
+  },
+  "recomputed_diagnostics": {
+    "recall@10": 0.00792632468493012,
+    "recall@20": 0.013594607534410533,
+    "recall@50": 0.027232129073029344,
+    "recall@100": 0.04222446084504441,
+    "ndcg@10": 0.02043393737574095,
+    "ndcg@20": 0.019600408941107404,
+    "ndcg@50": 0.021996969125180035,
+    "ndcg@100": 0.02663805568137728,
+    "status": "provisional_member5_diagnostic_not_team_evaluator",
+    "users": 4751,
+    "positive_targets_all_users": 148263,
+    "excluded_positive_targets": 22234,
+    "catalog_positive_coverage": 0.8500367590025832,
+    "input_sha256": {
+      "validation_profiles.jsonl": "e2c8fcbea2e9fa73b3b8d32d1df93e265d4b603f6dfbdf04b99498b27e097295",
+      "movie_documents.jsonl": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+      "validation_targets.csv": "3bfa539350b7eedd72878cbfb84f1c89de2adcd21602acd927dc606c72da0c8f"
+    },
+    "prediction_sha256": "c19735fb8a2d80605b0ab3a44dd27f4b501751778e4926269ac2a9b7ebd756ef",
+    "data_version": "ml25m-global-v1",
+    "manifest_sha256": "f2e137ff374a8cfc02348cb42d04d9a04c9a1769685a7eccc21933383a500b5a"
+  },
+  "note": "Frozen original run; no new encoding; peak memory not recorded in original run"
+}

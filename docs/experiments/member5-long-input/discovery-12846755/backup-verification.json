@@ -1,0 +1,68 @@
+{
+  "checked_date": "2026-10-09",
+  "archive_path": "/Users/hxh/Desktop/movie-rec-results/qwen-validation-12846755-backup.tar.gz",
+  "archive_sha256": "04c864de6141cb355d6746f4711de8f2213ea8e8a62c7fc75a3ff66854c03892",
+  "matches_user_supplied_hash": true,
+  "source_hash_checks": {
+    "requirements-embedding.txt": true,
+    "src/retrieval/diagnostics.py": true,
+    "src/retrieval/embedding.py": true,
+    "src/retrieval/long_input.py": true,
+    "src/retrieval/run_embedding.py": true
+  },
+  "output_hash_checks": {
+    "candidates_top50.jsonl": true,
+    "index.npz": true,
+    "predictions.jsonl": true
+  },
+  "input_hash_checks": {
+    "movie_documents.jsonl": true,
+    "validation_profiles.jsonl": true,
+    "validation_targets.csv": true
+  },
+  "config_matches_run": true,
+  "manifest_hash_matches": true,
+  "users_checked": 4751,
+  "top100_recommendations_checked": 475100,
+  "top50_recommendations_checked": 237550,
+  "all_user_legality_and_history_exclusion": true,
+  "top50_exact_prefixes": true,
+  "score_and_tie_order": true,
+  "metrics_recomputed_exact_match": true,
+  "index_load_valid": true,
+  "index_shape": [
+    21333,
+    1024
+  ],
+  "index_id_order_matches_documents": true,
+  "query_vector_score_replay": "Not performed: profile vector cache absent; no encoding restarted",
+  "gpu_from_job_log": "NVIDIA A40",
+  "gpu_total_memory_mib_from_log": 46068,
+  "gpu_memory_peak": "Not recorded; nvidia-smi was run before inference",
+  "slurm_requested_cpus": 4,
+  "slurm_requested_memory": "32G (request, not measured usage)",
+  "upload_manifest_audit": {
+    "matched": 34,
+    "missing": [
+      "DATA_DICTIONARY.md",
+      "tests/README.md",
+      "tests/test_data_pipeline.py",
+      "tests/test_embedding.py",
+      "tests/test_long_input.py",
+      "tests/test_review_fixes.py"
+    ],
+    "mismatch": [],
+    "note": "Upload manifest describes earlier transfer snapshot, not an exhaustive backup manifest"
+  },
+  "no_test_labels_in_backed_up_dataset": true,
+  "actual_runtime_no_test_label_access": "Provided script/source are validation-only; no independent system audit",
+  "model_inference_restarted": false,
+  "local_supplement_matches_original_upload_hashes": {
+    "DATA_DICTIONARY.md": true,
+    "tests/README.md": true,
+    "tests/test_data_pipeline.py": true,
+    "tests/test_embedding.py": true,
+    "tests/test_long_input.py": true,
+    "tests/test_review_fixes.py": true
+  }
+}

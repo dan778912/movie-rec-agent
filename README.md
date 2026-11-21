@@ -1,10 +1,13 @@
 # Movie Recommendation Agent
 
-This folder implements the **Member 1** workload from the [team roadmap](Movie_Recommendation_Agent_Roadmap.md): a frozen global temporal split, catalog, canonical movie documents, user profiles, targets, and data checks. It uses Python 3.10+ standard library only. Windows needs the built-in `curl.exe` for TLS downloads.
+This repository implements **Member 1** data preparation and **Member 5** embedding retrieval from the [team roadmap](Movie_Recommendation_Agent_Roadmap.md). The data pipeline uses Python 3.10+ standard library only. Embedding experiments use Python 3.12 (locked dependencies require >=3.12) and have separate dependencies in `requirements-embedding.txt`; see the [retrieval guide](src/retrieval/README.md). Windows needs the built-in `curl.exe` for data downloads.
+
+
+The [Member 5 long-input results report](docs/member5-long-input-results.md) compares frozen L6, chunked L6, and Qwen on validation data, with verified artifact provenance and reproduction commands.
 
 ## Team repository layout
 
-The repository follows Section 8 of the roadmap. Each folder has a README describing its handoff point. The current code implements Member 1's data and profile work; the remaining folders are ready for their owners to add code, configurations, tests, and reports.
+The repository follows Section 8 of the roadmap. Each folder has a README describing its handoff point. The current code implements Member 1's data/profile work and Member 5's B3 embedding retrieval, caching, fixed candidate export, and provisional validation diagnostics. Other modules await their owners; official evaluation and BM25 comparison remain team dependencies.
 
 | Owner | Folder | Work |
 |---|---|---|
@@ -41,10 +44,10 @@ python -m src.data.build --raw data/raw/ml-25m
 python -m src.data.verify
 ```
 
-Run the synthetic fixture test:
+Run the data-only synthetic fixture test (for the full suite, first install `requirements-embedding.txt` and omit the `-p` filter):
 
 ```powershell
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -p test_data_pipeline.py -v
 ```
 
 The raw dataset and derived artifacts are ignored by Git. **Do not redistribute the raw files or commit them.** The [GroupLens dataset terms](https://files.grouplens.org/datasets/movielens/ml-25m-README.html) allow research use with conditions and prohibit redistribution without separate permission. Cite the MovieLens data source in publications.

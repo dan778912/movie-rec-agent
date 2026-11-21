@@ -1,0 +1,98 @@
+{
+  "api_inference_cost_usd": 0,
+  "cache_files": {
+    "movies": "/Users/hxh/Documents/Codex/2026-10-01/woxi/work/long-input-cache/movies-676622103766b982e7fe08c606b55a0b6dfa6f3f5f887ec233dfbef89f01dc14.npz",
+    "profiles": "/Users/hxh/Documents/Codex/2026-10-01/woxi/work/long-input-cache/profiles-27c4ee531d39b758d134ca768adee450e1a4c01e80c8692b12b5979a92b7c845.npz"
+  },
+  "cache_hits": {
+    "movies": true,
+    "profiles": false
+  },
+  "code": {
+    "git_commit": "13b65810583ccc61e60aa88bfeb4e8aa853e3b66",
+    "source_fingerprint": "52e57cb6c14c7af1eda738284bcf2bea61bae83584bb1d4c014bb505198d238c",
+    "source_sha256": {
+      "requirements-embedding.txt": "6703d1a48da7b528277d667aae9dae8047d176887291c09481ba78f86f17612c",
+      "src/retrieval/diagnostics.py": "8407fe011c55832bff811bc361399b6631fc6980b2f6ed1f724dda6bf60bb5c3",
+      "src/retrieval/embedding.py": "121a17347e2d7fed24547d1bc08d86383421accdfd9d416c7476931e9f6a5446",
+      "src/retrieval/long_input.py": "e14ae29efc54444810c56c753ee83fb121e2cd39a69a19a7a3becd9c9f961f97",
+      "src/retrieval/run_embedding.py": "3306124704952933b82ec8cba8cb4695c4e84b88a282bbdb7896bd2b12f384c5"
+    },
+    "working_tree_dirty": true
+  },
+  "config": {
+    "batch_size": 64,
+    "device": "cpu",
+    "encoding_strategy": "chunked",
+    "max_seq_length": 256,
+    "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+    "pool_size": 50,
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "seed": 20261001,
+    "threads": 4,
+    "top_k": 100
+  },
+  "data_version": "ml25m-global-v1",
+  "error_count": 0,
+  "index": "exact_numpy_cosine_float32",
+  "input_sha256": {
+    "movie_documents.jsonl": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+    "validation_profiles.jsonl": "e2c8fcbea2e9fa73b3b8d32d1df93e265d4b603f6dfbdf04b99498b27e097295"
+  },
+  "manifest_sha256": "f2e137ff374a8cfc02348cb42d04d9a04c9a1769685a7eccc21933383a500b5a",
+  "memory_note": "Process lifetime high-water RSS; includes model, tensors and outputs. Run each experiment in a fresh process.",
+  "movies": 21333,
+  "output_sha256": {
+    "candidates_top50.jsonl": "1832ca4508d17e1258c43803a08b3f373afdc7ed0f0da30a6412ec05a8d49975",
+    "index.npz": "d6959de8edcfdf9f5c3018b3c1984909170454bb527f5107b6e6d2ea7939474c",
+    "predictions.jsonl": "a1ecdffe4cfbe03f4c049999d69645520ab174b0fbf1f40b0d0a124360342505"
+  },
+  "peak_process_rss_bytes": 907100160,
+  "platform": "macOS-15.4.1-arm64-arm-64bit",
+  "python": "3.12.14",
+  "runtime": {
+    "numpy": "2.5.3",
+    "sentence-transformers": "5.7.0",
+    "tokenizers": "0.23.2",
+    "torch": "2.14.1",
+    "transformers": "5.18.0"
+  },
+  "split": "validation",
+  "timing_note": "Retrieval latency excludes query encoding; separate batch encoding times are reported.",
+  "timings": {
+    "model_load_seconds": 3.5632810829556547,
+    "movies_encode_or_cache_seconds": 0.0741919579450041,
+    "profiles_encode_or_cache_seconds": 188.83402091701282,
+    "retrieval_mean_ms": 2.5903741138519916,
+    "retrieval_p50_ms": 2.2929160040803254,
+    "retrieval_p95_ms": 3.5006454854737967,
+    "retrieval_total_seconds": 12.306867414910812,
+    "total_seconds": 211.70744254195597
+  },
+  "training_seconds": 0,
+  "truncation": {
+    "movies": {
+      "includes_query_prompt": false,
+      "max_tokens_before_truncation": 266,
+      "over_limit_before_strategy": 1,
+      "records": 21333,
+      "strategy": "truncate",
+      "token_limit": 256,
+      "truncated": 1
+    },
+    "profiles": {
+      "chunks": 9991,
+      "content_tokens": 2225255,
+      "dropped_content_tokens": 0,
+      "includes_query_prompt": false,
+      "max_chunks_per_record": 3,
+      "max_tokens_before_truncation": 607,
+      "over_limit_before_strategy": 4749,
+      "records": 4751,
+      "strategy": "chunked",
+      "token_limit": 256,
+      "truncated": 0
+    }
+  },
+  "users": 4751
+}

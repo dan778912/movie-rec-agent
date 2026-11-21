@@ -1,0 +1,23 @@
+{
+  "catalog_positive_coverage": 0.8500367590025832,
+  "data_version": "ml25m-global-v1",
+  "excluded_positive_targets": 22234,
+  "input_sha256": {
+    "movie_documents.jsonl": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+    "validation_profiles.jsonl": "e2c8fcbea2e9fa73b3b8d32d1df93e265d4b603f6dfbdf04b99498b27e097295",
+    "validation_targets.csv": "3bfa539350b7eedd72878cbfb84f1c89de2adcd21602acd927dc606c72da0c8f"
+  },
+  "manifest_sha256": "f2e137ff374a8cfc02348cb42d04d9a04c9a1769685a7eccc21933383a500b5a",
+  "ndcg@10": 0.01510291261418529,
+  "ndcg@100": 0.02657458511987483,
+  "ndcg@20": 0.01659324427582313,
+  "ndcg@50": 0.02078345168646758,
+  "positive_targets_all_users": 148263,
+  "prediction_sha256": "48663faa5e47a4fd19dbbde389c996d12712376d06ce0785f98f3a27457f836e",
+  "recall@10": 0.00756961750653984,
+  "recall@100": 0.04712236573417291,
+  "recall@20": 0.015379255317389689,
+  "recall@50": 0.030026248944642616,
+  "status": "provisional_member5_diagnostic_not_team_evaluator",
+  "users": 4751
+}

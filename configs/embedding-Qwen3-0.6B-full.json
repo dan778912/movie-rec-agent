@@ -1,0 +1,13 @@
+{
+  "model_id": "Qwen/Qwen3-Embedding-0.6B",
+  "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+  "max_seq_length": 2048,
+  "batch_size": 8,
+  "seed": 20261001,
+  "top_k": 100,
+  "pool_size": 50,
+  "device": "cpu",
+  "threads": 4,
+  "encoding_strategy": "full",
+  "query_prompt": "Instruct: Given a user's movie rating history, retrieve unseen movies that match the user's preferences.\nQuery: "
+}
