@@ -1,0 +1,6 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,/sessions,CatchResponseError('HTTP 503'),222,2026-11-22T23:11:50Z,2026-11-22T23:12:46Z
+GET,/users/:id/history,CatchResponseError('HTTP 503'),37,2026-11-22T23:11:53Z,2026-11-22T23:12:45Z
+POST,/sessions/:id/turn,CatchResponseError('HTTP 503'),83,2026-11-22T23:11:51Z,2026-11-22T23:12:45Z
+GET,/sessions/:id/recommendations,CatchResponseError('HTTP 503'),46,2026-11-22T23:11:53Z,2026-11-22T23:12:46Z
+POST,/sessions/:id/clarifications,CatchResponseError('HTTP 503'),72,2026-11-22T23:11:52Z,2026-11-22T23:12:48Z

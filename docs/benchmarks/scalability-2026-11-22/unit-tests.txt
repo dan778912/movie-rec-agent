@@ -1,0 +1,123 @@
+/Users/hxh/Desktop/movie-rec-agent-service-a/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+test_action_trace_ordering (test_app_db.RepositoryTests.test_action_trace_ordering) ... ok
+test_clarification_round_trip_and_open_lookup (test_app_db.RepositoryTests.test_clarification_round_trip_and_open_lookup) ... ok
+test_create_session_defaults_to_active (test_app_db.RepositoryTests.test_create_session_defaults_to_active) ... ok
+test_get_movies_by_ids_returns_only_known_ids (test_app_db.RepositoryTests.test_get_movies_by_ids_returns_only_known_ids) ... ok
+test_list_candidate_movies_excludes_given_ids (test_app_db.RepositoryTests.test_list_candidate_movies_excludes_given_ids) ... ok
+test_record_and_fetch_watched_items_preserve_order (test_app_db.RepositoryTests.test_record_and_fetch_watched_items_preserve_order) ... ok
+test_save_recommendations_and_latest_lookup (test_app_db.RepositoryTests.test_save_recommendations_and_latest_lookup) ... ok
+test_search_movies_blank_query_returns_nothing (test_app_db.RepositoryTests.test_search_movies_blank_query_returns_nothing) ... ok
+test_search_movies_ranks_prefix_matches_first (test_app_db.RepositoryTests.test_search_movies_ranks_prefix_matches_first) ... ok
+test_user_history_orders_newest_first (test_app_db.RepositoryTests.test_user_history_orders_newest_first) ... ok
+test_global_cutoffs_profiles_and_reproducibility (test_data_pipeline.DataPipelineTest.test_global_cutoffs_profiles_and_reproducibility) ... ok
+test_hand_calculated_macro_metrics_and_coverage (test_embedding.DiagnosticTests.test_hand_calculated_macro_metrics_and_coverage) ... ok
+test_invalid_predictions_fail_closed (test_embedding.DiagnosticTests.test_invalid_predictions_fail_closed) ... ok
+test_pipeline_exports_matching_prefixes_and_reuses_cache (test_embedding.PipelineTests.test_pipeline_exports_matching_prefixes_and_reuses_cache) ... {
+  "output": "/private/var/folders/3w/yzrgz_cs1mn5pxg54vhbm2g40000gp/T/tmp4q4gqa__/run1",
+  "users": 1,
+  "cache_hits": {
+    "movies": false,
+    "profiles": false
+  },
+  "timings": {
+    "movies_encode_or_cache_seconds": 0.00144599998020567,
+    "profiles_encode_or_cache_seconds": 0.0007899159973021597,
+    "model_load_seconds": 1.2500095181167126e-07,
+    "retrieval_total_seconds": 0.00021250001736916602,
+    "retrieval_mean_ms": 0.21250001736916602,
+    "retrieval_p50_ms": 0.21250001736916602,
+    "retrieval_p95_ms": 0.21250001736916602,
+    "total_seconds": 0.08072108300984837
+  }
+}
+{
+  "output": "/private/var/folders/3w/yzrgz_cs1mn5pxg54vhbm2g40000gp/T/tmp4q4gqa__/run2",
+  "users": 1,
+  "cache_hits": {
+    "movies": true,
+    "profiles": true
+  },
+  "timings": {
+    "movies_encode_or_cache_seconds": 0.0011818750062957406,
+    "profiles_encode_or_cache_seconds": 0.00046633300371468067,
+    "model_load_seconds": 8.300412446260452e-08,
+    "retrieval_total_seconds": 5.004199920222163e-05,
+    "retrieval_mean_ms": 0.05004199920222163,
+    "retrieval_p50_ms": 0.05004199920222163,
+    "retrieval_p95_ms": 0.05004199920222163,
+    "total_seconds": 0.04160583301563747
+  }
+}
+ok
+test_cache_reuses_only_matching_input_and_detects_corruption (test_embedding.RetrievalTests.test_cache_reuses_only_matching_input_and_detects_corruption) ... ok
+test_cosine_order_ties_and_full_history_filter (test_embedding.RetrievalTests.test_cosine_order_ties_and_full_history_filter) ... ok
+test_reject_invalid_vectors_and_ids (test_embedding.RetrievalTests.test_reject_invalid_vectors_and_ids) ... ok
+test_validate_duplicate_ids_empty_text_and_missing_history (test_embedding.RetrievalTests.test_validate_duplicate_ids_empty_text_and_missing_history) ... ok
+test_diagnostic_rejects_changed_labels_and_records_provenance (test_embedding.ReviewRegressionTests.test_diagnostic_rejects_changed_labels_and_records_provenance) ... ok
+test_index_reload_preserves_exact_scores_and_rank (test_embedding.ReviewRegressionTests.test_index_reload_preserves_exact_scores_and_rank) ... ok
+test_chunks_preserve_tail_and_every_token_once (test_long_input.LongInputTests.test_chunks_preserve_tail_and_every_token_once) ... ok
+test_full_encoder_routes_prompt_and_rejects_overflow_before_inference (test_long_input.LongInputTests.test_full_encoder_routes_prompt_and_rejects_overflow_before_inference) ... ok
+test_new_experiments_cannot_run_on_test_split (test_long_input.LongInputTests.test_new_experiments_cannot_run_on_test_split) ... ok
+test_prompt_applies_only_to_profiles_and_full_text_overflow_fails (test_long_input.LongInputTests.test_prompt_applies_only_to_profiles_and_full_text_overflow_fails) ... ok
+test_real_bert_tokenizer_chunk_forward_preserves_final_token (test_long_input.LongInputTests.test_real_bert_tokenizer_chunk_forward_preserves_final_token) ... Encoding profile chunks:   0%|          | 0/1 [00:00<?, ?it/s]Encoding profile chunks: 100%|██████████| 1/1 [00:00<00:00, 555.91it/s]
+ok
+test_strategy_and_prompt_separate_cache_identity_but_l6_movies_reuse (test_long_input.LongInputTests.test_strategy_and_prompt_separate_cache_identity_but_l6_movies_reuse) ... ok
+test_weighted_pool_uses_content_count_not_equal_chunk_weights (test_long_input.LongInputTests.test_weighted_pool_uses_content_count_not_equal_chunk_weights) ... ok
+test_failed_run_cleans_private_staging_and_allows_retry (test_review_fixes.ConcurrencyTests.test_failed_run_cleans_private_staging_and_allows_retry) ... {
+  "output": "/private/var/folders/3w/yzrgz_cs1mn5pxg54vhbm2g40000gp/T/tmphbfru78s/output",
+  "users": 1,
+  "cache_hits": {
+    "movies": true,
+    "profiles": true
+  },
+  "timings": {
+    "movies_encode_or_cache_seconds": 0.0005034169880673289,
+    "profiles_encode_or_cache_seconds": 0.00036820798413828015,
+    "model_load_seconds": 1.6702688299119473e-07,
+    "retrieval_total_seconds": 3.2625015592202544e-05,
+    "retrieval_mean_ms": 0.032625015592202544,
+    "retrieval_p50_ms": 0.032625015592202544,
+    "retrieval_p95_ms": 0.032625015592202544,
+    "total_seconds": 0.05474779201904312
+  }
+}
+ok
+test_same_output_contender_rejected_and_only_complete_directory_published (test_review_fixes.ConcurrencyTests.test_same_output_contender_rejected_and_only_complete_directory_published) ... {
+  "output": "/private/var/folders/3w/yzrgz_cs1mn5pxg54vhbm2g40000gp/T/tmpj2aaqnt8/shared-output",
+  "users": 1,
+  "cache_hits": {
+    "movies": false,
+    "profiles": false
+  },
+  "timings": {
+    "movies_encode_or_cache_seconds": 0.0012357909872662276,
+    "profiles_encode_or_cache_seconds": 0.0007186660077422857,
+    "model_load_seconds": 1.66997779160738e-07,
+    "retrieval_total_seconds": 6.737498915754259e-05,
+    "retrieval_mean_ms": 0.06737498915754259,
+    "retrieval_p50_ms": 0.06737498915754259,
+    "retrieval_p95_ms": 0.06737498915754259,
+    "total_seconds": 0.04398433299502358
+  }
+}
+ok
+test_shared_cache_cold_start_across_processes_encodes_once (test_review_fixes.ConcurrencyTests.test_shared_cache_cold_start_across_processes_encodes_once) ... ok
+test_embedding_requires_python_312_or_newer (test_review_fixes.EnvironmentTests.test_embedding_requires_python_312_or_newer) ... ok
+test_duplicate_empty_nonpositive_noninteger_ks_rejected (test_review_fixes.StrictDiagnosticTests.test_duplicate_empty_nonpositive_noninteger_ks_rejected) ... ok
+test_metadata_and_recommendation_types_are_checked (test_review_fixes.StrictDiagnosticTests.test_metadata_and_recommendation_types_are_checked) ... ok
+test_clarification_without_open_question_conflicts (test_service_a.ServiceATests.test_clarification_without_open_question_conflicts) ... ok
+test_full_lifecycle_with_clarification (test_service_a.ServiceATests.test_full_lifecycle_with_clarification) ... ok
+test_sufficient_history_skips_clarification (test_service_a.ServiceATests.test_sufficient_history_skips_clarification) ... ok
+test_turn_on_completed_session_conflicts (test_service_a.ServiceATests.test_turn_on_completed_session_conflicts) ... ok
+test_turn_on_missing_session_is_404 (test_service_a.ServiceATests.test_turn_on_missing_session_is_404) ... ok
+test_cancellation_returns_admission_slot (test_service_a_capacity.AdmissionTests.test_cancellation_returns_admission_slot) ... ok
+test_exception_returns_admission_slot (test_service_a_capacity.AdmissionTests.test_exception_returns_admission_slot) ... ok
+test_overload_rejected_before_downstream_and_capacity_recovers (test_service_a_capacity.AdmissionTests.test_overload_rejected_before_downstream_and_capacity_recovers) ... ok
+test_downstream_failure_does_not_leave_connection_checked_out (test_service_a_capacity.ConnectionLifetimeTests.test_downstream_failure_does_not_leave_connection_checked_out) ... ok
+test_no_connection_is_held_during_downstream_call (test_service_a_capacity.ConnectionLifetimeTests.test_no_connection_is_held_during_downstream_call) ... ok
+
+----------------------------------------------------------------------
+Ran 43 tests in 9.106s
+
+OK

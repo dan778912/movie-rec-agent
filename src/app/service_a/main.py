@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session as DbSession
 from src.app.db import repository as repo
 from src.app.db.database import get_db
 from src.app.db.models import Session as SessionModel
+from src.app.service_a.capacity import AdmissionLimitMiddleware
 from src.app.service_a.profile import build_profile_text
 from src.app.service_a.schemas import (
     AskTurnResponse,
@@ -31,6 +32,7 @@ from src.app.service_a.schemas import (
 from src.app.service_a.service_b_client import HttpServiceBClient, MockServiceBClient, ServiceBClient
 
 app = FastAPI(title="Movie Recommendation Agent - Service A")
+app.add_middleware(AdmissionLimitMiddleware, limit=int(os.environ.get("SERVICE_A_MAX_IN_FLIGHT", "12")))
 
 app.add_middleware(
     CORSMiddleware,
@@ -69,15 +71,21 @@ def _recommendation_items_out(db: DbSession, items) -> list[RecommendationItemOu
 
 
 def _advance_turn(db: DbSession, session: SessionModel, client: ServiceBClient):
-    watched = repo.get_watched_items(db, session.id)
+    session_id = session.id
+    watched = repo.get_watched_items(db, session_id)
     history_movie_ids = [item.movie_id for item in watched]
     clarifications = [
         {"question": exchange.question, "answer": exchange.answer}
-        for exchange in repo.get_clarifications(db, session.id)
+        for exchange in repo.get_clarifications(db, session_id)
         if exchange.answer is not None
     ]
-    profile_text = build_profile_text(db, session.id)
-    turn_index = len(repo.get_action_traces(db, session.id)) + 1
+    profile_text = build_profile_text(db, session_id)
+    turn_index = len(repo.get_action_traces(db, session_id)) + 1
+
+    # Only read work remains at this point; all prior writes were committed.
+    # Detach ORM objects and release the transaction/connection before network I/O.
+    # Persist the response via the same reusable Session after the call returns.
+    db.close()
 
     decision = client.decide(
         profile_text=profile_text, history_movie_ids=history_movie_ids, clarifications=clarifications
@@ -88,20 +96,20 @@ def _advance_turn(db: DbSession, session: SessionModel, client: ServiceBClient):
         question = decision.get("question")
         if not isinstance(question, str):
             raise HTTPException(status_code=502, detail="Service B 'ask' response is missing a 'question' string")
-        exchange = repo.append_clarification(db, session.id, turn_index, question)
-        repo.set_session_status(db, session.id, "awaiting_clarification")
-        repo.append_action_trace(db, session.id, turn_index, "ask", {"question": question})
-        return AskTurnResponse(session_id=session.id, clarification_id=exchange.id, question=question)
+        exchange = repo.append_clarification(db, session_id, turn_index, question)
+        repo.set_session_status(db, session_id, "awaiting_clarification")
+        repo.append_action_trace(db, session_id, turn_index, "ask", {"question": question})
+        return AskTurnResponse(session_id=session_id, clarification_id=exchange.id, question=question)
 
     if action == "recommend":
         items = decision.get("items")
         if not isinstance(items, list):
             raise HTTPException(status_code=502, detail="Service B 'recommend' response is missing an 'items' list")
-        recommendation = repo.save_recommendations(db, session.id, turn_index, items)
-        repo.set_session_status(db, session.id, "completed")
-        repo.append_action_trace(db, session.id, turn_index, "recommend", {"item_count": len(items)})
+        recommendation = repo.save_recommendations(db, session_id, turn_index, items)
+        repo.set_session_status(db, session_id, "completed")
+        repo.append_action_trace(db, session_id, turn_index, "recommend", {"item_count": len(items)})
         return RecommendTurnResponse(
-            session_id=session.id,
+            session_id=session_id,
             recommendation_id=recommendation.id,
             items=_recommendation_items_out(db, recommendation.items),
         )

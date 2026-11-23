@@ -1,0 +1,4 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+GET,/movies/search,CatchResponseError('HTTP 0'),728,2026-11-22T22:55:53Z,2026-11-22T22:56:53Z
+POST,/sessions,CatchResponseError('HTTP 0'),298,2026-11-22T22:55:53Z,2026-11-22T22:56:53Z
+POST,/sessions/:id/turn,CatchResponseError('HTTP 0'),3,2026-11-22T22:55:55Z,2026-11-22T22:55:55Z

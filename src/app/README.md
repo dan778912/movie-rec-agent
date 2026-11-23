@@ -126,3 +126,14 @@ python -m unittest discover -s tests -v
 
 `tests/test_app_db.py` and `tests/test_service_a.py` run against in-memory
 SQLite — no Docker/Postgres needed to run the suite.
+
+## Admission control and scalability
+
+`SERVICE_A_MAX_IN_FLIGHT` defaults to 12 concurrent HTTP requests per worker;
+excess requests receive 503 with `Retry-After: 1` before database dependencies
+run. SQLAlchemy's pool remains five connections plus ten overflow per worker.
+Service A releases its read transaction before waiting for Service B. Multiple
+workers multiply the connection budget; this does not provide server-side
+idempotency or same-session mutation locking. See
+[`tests/load/README.md`](../../tests/load/README.md) for the reproducible Locust
+workloads and evidence limitations.

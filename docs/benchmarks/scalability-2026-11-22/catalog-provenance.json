@@ -1,0 +1,13 @@
+{
+  "source": "/Users/hxh/Documents/Codex/2026-10-01/woxianzaixianglianshangzhegexiangmuranhoududaima-https-github-com-dan778912-movi/outputs/ml25m-global-v1/movie_documents.jsonl",
+  "sha256": "db9b7487e0684264c128f9b41c8abe7bc23a9c2044128196265dcc1f401f2564",
+  "rows": 21333,
+  "fields": [
+    "movie_id",
+    "title",
+    "genres",
+    "text"
+  ],
+  "other_fields": "schema defaults",
+  "labels_read": false
+}

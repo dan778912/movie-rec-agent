@@ -1,0 +1,18 @@
+[
+  {
+    "users": 150,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "status": 200,
+      "seconds": 0.026875250012381002
+    }
+  },
+  {
+    "users": 300,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "status": 200,
+      "seconds": 0.12658304197248071
+    }
+  }
+]

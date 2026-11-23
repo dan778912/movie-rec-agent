@@ -1,0 +1,2 @@
+# Isolated load generator; do not install into the serving process environment.
+locust==2.47.0

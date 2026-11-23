@@ -1,0 +1,26 @@
+[
+  {
+    "users": 20,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "status": 200,
+      "seconds": 0.02594891597982496
+    }
+  },
+  {
+    "users": 50,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "status": 200,
+      "seconds": 0.034663708007428795
+    }
+  },
+  {
+    "users": 100,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "error": "timed out",
+      "seconds": 5.002755666995654
+    }
+  }
+]
