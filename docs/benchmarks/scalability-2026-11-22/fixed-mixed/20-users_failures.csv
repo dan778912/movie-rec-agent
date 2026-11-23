@@ -1,0 +1,3 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,/sessions,CatchResponseError('HTTP 503'),2,2026-11-22T22:57:16Z,2026-11-22T22:57:16Z
+GET,/movies/search,CatchResponseError('HTTP 503'),6,2026-11-22T22:57:16Z,2026-11-22T22:57:16Z

@@ -1,0 +1,42 @@
+{
+  "date_utc": "2026-11-22T23:08:25.662087+00:00",
+  "commit": "737f83d8b2e439ea27d9c8a956458114e7f37195",
+  "dirty": true,
+  "source_sha256": {
+    "src/app/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/app/service_a/capacity.py": "ad8e8fb8c8a4908659501fc1faa5adedce0e425292125f99bd2f8eeeb355ade7",
+    "src/app/service_a/profile.py": "ac1f1fa400f5a9f5e9bf4d38e56ac744821968cbabc4a2b592fa7b4789c9b30a",
+    "src/app/service_a/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/app/service_a/schemas.py": "d9cbfe356d3745d3d2caaf7222113b7c4b39e1a9a9c2dcbfb67cdf4f0fcbb460",
+    "src/app/service_a/service_b_client.py": "137fb52896f87a891df188c8166d3cc040332f0c6014baaaf5ecf9302658ac85",
+    "src/app/service_a/main.py": "95bccb434e6b41f5c8b312d1552438854fef081352b6bef8492ddd89376b4a97",
+    "src/app/db/models.py": "409a3e9f76d6b36ae434f6d4d5ceed2d0634f9a85024579f4470dc7110beedef",
+    "src/app/db/database.py": "e92b716fce4b5535959c4f472f9a0dd82cbcfa71d2d8001277fc562a67c984c6",
+    "src/app/db/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/app/db/repository.py": "e7efe19b145af554720781370063ea5491bd7b74320a5807d3bee8e7a9162b49",
+    "src/app/db/seed_catalog.py": "aab45b84f78de299306d2c1fe23962435a1b90f0292ce942efa6d707a6f2374b",
+    "src/app/db/migrations/env.py": "c01c3558e140db807f30ff258f34cec228801e5cf2d3efd0c887ca9d25d45304",
+    "src/app/db/migrations/versions/2c890490924c_add_rating_aggregates_to_movies.py": "142eb392ecc58ed1f0ec9f845ef75110d36a3470590bbe34a45f19d7ff6f8f1c",
+    "src/app/db/migrations/versions/2f4a77247d36_add_genome_and_user_tags_to_movies.py": "4f610cf4910c9b0247ef8bd21f9f797d9f26daab5dcb68c82be87bc8b649f2d1",
+    "src/app/db/migrations/versions/fe9df56cd6f4_initial_schema.py": "a83d6b75a706d5879009d287725a2a38d563204f0b2682e3b5492d838f273d92"
+  },
+  "driver_sha256": "62a1d2ab62698c2cfee774bcec141e28e9578fec940d8f1c4d67b4293ea7347f",
+  "platform": "macOS-15.4.1-arm64-arm-64bit",
+  "python": "3.12.14",
+  "workers": 1,
+  "admission_limit_per_worker": 12,
+  "workload": "SessionUser",
+  "levels": "20,50,100,150,300",
+  "duration_seconds_per_stage_including_ramp": 60,
+  "spawn_rate_per_second": 100,
+  "think_time_seconds": [
+    0.5,
+    1.5
+  ],
+  "pool_size_per_worker": 5,
+  "max_overflow_per_worker": 10,
+  "service_b": "in_process_mock",
+  "catalog_rows": 21333,
+  "request_timeout_seconds": 5,
+  "locust_version": "locust 2.47.0 from /Users/hxh/Documents/Codex/2026-10-01/woxi/work/locust-venv/lib/python3.12/site-packages/locust (Python 3.12.14)"
+}

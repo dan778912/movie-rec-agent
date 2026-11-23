@@ -1,0 +1,42 @@
+[
+  {
+    "users": 20,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "status": 200,
+      "seconds": 0.02925595801207237
+    }
+  },
+  {
+    "users": 50,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "status": 200,
+      "seconds": 0.025668125017546117
+    }
+  },
+  {
+    "users": 100,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "status": 200,
+      "seconds": 0.02426970799569972
+    }
+  },
+  {
+    "users": 150,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "status": 200,
+      "seconds": 0.025968958012526855
+    }
+  },
+  {
+    "users": 300,
+    "locust_exit": 0,
+    "recovery_probe": {
+      "status": 200,
+      "seconds": 0.025038374995347112
+    }
+  }
+]

@@ -1,0 +1,7 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,/sessions,CatchResponseError('HTTP 503'),927,2026-11-22T23:01:47Z,2026-11-22T23:02:46Z
+GET,/movies/search,CatchResponseError('HTTP 503'),2201,2026-11-22T23:01:47Z,2026-11-22T23:02:46Z
+GET,/users/:id/history,CatchResponseError('HTTP 503'),284,2026-11-22T23:01:51Z,2026-11-22T23:02:46Z
+POST,/sessions/:id/turn,CatchResponseError('HTTP 503'),507,2026-11-22T23:01:48Z,2026-11-22T23:02:46Z
+GET,/sessions/:id/recommendations,CatchResponseError('HTTP 503'),300,2026-11-22T23:01:50Z,2026-11-22T23:02:46Z
+POST,/sessions/:id/clarifications,CatchResponseError('HTTP 503'),390,2026-11-22T23:01:48Z,2026-11-22T23:02:46Z
