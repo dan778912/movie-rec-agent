@@ -35,7 +35,7 @@ The run takes about 20 minutes on a laptop: 10 for generation, 10 for the full r
 | Template questions about preferences masked from earlier history; answers come only from that hidden history | Midterm §3.4; roadmap §6 | Masked and sparse profiles plus the template-driven simulator `pre_cutoff_history_sim_v1`. |
 | Profile masks at 25% and 50% | Midterm H2 | `masked_25` / `masked_50` episodes hide 25% / 50% of the canonical profile's liked and disliked entries. |
 | P2 starts from the unchanged canonical profile | Member 2 protocol | `canonical` episodes (40%) use the frozen formatter exactly (parity check below). |
-| "LoRA learns action/question outputs"; "clarification updates scoring on fixed candidates" | Midterm §3.4 | Per-movie scoring samples: the P1 prompt with clarification turns appended to the profile (decision D6). Listwise `rank_candidates` samples are kept as an alternative. |
+| "LoRA learns action/question outputs"; "clarification updates scoring on fixed candidates" | Midterm §3.4 | Listwise `rank_candidates` over the fixed pool after clarifications, which is the format the team built (decision D6). Per-movie scoring samples (P1 prompt plus clarifications) are kept as a backup. |
 | Validation/test targets never supply answers or action labels | Midterm §3.4 | Both splits (`train`, and a user-disjoint `dev` for loss monitoring) read **training ratings only**. The generator never opens validation or test rating files. |
 | Select models on validation | Midterm §5; Member 2 protocol | Final checkpoint choice on the 300 validation users; `dev` is for screening (decision D7). |
 | Explanations use supplied history and metadata and are audited for support | Proposal; midterm §3.4, H4 | Templates cite only displayed items. An independent grounding check covers all 43,740 explanations. Member 2's two-reviewer audit is still planned. |
@@ -159,7 +159,8 @@ Because held-out positives are sparse, most comparisons tie. Ties go to "proceed
 - Clarification answers are simulated from earlier ratings, not real replies, so they support only a controlled offline claim (midterm §3.4).
 - NDCG@10 in the action labels comes from a lightweight preference-vector ranker, not the P2 model. The labels show which actions helped that ranker reach held-out positives. Held-out positives are sparse, so "proceed" dominates through ties.
 - Training pools come from the simulator's feature index, not Member 3's vector index or the frozen B3 pools (decision D10). Off-target pools simulate a retrieval miss. Ranking pools contain injected held-out items.
-- Action prompts with 50–105 candidates reach about 18k characters (~4.6k tokens by estimate), well above P1's 1,024-token limit (decision D2). Per-movie scoring prompts stay under 2,600 characters.
+- Action prompts with 50–105 candidates reach about 18k characters, measured at up to 6,458 Qwen tokens including the completion. That is well above P1's 1,024-token limit and above the proposed 5,120 (decision D2). Per-movie scoring records stay under 800 tokens.
+- Nearly every rank sample contains injected held-out movies: only 3 train and 0 dev rank samples are retriever-only (decision D11).
 - Per-movie scoring labels, like P1's, use explicitly rated movies only, not unrated pool members. About three quarters are `relevant`.
 - Explanations are deterministic templates — grounded but plain.
 - As in Phase 1, genome tags are static transductive metadata. User tags and catalog membership come from the whole pre-validation period, so an early anchor can see metadata dated after `t` (midterm §3.1).
@@ -171,8 +172,8 @@ The handoff ZIP and its field guide ([member1_p2_handoff.md](member1_p2_handoff.
 - **Member 6 (P1 → P2 fine-tuning):**
   - Train action samples on `prompt` → `completion`. Train scoring samples on the P1 path (`profile`, `candidate_document`, `label`). Keep `provenance` out of the input.
   - Use `dev` as the eval set for loss and parse validity. The final checkpoint choice uses the 300 validation users (D7).
-  - `max_length` about 6k tokens for action samples, with no silent left truncation (D2).
-  - Train one ranking format; per-movie scoring is recommended (D6).
+  - `max_length` 6,656 for training, with no truncation; serve with 6,144 input and 1,024 output (D2).
+  - Rank listwise; the per-movie files are an optional backup (D6).
   - "Proceed" labels dominate; consider task-level reweighting (D4).
 - **Member 4 (agent):**
   - Render prompts with `render_prompt` (`p2-prompt-v1`) or `render_score_prompt` (`p2-score-prompt-v1`). Parse with `parse_action`.

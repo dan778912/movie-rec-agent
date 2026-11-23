@@ -1,18 +1,19 @@
 # P2 training data — decision record (Member 1)
 
-**Status (2026-11-22):** P2 data is `p2-samples-v2`. It follows the project proposal, midterm report §3.4/§5 (H2), and Member 2's proposed Phase 2 protocol on `origin/member2-phase2`. Items marked *decided* are Member 1's own data choices. Items marked *proposed* need the named owners to confirm. All must be frozen before P2 test inference. Method and results: [member1_p2_report.md](member1_p2_report.md). Handoff package: [member1_p2_handoff.md](member1_p2_handoff.md).
+**Status (2026-11-23):** P2 data is `p2-samples-v2`. Updated after reading the P2 branches that Members 3, 4 and 6 pushed on 2026-11-20 and the team chat to 2026-11-22. Prompt lengths now use real Qwen token counts (D2). D6 is withdrawn because the team built the listwise path. New items are D11 (rank-step injection) and D12 (budget exhaustion). It follows the project proposal, midterm report §3.4/§5 (H2), and Member 2's proposed Phase 2 protocol on `origin/member2-phase2`. Items marked *decided* are Member 1's own data choices. Items marked *proposed* need the named owners to confirm. All must be frozen before P2 test inference. Method and results: [member1_p2_report.md](member1_p2_report.md). Handoff package: [member1_p2_handoff.md](member1_p2_handoff.md).
 
 ## What teammates' branches already settle
 
-Checked on 2026-11-22 after `git fetch --all`.
+Checked on 2026-11-23 after `git fetch --all`.
 
 | Branch (last commit) | What it settles for P2 data | Status there |
 |---|---|---|
-| `member2-phase2` (Nov 6) — Phase 2 protocol, interface contract, validation config draft | Primary metric is macro NDCG@10 (P2 minus P1, paired bootstrap) on the saved 300 validation users for decisions and 500 test users for the final result. P2 starts from the **unchanged canonical profile** and the **exact frozen B3 top-50**. One frozen, versioned simulator that answers only from pre-cutoff history absent from the visible profile. Fallback ranking = frozen B3 order. At most 8 control events plus rank and explain. | "Proposed, not frozen or team approved" |
-| `member-6-untuned-qwen-control` (Nov 13) | Untuned Qwen control done (300 users, all valid). The trainer reads `prompt`/`completion`, saves a PEFT adapter to `<output>/adapter`, uses `max_length` 1024, and **cuts long prompts from the left**. The P1 loader needs `example_id, user_id, movie_id, split, profile, candidate_document, label`. | Code; P2 loader not written yet |
-| `member5-service-a` (Nov 12) | Service A calls `POST /decide` with `profile_text`, `history_movie_ids`, `clarifications`; expects `ask` or `recommend`. | Explicitly provisional; mock Service B |
-| Member 3 (Service B, vector index) | Nothing for Phase 2 on any branch. No checkpoint layout, Service B I/O, or max input length published. | Missing |
-| Member 4 (agent, action schema) | Nothing for Phase 2 on any branch. The only action schema in the repository is Member 2's `p2-trace-v1` plus Member 1's `p2-prompt-v1` renderer and `p2_actions` parser. | Missing |
+| `member2-phase2` (`9032fd1`, Nov 18): Phase 2 protocol, interface contract, checkpoint-selection handoff | Primary metric is macro NDCG@10 (P2 minus P1, paired bootstrap) on the saved 300 validation users for decisions and 500 test users for the final result. P2 starts from the **unchanged canonical profile** and the **exact frozen B3 top-50**. One frozen, versioned simulator. Fallback ranking = frozen B3 order. At most 8 control events plus rank and explain. Checkpoint rule: shortlist on Member 1's dev, select by NDCG@10 on the 300 users, ties to the earlier step. | "Proposed, not frozen or team approved" |
+| `member-6-p2-training` (`024122f`, Nov 20): P2 continued-LoRA trainer | Reads `p2_samples_{train,dev}.jsonl` (all six actions, listwise rank). `max_length` 5,120 with `allow_truncation: false`. Any over-length record **stops the run**; nothing is cut. Shortlists 3 checkpoints by `eval_loss`. Base revision `775b11af`. Its loader accepts Member 1's v2 files unchanged: 22,802 / 2,178 records, users disjoint (checked 2026-11-23). | Code; config version `p2-qwen-lora-v1` |
+| `member-6-untuned-qwen-control` (Nov 13) and chat (Nov 19) | Untuned control re-exported as `qwen_base` at revision `989aa79`. That revision has the same `model.safetensors`, `config.json` and `tokenizer.json` as `775b11af`; only `tokenizer_config.json` differs. | Done |
+| `member4-p2-agent` (`824c67a`, Nov 20): controller, `decide`/`resume`, action reference | Built on Member 1's `321c284`, uses `render_prompt` and `parse_action` unchanged. Strict parsing (A9). Rankings must be a permutation of the shown pool (A6). Limits 2 questions / 1 retrieval / 100 pool / 8 control events. Member 4 notes 8 is exactly the worst case of 2 + 1 (A2). Exhaustion rule open (A1, D12 below). Offline runner unowned (A12). | "Draft for team discussion" |
+| `member-3-service-b-retrieval` (`f66d683`, Nov 20): Service B, retrieval, offline producer | Checkpoint = HF base + one effective PEFT adapter + tokenizer files. `model.generate(prompt) -> str`: raw `p2-prompt-v1` text, no chat template, greedy, one JSON action out. Provisional limits 6,144 input / 2,048 output tokens. Wraps Member 1's simulator. Includes an offline prediction/trace/manifest producer. | "Development proposals, not team-approved" |
+| `member5-service-a`, `member5-scalability` (Nov 21–22) | Service A calls `POST /decide`; expects `ask` or `recommend`. | Provisional |
 
 ## Settled by the proposal, midterm report, and Member 2's protocol
 
@@ -40,18 +41,28 @@ Checked on 2026-11-22 after `git fetch --all`.
 
 Member 2's contract example already uses this `answer_source` name.
 
-**Proposal:** freeze it at the commit named in `p2_samples.report.json`. Member 4's offline runner imports `src.data.clarification_sim`, so training and evaluation answers match. The midterm's "genre comparison" questions are covered by the favorite-genre and dislike intents.
+**Proposal:** freeze `src/data/clarification_sim.py` at Git blob `be5011ece7fdaa6de22edeb874ae950dd539282d`. The file is byte-identical on `member-1-samples-p2`, `member4-p2-agent` and `member-3-service-b-retrieval`, so training and evaluation answers already match. The midterm's "genre comparison" questions are covered by the favorite-genre and dislike intents.
 
-### D2. Prompt length — *proposed* (Members 4, 6)
+### D2. Prompt length — *proposed* (Members 3, 4, 6)
 
-Action prompts with a 50–100 candidate pool (`evaluate_candidates`, `retrieve_candidates`, listwise `rank_candidates`) reach about 18k characters.
+**Measured, not estimated.** Token counts below use the pinned tokenizer (`Qwen/Qwen2.5-1.5B-Instruct` at `775b11af`, `tokenizer.json` identical at `989aa79`). Each total is counted the way Member 6's trainer counts it: prompt + completion + `<|im_end|>`.
 
-- **The problem:** Member 6's trainer keeps only the last `max_length` tokens. At 1,024 tokens it would delete the instructions, profile, and clarifications from about 40% of action samples.
+| Task (train) | Records | Total p50 / p95 / max | Max prompt | Max completion | Over 5,120 | Over 6,144 |
+|---|---:|---|---:|---:|---:|---:|
+| `rank_candidates` | 3,974 | 3,248 / 5,906 / 6,458 | 5,735 | 747 | 745 | 27 |
+| `evaluate_candidates` | 4,726 | 2,723 / 5,037 / 5,547 | 5,532 | 15 | 153 | 0 |
+| `retrieve_candidates` | 752 | 2,744 / 3,047 / 3,193 | 3,102 | 126 | 0 | 0 |
+| `explain_recommendations` | 3,974 | 1,423 / 1,735 / 2,082 | 1,296 | 905 | 0 | 0 |
+| `assess_sufficiency`, `ask_clarification` | 9,376 | ≈ 420 / 660 / 771 | 754 | 35 | 0 | 0 |
+| `score_candidate` (per-movie file) | 43,297 | 433 / 675 / 795 | 793 | 4 | 0 | 0 |
+
+Dev: 75 records exceed 5,120 (60 rank, 15 evaluate), and 4 rank records exceed 6,144 (max 6,242).
+
+- **5,120 does not fit.** Member 6's trainer stops when any record is too long, so the current config would fail on 898 train and 75 dev records. Evaluate prompts on 100-movie pools alone reach 5,532 tokens.
 - **Proposal:**
-  - set `max_length` to **6,144** for P2 action samples (Qwen2.5-1.5B supports 32k);
-  - make the trainer **fail or report** on truncation instead of cutting silently;
-  - Member 6 measures exact token counts with the pinned tokenizer (it is not installed in Member 1's environment).
-- **Short samples:** per-movie scoring samples (D6) are short and fit within P1's 1,024.
+  - **Training:** `max_length` **6,656**. The longest record is 6,458, leaving 198 tokens. Keep `allow_truncation: false`.
+  - **Serving (Service B):** input **6,144**, output **1,024**. Inference pools are at most 100 with nothing injected. The longest training prompt, 5,735, includes up to 105 candidates. The longest completion is an explanation at 905. Member 3's 2,048 output is also safe.
+  - Member 6 should rerun `--length-check-only` to confirm, and add the GPU memory smoke test.
 
 ### D3. Test-time profile shift — *decided: report as a limitation* (Members 2, 3, 6)
 
@@ -79,29 +90,29 @@ Most sequence comparisons tie, and ties go to "proceed" (midterm rule). Member 6
   - retrieval frequency.
 - **Do not claim:** real-user satisfaction or question quality.
 
-### D6. Ranking by per-movie scoring — *recommended; Members 4, 6 confirm*
+### D6. Ranking format — *decided: listwise* (Member 1; withdrawn recommendation)
 
-The midterm says "LoRA learns action/question outputs" and "clarification updates scoring on fixed candidates". A 1.5B model writing a 50–100 ID permutation risks invalid output, and invalid output falls back to B3 order.
+On 2026-11-22 Member 1 recommended per-movie scoring for the rank step. The team has since built the listwise path end to end:
 
-- **New file:** `p2_score_samples_{split}.jsonl` supports P1-style per-movie scoring.
-- **Prompt:** the **P1 prompt verbatim**, with clarification turns appended to the profile block. Byte-identical to P1 when there are none.
-- **Labels:** `relevant` (held-out rating ≥ 4) / `not_relevant` (≤ 2.5).
-- **Compatibility:** the fields match Member 6's P1 loader, and the relevant-minus-not_relevant scorer applies unchanged.
-- **Recommended agent path:**
-  1. score the final pool;
-  2. order by score;
-  3. emit the top 50 as `rank_candidates` (the contract allows a subset of the final pool).
-- **Listwise samples:** listwise `rank_candidates` samples remain available. Train on one ranking format, not both.
+- Member 3's Service B exposes `generate(prompt) -> str`, returning one JSON action.
+- Member 4's controller accepts a `rank_candidates` permutation of the shown pool.
+- Member 6's trainer uses the listwise samples.
 
-### D7. Checkpoint selection — *proposed* (Members 2, 6)
+Switching now would need a scoring endpoint and controller changes for an unmeasured gain, so Member 1 withdraws the recommendation. **Listwise `rank_candidates` is the ranking format.**
+
+The per-movie files (`p2_score_samples_*`) stay in the package as an optional backup and ablation. They are worth revisiting only if the real checkpoint's rank-step parse validity is poor. Nobody needs to train on them.
+
+### D7. Checkpoint selection — *agreed in principle* (Members 1, 2, 6; Members 3, 4 to confirm)
 
 **Correction:** an earlier version of this page said checkpoint selection uses Member 1's `dev` split. The midterm says "select models on validation", and Member 2's protocol reserves the 300 validation users for decisions.
 
-**Proposal:**
+Member 2's handoff (Nov 18) and Member 6's proposal (Nov 20) state the same rule, and Member 1 agrees:
 
-- Use `dev` (training-period users, disjoint from train) for per-checkpoint loss, action accuracy, and parse validity.
-- Choose the final checkpoint among the few best by full-system NDCG@10 on the 300 validation users with Member 2's evaluator.
-- Never use test.
+1. Shortlist the **3** checkpoints with the lowest completion loss on the 400-user `dev` split. Report strict JSON parse rates per action separately.
+2. Select among the shortlist by macro NDCG@10 on the fixed 300 validation users with Member 2's evaluator. An exact tie goes to the earlier training step.
+3. Never use test.
+
+Freeze the rule before any 300-user result is read. **Caveat:** every dev rank sample contains injected items (D11), so dev loss on the rank step does not measure retriever-only pools. Member 6's planned retriever-only check covers that gap.
 
 ### D8. Training profile mix — *decided* (Member 1)
 
@@ -116,14 +127,15 @@ Episodes now mix four profile levels:
 
 In masked profiles, 25% / 50% of liked and of disliked entries are hidden, not replaced. The simulator can reveal them.
 
-### D9. Invalid model output — *proposed* (Member 4 owns)
+### D9. Invalid model output — *implemented by Member 4* (Members 2, 4)
 
-**Proposal:**
+Member 4's controller already does what Member 1 proposed:
 
-- Parse with `p2_actions.parse_action`, then `validate_action`.
-- On failure under greedy decoding, do not retry, since the same output would repeat.
-- Instead, use the contract fallback: `termination_reason: "fallback"`, a `fallback_reason`, `fallback_source: "frozen_b3_order"`, and the raw output or its digest in the manifest.
-- With D6, the ranking step cannot produce an invalid permutation.
+- strict `parse_action` / `validate_action`, with no silent repair (A9);
+- no retry under greedy decoding;
+- the contract fallback to frozen B3 order, with the failure recorded.
+
+Member 2 confirms the contract side.
 
 ### D10. Training pools vs. B3 pools — *open* (Members 3, 6)
 
@@ -131,17 +143,54 @@ In masked profiles, 25% / 50% of liked and of disliked entries are hidden, not r
 - **Option:** regenerate training pools with the B3 encoder for training users. This needs `sentence-transformers` and Member 3's index.
 - **Until then:** a stated limitation.
 
+### D11. Rank-step injection — *facts confirmed; change proposed* (Members 1, 4, 6)
+
+This answers Member 4's questions (A6) and Member 6's three requests. Counts are from the v2 files.
+
+| | train | dev |
+|---|---:|---:|
+| Rank samples with injected items | 3,971 / 3,974 | 400 / 400 |
+| **Retriever-only rank samples** | **3** | **0** |
+| Rank-target positives that were injected | 11,817 / 20,959 (56%) | 1,195 / 1,994 (60%) |
+| Episodes with no retrieved positive (injection is the only signal) | 1,669 (42%) | 194 (49%) |
+
+- **Purpose.** Simulated pools often hold no held-out positive. Injection guarantees every rank sample has something to put first and something to put last. Member 4's guess is right.
+- **Training period only: yes.** Injected movies are the user's held-out ratings in `[anchor, boundary)`. The boundary sits inside the training period, and `p2_checks` verifies every one is a training rating. No validation or test target is used.
+- **Unmarked: yes, by content.** Injected movies go to random positions and are displayed exactly like retrieved ones. Two indirect signals remain:
+  - the pool size: 51–55 or 101–105 movies, where inference shows 50 or 100;
+  - injected movies come from the user's own future, not from the retriever, so they can look different from their neighbours.
+- **Retriever-only examples: no.** There are 3 in train and none in dev. Dev rank loss therefore never sees an inference-like pool.
+- **Explanations.** The explain step mostly covers injected positives (they are ranked first). Its templates use only the movie's metadata and the visible profile and clarifications, never ratings, so they apply unchanged to retrieved movies.
+
+**Proposed change (`p2-samples-v3`, not yet generated):**
+
+1. Injected movies **replace** random unlabeled pool members instead of being added, so pool sizes match inference (50 or 100). This removes the size signal.
+2. In about half of the episodes that already have at least one retrieved positive, do not inject. That gives about 1,150 train and 100 dev retriever-only rank samples, marked by an empty `injected_movie_ids`.
+3. Member 6 reports dev rank loss separately for the retriever-only subset.
+
+### D12. Budget exhaustion — *Member 1's position; Member 2 decides* (Members 1, 2, 4)
+
+This is Member 4's A1. Member 1 supports the midterm rule: **the model ranks the available pool**. The trace is labelled distinctly (Member 4's `budget_exhausted_rank`), and B3-order fallback is kept for errors only. Reasons:
+
+- It is what the submitted midterm says.
+- With a B3 fallback, exhausted users would score on B3's order and dilute what P2's headline measures.
+- The training labels already proceed at the budget: 1,112 train `assess_sufficiency` samples say "sufficient" after 2 questions, and all 752 `evaluate_candidates` samples after the retrieval say the pool is sufficient. A trained model should rarely reach exhaustion. Member 4's 177 / 515 came from a scripted stand-in.
+
+Either way, report the exhaustion count. Member 2 owns the contract label.
+
 ## Decision record
 
 | Item | Decision | Who / date |
 |---|---|---|
-| D1 simulator freeze | Proposed: freeze `pre_cutoff_history_sim_v1` | Member 1, 2026-11-22; awaiting Members 2, 4 |
-| D2 prompt length | Proposed: `max_length` 6,144; no silent truncation | Member 1, 2026-11-22; awaiting Members 4, 6 |
+| D1 simulator freeze | Proposed: freeze `pre_cutoff_history_sim_v1`, blob `be5011ec` (identical on Members 1, 3, 4 branches) | Member 1, 2026-11-23; awaiting Members 2, 4 |
+| D2 prompt length | Proposed: train `max_length` 6,656; serve 6,144 in / 1,024 out; no truncation (measured with the real tokenizer) | Member 1, 2026-11-23; awaiting Members 3, 6 |
 | D3 profile shift | Report as limitation | Member 1, 2026-11-22 (consistent with Member 2 protocol) |
 | D4 class balance | No relabelling; reweighting optional | Member 1, 2026-11-22 |
 | D5 report wording | Proposed wording above | Awaiting team |
-| D6 ranking method | Recommended: per-movie scoring; data provided | Member 1, 2026-11-22; awaiting Members 4, 6 |
-| D7 checkpoint selection | Proposed: dev for screening, 300 validation users for final pick | Awaiting Members 2, 6 |
+| D6 ranking format | Listwise; per-movie files optional backup | Member 1, 2026-11-23 (matches Members 3, 4, 6 code) |
+| D7 checkpoint selection | Dev top-3 by loss, then NDCG@10 on 300 validation users, tie to earlier step | Members 1, 2, 6 agree; awaiting Members 3, 4 |
 | D8 profile mix | 40 / 20 / 20 / 20 canonical / masked_25 / masked_50 / sparse | Member 1, 2026-11-22 |
-| D9 invalid output | Proposed: no retry, contract fallback | Awaiting Member 4 |
+| D9 invalid output | No retry, contract fallback (implemented by Member 4) | Awaiting Member 2 |
 | D10 training pools | Open | Members 3, 6 |
+| D11 rank-step injection | Facts confirmed; v3 change proposed (replace not add; retriever-only share) | Member 1, 2026-11-23; awaiting Members 4, 6 |
+| D12 budget exhaustion | Member 1 supports "rank available pool", labelled; B3 fallback for errors only | Awaiting Member 2 |

@@ -9,7 +9,7 @@ For Member 6 (P1 → P2 fine-tuning), with notes for Members 2–5. The data fil
 | Path | Use |
 |---|---|
 | `data/p2_samples_train.jsonl` / `data/p2_samples_dev.jsonl` | **Action samples:** one agent decision per line, covering all six actions |
-| `data/p2_score_samples_train.jsonl` / `data/p2_score_samples_dev.jsonl` | **Per-movie scoring samples:** P1 format plus clarifications, for ranking by scoring (decision D6) |
+| `data/p2_score_samples_train.jsonl` / `data/p2_score_samples_dev.jsonl` | **Per-movie scoring samples:** P1 format plus clarifications. Optional backup; the team ranks listwise (decision D6) |
 | `data/p2_episodes_train.jsonl` / `data/p2_episodes_dev.jsonl` | Whole simulated episodes in the `p2-trace-v1` event vocabulary. For Member 4's tests and audit; **not** training input. |
 | `data/catalog_seed.jsonl` | One row per catalog movie, for Service A (Member 5) and the vector index (Member 3) |
 | `reports/p2_quality_report.json` | Data-quality and leakage checks. `error_count` is 0. |
@@ -75,7 +75,7 @@ Output formats by task:
 | `ask_clarification` | `{"action": "ask_clarification", "question": "<question>"}` |
 | `evaluate_candidates` | `{"action": "evaluate_candidates", "pool_sufficient": true\|false}` |
 | `retrieve_candidates` | `{"action": "retrieve_candidates", "query": "<search query>"}` |
-| `rank_candidates` | `{"action": "rank_candidates", "movie_ids": [<every candidate ID once>]}` (listwise; see D6) |
+| `rank_candidates` | `{"action": "rank_candidates", "movie_ids": [<every candidate ID once>]}` (listwise, the team's ranking format; see D6) |
 | `explain_recommendations` | `{"action": "explain_recommendations", "explanations": [{"movie_id": <id>, "text": "<justification>"}, ...]}` for the top 10 in order |
 
 Parse model output with `src/data/p2_actions.py::parse_action`, then `validate_action`. Both are strict: duplicate keys, NaN, extra fields, unknown actions, and duplicate or foreign IDs all raise `ActionError`.
@@ -95,11 +95,15 @@ Score with the P1 rule, the relevant-minus-not_relevant log-probability, then or
 
 ## Notes for training
 
-- **Prompt length (D2).** Action prompts that list a 50–100 movie pool reach about 18k characters, roughly 4.6k tokens by estimate. Measure them with the pinned Qwen tokenizer.
-  - The P1 trainer keeps the **last** `max_length` tokens. At 1,024 tokens it would delete the instructions and profile from those prompts.
-  - **Proposed:** `max_length` 6,144 for action samples, and fail or report instead of truncating silently.
-  - Scoring prompts are short.
-- **Pick one ranking format (D6).** Recommended: train the per-movie scoring file, which keeps the P1 adapter's ranking behaviour, and drop the listwise `rank_candidates` samples. The listwise samples remain for comparison.
+- **Prompt length (D2).** Measured with the pinned Qwen tokenizer as prompt + completion + `<|im_end|>`:
+  - the longest record is a `rank_candidates` sample of 6,458 tokens (dev: 6,242);
+  - 898 train and 75 dev records exceed 5,120, so `p2_qwen_lora_v1.json` would stop at its length check;
+  - **Proposed:** `max_length` 6,656 for training, with `allow_truncation: false`. For serving, 6,144 input and 1,024 output.
+- **Ranking format (D6): listwise.** Train the `rank_candidates` samples in `p2_samples_*`. The per-movie files are an optional backup; you do not need them.
+- **Rank-step injection (D11).**
+  - Almost every rank sample (3,971 / 3,974 train, 400 / 400 dev) adds up to 3 held-out positives and 2 held-out dislikes to the pool, at random positions, displayed like any other movie. They are all training-period ratings.
+  - Only 3 train rank samples are retriever-only, so test the checkpoint on plain 100-movie pools before selection.
+  - `provenance.label_basis.injected_movie_ids` lists the injected movies.
 - **Label balance (D4).** "Proceed" outnumbers "ask"/"retrieve" because the midterm rule sends ties to fewer actions. Reweight by task or label if needed; do not relabel.
 - **Profiles (D8).** Episodes mix four levels: canonical 40%, 25%-masked 20%, 50%-masked 20%, and sparse (last 1–8 ratings) 20%. These match the primary evaluation, midterm H2, and live app users. `provenance.level` gives the level per sample.
 
