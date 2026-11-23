@@ -5,8 +5,9 @@ and the roadmap's P2 example construction. Each sample is one agent decision:
 a rendered prompt (``src/profiles/agent_text``) plus the JSON action the model
 should emit. Samples come from simulated episodes. An episode fixes a user, an
 anchor time ``t`` inside the training period, and a visible profile built only
-from ratings before ``t`` -- either the canonical profile or a masked one that
-shows only the user's last few ratings. The user's training ratings at or after
+from ratings before ``t``: the canonical profile, the canonical profile with 25%
+or 50% of its entries masked (midterm H2), or a sparse profile of the user's
+last few ratings (a new app user). The user's training ratings at or after
 ``t`` are the held-out interactions that supervise each decision:
 
 * ``assess_sufficiency`` / ``ask_clarification`` / ``evaluate_candidates`` /
@@ -20,8 +21,14 @@ shows only the user's last few ratings. The user's training ratings at or after
 * ``explain_recommendations``: template justifications citing only titles,
   genres, tags and answers shown in the prompt.
 
-Splits ``train`` and ``dev`` (user-disjoint, for checkpoint selection) both use
-training ratings only: validation and test targets never supply answers or
+A separate per-movie file supports ranking by relevance scoring ("clarification
+updates scoring on fixed candidates", midterm section 3.4): the P1 prompt with
+the episode's clarification turns appended to the profile, labelled
+``relevant`` (held-out rating >= 4) or ``not_relevant`` (<= 2.5).
+
+Splits ``train`` and ``dev`` (user-disjoint; dev is for loss monitoring and
+early screening, while final checkpoint selection follows Member 2's
+validation protocol) both use training ratings only: validation and test targets never supply answers or
 labels. No validation or test rating file is opened. Users in the configured
 evaluation lists are excluded.
 """
@@ -44,16 +51,18 @@ from pathlib import Path
 from src.data import clarification_sim as sim
 from src.data.build import _genome_tags, _movies, _user_tags, csv_rows, sha256, write_jsonl
 from src.data.p2_actions import validate_action, validate_episode
-from src.profiles.agent_text import PROMPT_VERSION, display_tags, render_prompt, serialize_action
+from src.profiles.agent_text import (PROMPT_VERSION, SCORE_PROMPT_VERSION, display_tags, render_prompt,
+                                     render_score_prompt, scoring_profile, serialize_action)
 from src.profiles.text import movie_document, user_profile
 
-SCHEMA_VERSION = "p2-sample-v1"
-EPISODE_SCHEMA_VERSION = "p2-train-episode-v1"
+SCHEMA_VERSION = "p2-sample-v2"
+SCORE_SCHEMA_VERSION = "p2-score-sample-v1"
+EPISODE_SCHEMA_VERSION = "p2-train-episode-v2"
 INDEX_VERSION = "p2-train-feature-index-v1"
 DATA = Path("data/processed/ml25m-global-v1")
 RAW = Path("data/raw/ml-25m")
-CONFIG = Path("configs/p2_samples_v1.json")
-OUTPUT = Path("data/processed/p2-v1")
+CONFIG = Path("configs/p2_samples_v2.json")
+OUTPUT = Path("data/processed/p2-v2")
 CONSUMED = ("catalog.csv", "movie_documents.jsonl", "statistics.json", "train_ratings.csv")
 SPLITS = ("train", "dev")
 YEAR = re.compile(r"\((\d{4})(?:[-–]\d{0,4})?\)\s*$")
@@ -241,11 +250,48 @@ def select_profile(meta: dict, rows: list[tuple], likes: int, dislikes: int) -> 
     return [profile_item(meta, r) for r in liked], [profile_item(meta, r) for r in disliked]
 
 
+LEVELS = ("canonical", "masked_25", "masked_50", "sparse")
+MASK_FRACTIONS = {"masked_25": 0.25, "masked_50": 0.50}
+
+
 def visible_rows(history: list[tuple], catalog: set[int], level: str, sparse_k: int | None) -> list[tuple]:
-    """Canonical level shows the full history; sparse level the last k catalog ratings (a live user)."""
-    if level == "canonical":
-        return history
-    return [row for row in history if row[0] in catalog][-sparse_k:]
+    """Rows the profile rule selects from: the full history, or the last k catalog ratings (sparse)."""
+    if level == "sparse":
+        return [row for row in history if row[0] in catalog][-sparse_k:]
+    return history
+
+
+def mask_count(fraction: float, n: int) -> int:
+    """Items hidden from a list of ``n`` (round half up, so 2.5 -> 3)."""
+    return math.floor(fraction * n + 0.5)
+
+
+def masked_ids(items: list[dict], fraction: float, mask_key: str) -> set[int]:
+    """Deterministic hash-chosen subset of a canonical profile list to hide."""
+    order = sorted(items, key=lambda item: hashlib.sha256(f"{mask_key}:{item['movie_id']}".encode()).hexdigest())
+    return {item["movie_id"] for item in order[:mask_count(fraction, len(items))]}
+
+
+def visible_profile(meta: dict, history: list[tuple], catalog: set[int], level: str, sparse_k: int | None,
+                    data_config: dict, mask_key: str) -> tuple[list[dict], list[dict], list[int]]:
+    """Profile shown to the agent at one of four levels.
+
+    * ``canonical``: the Phase 1 profile rule (P1/P2 primary evaluation input).
+    * ``masked_25`` / ``masked_50``: the canonical profile with 25% / 50% of its
+      liked and of its disliked entries hidden (midterm H2 profile masks). Hidden
+      entries are not replaced, so they stay discoverable through clarification.
+    * ``sparse``: the profile rule over the last k catalog ratings (a new app user).
+    """
+    liked, disliked = select_profile(meta, visible_rows(history, catalog, level, sparse_k),
+                                     data_config["liked_movies_per_profile"],
+                                     data_config["disliked_movies_per_profile"])
+    if level not in MASK_FRACTIONS:
+        return liked, disliked, []
+    fraction = MASK_FRACTIONS[level]
+    hidden = masked_ids(liked, fraction, mask_key) | masked_ids(disliked, fraction, mask_key)
+    hidden_order = [item["movie_id"] for item in liked + disliked if item["movie_id"] in hidden]
+    return ([i for i in liked if i["movie_id"] not in hidden], [i for i in disliked if i["movie_id"] not in hidden],
+            hidden_order)
 
 
 def clarifications(state: dict) -> list[dict]:
@@ -413,6 +459,11 @@ class EpisodeBuilder:
         genre_counts = Counter(g for mid in catalog for g in meta[mid]["genres"])
         self.common_genres = [g for g, _ in sorted(genre_counts.items(), key=lambda p: (-p[1], p[0]))[:12]]
 
+    def document(self, movie_id: int) -> str:
+        """Canonical movie document (identical to movie_documents.jsonl ``text``; checked at load)."""
+        m = self.meta[movie_id]
+        return movie_document(m["title"], m["raw_genres"], m["genome_tags"], m["user_tags"])
+
     def plan(self, state: dict, facts: dict, pool: list[int], watched: set[int], relevant: set[int]):
         """Midterm section 3.4 labelling rule.
 
@@ -460,9 +511,8 @@ class EpisodeBuilder:
         if any(ts >= anchor for _, _, ts in history) or any(not anchor <= ts < boundary for _, _, ts in future):
             raise AssertionError(f"Temporal boundary violated in {episode_id}")
         watched = {row[0] for row in history}
-        shown_rows = visible_rows(history, self.catalog, level, sparse_k)
-        liked, disliked = select_profile(meta, shown_rows, self.data_config["liked_movies_per_profile"],
-                                         self.data_config["disliked_movies_per_profile"])
+        liked, disliked, hidden = visible_profile(meta, history, self.catalog, level, sparse_k, self.data_config,
+                                                  f"{cfg['seed']}:{episode_id}")
         state = {"liked": liked, "disliked": disliked, "turns": [], "profile_text": user_profile(liked, disliked)}
         visible_ids = {item["movie_id"] for item in liked + disliked}
         facts = sim.build_fact_pool(history, meta, visible_ids, state["profile_text"], cutoff=anchor)
@@ -582,10 +632,30 @@ class EpisodeBuilder:
              candidates=shown_top, explain_ids=shown_top, basis={"evidence": evidence})
         events.append({"action": "explain_recommendations", "explanations": explanations})
         summary = validate_episode(events, initial_pool)
+
+        # Per-movie relevance samples (P1 format) scored after the episode's clarifications.
+        score_profile = scoring_profile(state["profile_text"], clarifications(state))
+        score_rows = positives + [r for r in future if r[0] in self.catalog
+                                  and r[1] <= 2.5][:cfg["score_negatives"]]
+        score_samples = []
+        for movie_id, rating, ts in score_rows:
+            label = "relevant" if rating >= 4 else "not_relevant"
+            document = self.document(movie_id)
+            sample_id = f"{episode_id}:score:{movie_id}"
+            score_samples.append({
+                "schema_version": SCORE_SCHEMA_VERSION, "prompt_version": SCORE_PROMPT_VERSION,
+                "sample_id": sample_id, "example_id": sample_id, "episode_id": episode_id,
+                "task": "score_candidate", "split": split, "user_id": user_id, "movie_id": movie_id,
+                "profile": score_profile, "candidate_document": document, "label": label,
+                "prompt": render_score_prompt(score_profile, document), "completion": label,
+                "provenance": {"anchor_timestamp": anchor, "boundary_timestamp": boundary, "level": level,
+                               "clarification_turns": len(state["turns"]), "rating": rating,
+                               "rating_timestamp": ts},
+            })
         episode = {
             "schema_version": EPISODE_SCHEMA_VERSION, "episode_id": episode_id, "split": split, "user_id": user_id,
             "anchor_timestamp": anchor, "boundary_timestamp": boundary, "level": level, "sparse_k": sparse_k,
-            "pool_regime": regime, "history_count": len(history),
+            "masked_movie_ids": hidden, "pool_regime": regime, "history_count": len(history),
             "history_latest_timestamp": max(ts for _, _, ts in history),
             "visible_movie_ids": [item["movie_id"] for item in liked + disliked],
             "profile_text": state["profile_text"],
@@ -603,8 +673,9 @@ class EpisodeBuilder:
                      "decided_by_tie_break": any(r is not best and r["ndcg"] == best["ndcg"] for r in results)},
             "summary": summary,
             "sample_ids": [s["sample_id"] for s in samples],
+            "score_sample_ids": [s["sample_id"] for s in score_samples],
         }
-        return samples, episode
+        return samples, score_samples, episode
 
 
 # --------------------------------------------------------------------------- selection and driver
@@ -630,9 +701,17 @@ def stream_histories(path: Path, cutoff: int):
 
 
 def choose_level(rng: random.Random, split_config: dict) -> tuple[str, int | None]:
-    if rng.random() < split_config["canonical_fraction"]:
-        return "canonical", None
-    return "sparse", rng.choice(split_config["sparse_rating_counts"])
+    weights = split_config["profile_levels"]
+    if set(weights) - set(LEVELS) or abs(sum(weights.values()) - 1.0) > 1e-9:
+        raise ValueError(f"profile_levels must use {LEVELS} and sum to 1")
+    draw, total = rng.random(), 0.0
+    level = [name for name in LEVELS if name in weights][-1]  # guards float round-off at the top
+    for name in LEVELS:
+        total += weights.get(name, 0.0)
+        if name in weights and draw < total:
+            level = name
+            break
+    return level, rng.choice(split_config["sparse_rating_counts"]) if level == "sparse" else None
 
 
 def provenance(paths: list[Path]) -> dict:
@@ -692,23 +771,32 @@ def generate(data: Path, raw: Path, output: Path, config: dict) -> dict:
         split_config = config[split]
         samples_path = output / f"p2_samples_{split}.jsonl"
         episodes_path = output / f"p2_episodes_{split}.jsonl"
+        score_path = output / f"p2_score_samples_{split}.jsonl"
         tasks, labels, levels, regimes, intents = Counter(), Counter(), Counter(), Counter(), Counter()
-        answers, plans = Counter(), Counter()
+        answers, plans, score_labels = Counter(), Counter(), Counter()
         prompt_chars, completion_chars = defaultdict(list), defaultdict(list)
-        episodes = []
+        episodes, score_count = [], 0
+        score_out = score_path.open("w", encoding="utf-8", newline="\n")
         users = sorted((uid, history, anchors) for _, uid, history, anchors in assignment[split])
 
         def records():
+            nonlocal score_count
             for user_id, history, anchors in users:
                 user_rng = random.Random(f"{seed}:{split}:{user_id}:anchors")
                 picks = sorted(user_rng.sample(anchors, min(split_config["episodes_per_user"], len(anchors))))
                 for index, i in enumerate(picks):
                     level, sparse_k = choose_level(random.Random(f"{seed}:{split}:{user_id}:{index}:level"),
                                                    split_config)
-                    samples, episode = builder.build(split, user_id, index, history[:i], history[i:],
-                                                     history[i][2], val_cutoff, level, sparse_k)
+                    samples, score_samples, episode = builder.build(split, user_id, index, history[:i], history[i:],
+                                                                    history[i][2], val_cutoff, level, sparse_k)
                     episodes.append(episode)
-                    levels[level if level == "canonical" else f"sparse_{sparse_k}"] += 1
+                    for sample in score_samples:
+                        score_out.write(json.dumps(sample, ensure_ascii=False, sort_keys=True,
+                                                   separators=(",", ":")) + "\n")
+                        score_count += 1
+                        score_labels[f"{sample['label']}:{'clarified' if sample['provenance']['clarification_turns'] else 'no_clarification'}"] += 1
+                        prompt_chars["score_candidate"].append(len(sample["prompt"]))
+                    levels[level if level != "sparse" else f"sparse_{sparse_k}"] += 1
                     regimes[episode["pool_regime"]] += 1
                     plan = episode["plan"]
                     plans[f"questions_{len(plan['chosen_questions'])}"] += 1
@@ -732,7 +820,8 @@ def generate(data: Path, raw: Path, output: Path, config: dict) -> dict:
                         completion_chars[task].append(len(sample["completion"]))
                         yield sample
 
-        write_jsonl(samples_path, records())
+        with score_out:
+            write_jsonl(samples_path, records())
         write_jsonl(episodes_path, episodes)
 
         def lengths(values):
@@ -748,13 +837,17 @@ def generate(data: Path, raw: Path, output: Path, config: dict) -> dict:
             "control_events": dict(sorted(Counter(e["summary"]["control_events"] for e in episodes).items())),
             "prompt_chars": {t: lengths(v) for t, v in sorted(prompt_chars.items())},
             "completion_chars": {t: lengths(v) for t, v in sorted(completion_chars.items())},
+            "score_samples": score_count, "score_labels": dict(sorted(score_labels.items())),
+            "masked_entries": sum(len(e["masked_movie_ids"]) for e in episodes),
             "samples_sha256": sha256(samples_path), "episodes_sha256": sha256(episodes_path),
+            "score_samples_sha256": sha256(score_path),
         }
 
     sources = sorted(Path("src/data").glob("*.py")) + [Path("src/profiles/text.py"), Path("src/profiles/agent_text.py")]
     report = {
         "schema_version": SCHEMA_VERSION, "episode_schema_version": EPISODE_SCHEMA_VERSION,
-        "prompt_version": PROMPT_VERSION, "simulator_version": sim.SIMULATOR_VERSION, "index_version": INDEX_VERSION,
+        "prompt_version": PROMPT_VERSION, "score_schema_version": SCORE_SCHEMA_VERSION,
+        "score_prompt_version": SCORE_PROMPT_VERSION, "simulator_version": sim.SIMULATOR_VERSION, "index_version": INDEX_VERSION,
         "config": config, "data_version": manifest["version"],
         "data_manifest_sha256": sha256(data / "manifest.json"),
         "consumed_sha256": {name: manifest["file_sha256"][name] for name in CONSUMED},
@@ -768,6 +861,7 @@ def generate(data: Path, raw: Path, output: Path, config: dict) -> dict:
             "Action labels compare NDCG@10 of a genre/tag/decade preference-vector ranker, not the P2 model itself.",
             "Training pools come from a dependency-free feature index, not Member 3's vector index or B3 pools.",
             "Off-target pools simulate retrieval misses; ranking pools inject held-out positives and dislikes.",
+            "Per-movie scoring labels use explicitly rated held-out movies only (as in P1), not unrated pool members.",
             "Explanations are templates citing displayed overlap; they are grounded but not human-written.",
             "Genome tags remain static transductive metadata, as in the Phase 1 data contract.",
         ],

@@ -10,8 +10,8 @@ from src.data.build import build, sha256
 from src.data.catalog_seed import build_seed, display_title
 from src.data.p2_actions import ActionError, parse_action, validate_action, validate_episode
 from src.data.p2_checks import grounding_problems, run as run_checks, title_mentioned
-from src.data.p2_samples import generate
-from src.profiles.agent_text import ACTIONS, render_prompt, serialize_action
+from src.data.p2_samples import choose_level, generate, mask_count
+from src.profiles.agent_text import ACTIONS, render_prompt, render_score_prompt, scoring_profile, serialize_action
 
 GENRES = ["Drama", "Comedy", "Sci-Fi", "Horror", "Romance", "Thriller"]
 TAGS = ["dark", "funny", "space", "romantic", "heist", "family", "twist ending", "atmospheric"]
@@ -59,14 +59,20 @@ def make_raw(root: Path) -> Path:
     return raw
 
 
+LEVELS = {"canonical": 0.25, "masked_25": 0.25, "masked_50": 0.25, "sparse": 0.25}
+P1_PROMPT = ("Decide whether this movie is relevant to the user's preferences.\n\n"
+             "User profile:\n{profile}\n\nCandidate movie:\n{document}\n\n"
+             "Answer with exactly one label: relevant or not_relevant.")
+
+
 def p2_config(exclude_path: Path) -> dict:
     return {
-        "version": "p2-fixture", "data_version": "fixture-v1", "seed": 11,
+        "version": "p2-fixture", "data_version": "fixture-v1", "seed": 15,
         "exclude_user_lists": [str(exclude_path)],
-        "train": {"users": 5, "episodes_per_user": 2, "canonical_fraction": 0.5, "sparse_rating_counts": [1, 2, 3]},
-        "dev": {"users": 3, "episodes_per_user": 1, "canonical_fraction": 0.5, "sparse_rating_counts": [1, 2, 3]},
+        "train": {"users": 5, "episodes_per_user": 2, "profile_levels": LEVELS, "sparse_rating_counts": [1, 2, 3]},
+        "dev": {"users": 3, "episodes_per_user": 1, "profile_levels": LEVELS, "sparse_rating_counts": [1, 2, 3]},
         "min_history_before_anchor": 8, "future_horizon_ratings": 20, "min_future_positives": 2,
-        "future_positives": 5, "future_negatives": 1, "max_questions": 2, "max_retrievals": 1,
+        "future_positives": 5, "future_negatives": 1, "score_negatives": 2, "max_questions": 2, "max_retrievals": 1,
         "offtarget_pool_fraction": 0.5,
         "pool_size": 5, "retrieval_k": 5, "inject_positives": 2, "inject_negatives": 1,
         "explain_k": 10, "popularity_prior": 0.2, "retrieval_length_norm": 0.5,
@@ -100,6 +106,49 @@ class FixturePipelineTest(unittest.TestCase):
     def episodes(self, split="train"):
         with (self.output / f"p2_episodes_{split}.jsonl").open(encoding="utf-8") as source:
             return [json.loads(line) for line in source]
+
+    def score_samples(self, split="train"):
+        with (self.output / f"p2_score_samples_{split}.jsonl").open(encoding="utf-8") as source:
+            return [json.loads(line) for line in source]
+
+    def test_masked_profiles_hide_canonical_entries(self):
+        episodes = self.episodes() + self.episodes("dev")
+        self.assertTrue({"canonical", "masked_25", "masked_50", "sparse"} <= {e["level"] for e in episodes})
+        for episode in episodes:
+            hidden = episode["masked_movie_ids"]
+            if episode["level"] not in ("masked_25", "masked_50"):
+                self.assertEqual(hidden, [])
+                continue
+            self.assertTrue(hidden)
+            self.assertFalse(set(hidden) & set(episode["visible_movie_ids"]))
+            fraction = 0.25 if episode["level"] == "masked_25" else 0.5
+            # Fixture profiles hold at most 4 liked and 2 disliked entries.
+            self.assertLessEqual(len(hidden), mask_count(fraction, 4) + mask_count(fraction, 2))
+        self.assertEqual((mask_count(0.25, 10), mask_count(0.5, 10), mask_count(0.25, 5), mask_count(0.5, 5)),
+                         (3, 5, 1, 3))
+
+    def test_score_samples_use_p1_prompt_and_held_out_labels(self):
+        samples = self.score_samples() + self.score_samples("dev")
+        self.assertTrue(samples)
+        self.assertEqual({s["label"] for s in samples}, {"relevant", "not_relevant"})
+        episodes = {e["episode_id"]: e for e in self.episodes() + self.episodes("dev")}
+        for sample in samples:
+            # Fields Member 6's P1 loader requires are present.
+            for field in ("example_id", "user_id", "movie_id", "split", "profile", "candidate_document", "label"):
+                self.assertIn(field, sample)
+            self.assertEqual(sample["prompt"], P1_PROMPT.format(profile=sample["profile"],
+                                                                document=sample["candidate_document"]))
+            self.assertEqual(sample["completion"], sample["label"])
+            episode = episodes[sample["episode_id"]]
+            if sample["provenance"]["clarification_turns"] == 0:
+                self.assertEqual(sample["profile"], episode["profile_text"])  # byte-identical to P1 input
+            else:
+                self.assertIn("\n\nClarifications:\nQ: ", sample["profile"])
+            self.assertTrue(episode["anchor_timestamp"] <= sample["provenance"]["rating_timestamp"]
+                            < episode["boundary_timestamp"])
+            rating = sample["provenance"]["rating"]
+            self.assertEqual(sample["label"], "relevant" if rating >= 4 else "not_relevant")
+            self.assertNotIn(rating, (3.0, 3.5))
 
     def test_all_six_actions_and_valid_targets(self):
         samples = self.samples() + self.samples("dev")
@@ -137,6 +186,8 @@ class FixturePipelineTest(unittest.TestCase):
         report = generate(self.data, self.raw, second, self.config)
         for split in ("train", "dev"):
             self.assertEqual(report["splits"][split]["samples_sha256"], self.report["splits"][split]["samples_sha256"])
+            self.assertEqual(report["splits"][split]["score_samples_sha256"],
+                             self.report["splits"][split]["score_samples_sha256"])
             self.assertEqual(sha256(second / f"p2_episodes_{split}.jsonl"),
                              sha256(self.output / f"p2_episodes_{split}.jsonl"))
 
@@ -153,9 +204,16 @@ class FixturePipelineTest(unittest.TestCase):
         with (tampered / "p2_episodes_train.jsonl").open("w", encoding="utf-8") as out:
             for episode in episodes:
                 out.write(json.dumps(episode, sort_keys=True) + "\n")
+        scores = self.score_samples()
+        flipped = {"relevant": "not_relevant", "not_relevant": "relevant"}
+        scores[0]["label"] = scores[0]["completion"] = flipped[scores[0]["label"]]
+        with (tampered / "p2_score_samples_train.jsonl").open("w", encoding="utf-8") as out:
+            for sample in scores:
+                out.write(json.dumps(sample, sort_keys=True) + "\n")
         report = run_checks(self.data, self.raw, tampered, self.config)
         self.assertIn("grounding", report["errors_by_kind"])
         self.assertIn("replay", report["errors_by_kind"])
+        self.assertIn("score_label", report["errors_by_kind"])
 
     def test_labels_follow_ndcg_sequence_rule(self):
         for episode in self.episodes() + self.episodes("dev"):
@@ -286,6 +344,22 @@ class GroundingTest(unittest.TestCase):
         self.assertFalse(title_mentioned("Room (2015)", text))
         self.assertTrue(title_mentioned("Green Room (2015)", text))
         self.assertTrue(title_mentioned("Heat (1995)", "I really enjoyed Heat (1995) (5/5)."))
+
+    def test_score_prompt_matches_p1_without_clarifications(self):
+        self.assertEqual(scoring_profile("P", []), "P")
+        self.assertEqual(render_score_prompt("P", "D"), P1_PROMPT.format(profile="P", document="D"))
+        self.assertEqual(scoring_profile("P", [{"question": "q?", "answer": "a."}]),
+                         "P\n\nClarifications:\nQ: q?\nA: a.")
+
+    def test_choose_level_validates_weights(self):
+        rng = random.Random(1)
+        draws = {choose_level(rng, {"profile_levels": LEVELS, "sparse_rating_counts": [2]}) for _ in range(200)}
+        self.assertEqual({d[0] for d in draws}, set(LEVELS))
+        self.assertTrue(all((k is None) == (level != "sparse") for level, k in draws))
+        with self.assertRaises(ValueError):
+            choose_level(rng, {"profile_levels": {"canonical": 0.5}, "sparse_rating_counts": [2]})
+        with self.assertRaises(ValueError):
+            choose_level(rng, {"profile_levels": {"masked_75": 1.0}, "sparse_rating_counts": [2]})
 
     def test_prompt_requires_candidates(self):
         with self.assertRaises(ValueError):

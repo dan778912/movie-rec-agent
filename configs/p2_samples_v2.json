@@ -1,5 +1,5 @@
 {
-  "version": "p2-samples-v1",
+  "version": "p2-samples-v2",
   "data_version": "ml25m-global-v1",
   "seed": 20261114,
   "exclude_user_lists": [
@@ -9,13 +9,23 @@
   "train": {
     "users": 2000,
     "episodes_per_user": 2,
-    "canonical_fraction": 0.5,
+    "profile_levels": {
+      "canonical": 0.4,
+      "masked_25": 0.2,
+      "masked_50": 0.2,
+      "sparse": 0.2
+    },
     "sparse_rating_counts": [1, 2, 3, 5, 8]
   },
   "dev": {
     "users": 400,
     "episodes_per_user": 1,
-    "canonical_fraction": 0.5,
+    "profile_levels": {
+      "canonical": 0.4,
+      "masked_25": 0.2,
+      "masked_50": 0.2,
+      "sparse": 0.2
+    },
     "sparse_rating_counts": [1, 2, 3, 5, 8]
   },
   "min_history_before_anchor": 10,
@@ -23,6 +33,7 @@
   "min_future_positives": 3,
   "future_positives": 10,
   "future_negatives": 2,
+  "score_negatives": 5,
   "max_questions": 2,
   "max_retrievals": 1,
   "pool_size": 50,

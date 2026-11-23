@@ -96,12 +96,7 @@ def render_prompt(task: str, profile_text: str, clarifications: list[dict],
         raise ValueError(f"Unknown task: {task}")
     instruction, output_format = TASK_TEXT[task]
     parts = [SYSTEM_TEXT, "", "User profile:", profile_text, "", "Clarifications:"]
-    if clarifications:
-        for turn in clarifications:
-            parts.append(f"Q: {turn['question']}")
-            parts.append(f"A: {turn['answer']}")
-    else:
-        parts.append("None so far.")
+    parts.extend(clarification_lines(clarifications) or ["None so far."])
     if task in CANDIDATE_TASKS or task == "explain_recommendations":
         if not candidates:
             raise ValueError(f"{task} requires candidates")
@@ -113,6 +108,44 @@ def render_prompt(task: str, profile_text: str, clarifications: list[dict],
         raise ValueError(f"{task} does not take candidates")
     parts.extend(["", f"Task: {instruction}", f"Output format: {output_format}"])
     return "\n".join(parts)
+
+
+def clarification_lines(clarifications: list[dict]) -> list[str]:
+    lines = []
+    for turn in clarifications:
+        lines.append(f"Q: {turn['question']}")
+        lines.append(f"A: {turn['answer']}")
+    return lines
+
+
+# --------------------------------------------------------------------------- per-movie scoring
+
+# Per-movie relevance scoring for the ranking step ("clarification updates
+# scoring on fixed candidates", midterm section 3.4). The template is the P1
+# reranker prompt (Member 6, ``src/reranking/prompts.py::build_ranking_prompt``)
+# verbatim; clarification answers are appended to the profile block. With no
+# clarifications the prompt is byte-identical to P1's, so the P1 adapter, its
+# loader (``profile`` + ``candidate_document`` + ``label``) and its
+# relevant-minus-not_relevant scorer apply unchanged.
+SCORE_PROMPT_VERSION = "p2-score-prompt-v1"
+SCORE_LABELS = ("relevant", "not_relevant")
+
+
+def scoring_profile(profile_text: str, clarifications: list[dict]) -> str:
+    """Profile block for scoring: canonical text, then any clarification turns."""
+    if not clarifications:
+        return profile_text
+    return "\n".join([profile_text, "", "Clarifications:", *clarification_lines(clarifications)])
+
+
+def render_score_prompt(profile: str, candidate_document: str) -> str:
+    """P1 ranking prompt; ``profile`` is the output of :func:`scoring_profile`."""
+    return (
+        "Decide whether this movie is relevant to the user's preferences.\n\n"
+        f"User profile:\n{profile}\n\n"
+        f"Candidate movie:\n{candidate_document}\n\n"
+        "Answer with exactly one label: relevant or not_relevant."
+    )
 
 
 def serialize_action(action: dict) -> str:

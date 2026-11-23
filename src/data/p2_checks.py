@@ -4,11 +4,11 @@ Checks, independently of the generator's own assertions:
 
 * base artifacts: frozen checksums, profile cutoffs, split time ranges, catalog
   metadata gaps, profile observations relevant to training/evaluation parity;
-* P2 samples: every episode is replayed from source ratings truncated at the
+* P2 samples (action and per-movie scoring files): every episode is replayed from source ratings truncated at the
   episode's anchor (history) and split boundary (labels) and must reproduce the
   stored samples byte for byte; histories, simulated answers, candidates, labels,
-  action grammar, episode order, and explanation grounding are also asserted
-  directly;
+  action grammar, episode order, masked-profile counts, scoring labels and
+  prompts, and explanation grounding are also asserted directly;
 * catalog seed: coverage, canonical text, and training-only aggregates.
 
 Writes a JSON report and exits nonzero when any check fails.
@@ -27,11 +27,12 @@ from pathlib import Path
 from src.data import clarification_sim as sim
 from src.data.build import csv_rows, sha256
 from src.data.p2_actions import ActionError, parse_action, validate_action, validate_episode
-from src.data.p2_samples import (CONFIG, DATA, OUTPUT, RAW, SPLITS, EpisodeBuilder, FeatureSpace, display,
-                                 hash_key, load_metadata, load_user_list, select_profile, stream_histories,
-                                 visible_rows)
+from src.data.p2_samples import (CONFIG, DATA, MASK_FRACTIONS, OUTPUT, RAW, SPLITS, EpisodeBuilder, FeatureSpace,
+                                 display, hash_key, load_metadata, load_user_list, mask_count, select_profile,
+                                 stream_histories, visible_rows)
 from src.data.verify import verify
-from src.profiles.agent_text import ACTIONS, render_prompt, serialize_action
+from src.profiles.agent_text import (ACTIONS, SCORE_LABELS, render_prompt, render_score_prompt, scoring_profile,
+                                     serialize_action)
 from src.profiles.text import user_profile
 
 MAX_ERRORS = 50
@@ -185,10 +186,27 @@ def title_mentioned(title: str, text: str) -> bool:
     return text.startswith(title) or any(prefix + title in text for prefix in _TITLE_PREFIXES)
 
 
-def replay_state(episode: dict, history: list[tuple], meta: dict, catalog: set[int], data_config: dict):
+def replay_state(episode: dict, history: list[tuple], meta: dict, catalog: set[int], data_config: dict,
+                 errors: Errors | None = None):
+    """Rebuild the visible profile; masked levels are checked against the canonical profile independently."""
     rows = visible_rows(history, catalog, episode["level"], episode["sparse_k"])
     liked, disliked = select_profile(meta, rows, data_config["liked_movies_per_profile"],
                                      data_config["disliked_movies_per_profile"])
+    hidden = episode["masked_movie_ids"]
+    eid = episode["episode_id"]
+    if episode["level"] in MASK_FRACTIONS:
+        fraction = MASK_FRACTIONS[episode["level"]]
+        liked_ids, disliked_ids = {i["movie_id"] for i in liked}, {i["movie_id"] for i in disliked}
+        if errors is not None:
+            errors.require(len(set(hidden)) == len(hidden) and set(hidden) <= liked_ids | disliked_ids,
+                           "mask", f"{eid} masked entry not in canonical profile")
+            errors.require(len(set(hidden) & liked_ids) == mask_count(fraction, len(liked_ids)) and
+                           len(set(hidden) & disliked_ids) == mask_count(fraction, len(disliked_ids)),
+                           "mask", f"{eid} masked count differs from {fraction:.0%}")
+        liked = [i for i in liked if i["movie_id"] not in hidden]
+        disliked = [i for i in disliked if i["movie_id"] not in hidden]
+    elif errors is not None:
+        errors.require(not hidden, "mask", f"{eid} unmasked level lists masked entries")
     state = {"liked": liked, "disliked": disliked, "turns": [], "profile_text": user_profile(liked, disliked)}
     visible_ids = {item["movie_id"] for item in liked + disliked}
     facts = sim.build_fact_pool(history, meta, visible_ids, state["profile_text"], cutoff=episode["anchor_timestamp"])
@@ -211,6 +229,7 @@ def sample_checks(data: Path, raw_output: Path, meta: dict, catalog: set[int], c
     errors.require(not (users["train"] | users["dev"]) & excluded, "excluded_user", "evaluation user used")
     wanted = users["train"] | users["dev"]
     train_hist = {uid: h for uid, h in stream_histories(data / "train_ratings.csv", val_cutoff) if uid in wanted}
+    documents = {r["movie_id"]: r["text"] for r in jsonl(data / "movie_documents.jsonl")}
 
     result = {}
     for split in SPLITS:
@@ -224,7 +243,16 @@ def sample_checks(data: Path, raw_output: Path, meta: dict, catalog: set[int], c
             tasks[sample["task"]] += 1
             samples[sample["episode_id"]].append(sample)
         errors.require(set(tasks) == set(ACTIONS), "task_coverage", f"{split} tasks: {sorted(tasks)}")
-        replayed = grounded = explanations = answers_checked = leak_checked = 0
+        score_samples = defaultdict(list)
+        score_labels = Counter()
+        for sample in jsonl(raw_output / f"p2_score_samples_{split}.jsonl"):
+            errors.require(sample["sample_id"] not in seen_ids, "duplicate_sample", sample["sample_id"])
+            seen_ids.add(sample["sample_id"])
+            errors.require(sample["split"] == split and sample["task"] == "score_candidate",
+                           "score_sample", sample["sample_id"])
+            score_labels[sample["label"]] += 1
+            score_samples[sample["episode_id"]].append(sample)
+        replayed = grounded = explanations = answers_checked = leak_checked = scores_checked = 0
         for episode in episodes[split]:
             eid, uid, anchor = episode["episode_id"], episode["user_id"], episode["anchor_timestamp"]
             source = train_hist.get(uid, [])
@@ -256,7 +284,7 @@ def sample_checks(data: Path, raw_output: Path, meta: dict, catalog: set[int], c
                 errors.add("episode_order", f"{eid}: {error}")
 
             # Simulated answers replayed from pre-anchor history only.
-            state, facts = replay_state(episode, past, meta, catalog, data_config)
+            state, facts = replay_state(episode, past, meta, catalog, data_config, errors)
             errors.require(state["profile_text"] == episode["profile_text"], "profile_text", eid)
             future_titles = [meta[m]["title"] for m in episode["future_positive_movie_ids"]]
             asked = []
@@ -286,6 +314,31 @@ def sample_checks(data: Path, raw_output: Path, meta: dict, catalog: set[int], c
                 for problem in problems:
                     errors.add("grounding", f"{eid}/{movie_id}: {problem}")
 
+            # Per-movie scoring samples: held-out explicit ratings, P1 prompt plus clarifications.
+            expected_score = expected_pos + [r[0] for r in future if r[0] in catalog
+                                             and r[1] <= 2.5][:config["score_negatives"]]
+            stored = score_samples.get(eid, [])
+            errors.require([s["movie_id"] for s in stored] == expected_score, "score_selection", eid)
+            profile = scoring_profile(state["profile_text"],
+                                      [{"question": t["question"], "answer": t["answer"]} for t in state["turns"]])
+            for sample in stored:
+                mid, sid = sample["movie_id"], sample["sample_id"]
+                if mid not in future_by_id:
+                    errors.add("score_label_time", f"{sid} is not a held-out rating")
+                    continue
+                _, rating, ts = future_by_id[mid]
+                errors.require(mid in catalog and mid not in watched, "score_candidate", sid)
+                errors.require(anchor <= ts < episode["boundary_timestamp"] and
+                               sample["provenance"]["rating"] == rating and
+                               sample["provenance"]["rating_timestamp"] == ts, "score_label_time", sid)
+                expected_label = "relevant" if rating >= 4 else "not_relevant" if rating <= 2.5 else None
+                errors.require(sample["label"] == expected_label and sample["completion"] == expected_label
+                               and sample["label"] in SCORE_LABELS, "score_label", sid)
+                errors.require(sample["profile"] == profile and sample["candidate_document"] == documents.get(mid)
+                               and sample["prompt"] == render_score_prompt(profile, documents.get(mid, "")),
+                               "score_prompt", sid)
+                scores_checked += 1
+
             # Samples: grammar, completion, prompt rendering.
             for sample in samples.get(eid, []):
                 target = sample["target"]
@@ -305,16 +358,22 @@ def sample_checks(data: Path, raw_output: Path, meta: dict, catalog: set[int], c
 
             # Full replay from boundary-truncated inputs must reproduce the stored output.
             index = int(eid.rsplit(":", 1)[1])
-            replay_samples, replay_episode = builder.build(split, uid, index, past, future, anchor,
-                                                           episode["boundary_timestamp"], episode["level"],
-                                                           episode["sparse_k"])
-            errors.require(replay_episode == episode and replay_samples == samples.get(eid), "replay", eid)
+            replay_samples, replay_scores, replay_episode = builder.build(
+                split, uid, index, past, future, anchor, episode["boundary_timestamp"], episode["level"],
+                episode["sparse_k"])
+            errors.require(replay_episode == episode and replay_samples == samples.get(eid)
+                           and replay_scores == stored, "replay", eid)
             replayed += 1
         errors.require(set(samples) == {e["episode_id"] for e in episodes[split]}, "orphan_samples", split)
+        errors.require(set(score_samples) <= {e["episode_id"] for e in episodes[split]}, "orphan_samples",
+                       f"{split} score samples")
         result[split] = {"episodes": len(episodes[split]), "samples": sum(tasks.values()), "tasks": dict(sorted(tasks.items())),
                          "users": len(users[split]), "episodes_replayed": replayed,
                          "answers_replayed": answers_checked, "episodes_leak_checked": leak_checked,
-                         "explanations": explanations, "explanations_grounded": grounded}
+                         "explanations": explanations, "explanations_grounded": grounded,
+                         "score_samples": sum(score_labels.values()), "score_labels": dict(sorted(score_labels.items())),
+                         "score_samples_checked": scores_checked,
+                         "levels": dict(sorted(Counter(e["level"] for e in episodes[split]).items()))}
     return result
 
 

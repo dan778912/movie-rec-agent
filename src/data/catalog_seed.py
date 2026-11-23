@@ -23,7 +23,7 @@ from src.profiles.agent_text import display_tags
 SEED_VERSION = "catalog-seed-v1"
 DATA = Path("data/processed/ml25m-global-v1")
 RAW = Path("data/raw/ml-25m")
-OUTPUT = Path("data/processed/p2-v1")
+OUTPUT = Path("data/processed/p2-v2")
 CONSUMED = ("catalog.csv", "movie_documents.jsonl", "train_ratings.csv")
 _ARTICLE = re.compile(r"^(?P<main>.+), (?P<article>The|A|An)$")
 
