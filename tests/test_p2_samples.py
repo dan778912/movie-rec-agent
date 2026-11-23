@@ -10,6 +10,7 @@ from src.data.build import build, sha256
 from src.data.catalog_seed import build_seed, display_title
 from src.data.p2_actions import ActionError, parse_action, validate_action, validate_episode
 from src.data.p2_checks import grounding_problems, run as run_checks, title_mentioned
+from src.data.p2_handoff import package
 from src.data.p2_samples import choose_level, generate, mask_count
 from src.profiles.agent_text import ACTIONS, render_prompt, render_score_prompt, scoring_profile, serialize_action
 
@@ -214,6 +215,28 @@ class FixturePipelineTest(unittest.TestCase):
         self.assertIn("grounding", report["errors_by_kind"])
         self.assertIn("replay", report["errors_by_kind"])
         self.assertIn("score_label", report["errors_by_kind"])
+
+    def test_handoff_package_has_verified_checksums(self):
+        import hashlib
+        import zipfile
+        run_checks(self.data, self.raw, self.output, self.config)
+        target = Path(self.temp.name) / "handoff" / "package.zip"
+        result = package(self.output, target)
+        with zipfile.ZipFile(target) as archive:
+            sums = dict(reversed(line.split("  ", 1)) for line in
+                        archive.read("SHA256SUMS.txt").decode().splitlines())
+            for name, digest in sums.items():
+                self.assertEqual(hashlib.sha256(archive.read(name)).hexdigest(), digest, name)
+        self.assertIn("data/p2_score_samples_train.jsonl", result["files"])
+        self.assertIn("README.md", result["files"])
+        changed = Path(self.temp.name) / "p2-changed"
+        changed.mkdir()
+        for path in self.output.iterdir():
+            (changed / path.name).write_bytes(path.read_bytes())
+        with (changed / "p2_samples_dev.jsonl").open("a", encoding="utf-8") as out:
+            out.write("{}\n")
+        with self.assertRaises(SystemExit):
+            package(changed, Path(self.temp.name) / "handoff" / "refused.zip")
 
     def test_labels_follow_ndcg_sequence_rule(self):
         for episode in self.episodes() + self.episodes("dev"):
