@@ -60,7 +60,7 @@ python -m src.data.p2_checks       # data-quality and temporal-boundary report (
 python -m src.data.p2_handoff      # handoff ZIP with checksums for teammates
 ```
 
-Outputs go to `data/processed/p2-v2/` (Git-ignored). The shared prompt renderer (`src/profiles/agent_text.py`), action grammar (`src/data/p2_actions.py`), and clarification simulator (`src/data/clarification_sim.py`) are intended for reuse by the agent and offline evaluation. Method, results, checks, limitations, and handoff notes: [docs/member1_p2_report.md](docs/member1_p2_report.md). Field guide for the handoff: [docs/member1_p2_handoff.md](docs/member1_p2_handoff.md). Team decisions: [docs/member1_p2_team_decisions.md](docs/member1_p2_team_decisions.md).
+Outputs go to `data/processed/p2-v2/` (Git-ignored). The shared prompt renderer (`src/profiles/agent_text.py`), action grammar (`src/data/p2_actions.py`), and clarification simulator (`src/data/clarification_sim.py`) are intended for reuse by the agent and offline evaluation. Method, results, checks, limitations, and handoff notes: [docs/member1_p2_report.md](docs/member1_p2_report.md). Field guide for the handoff: [docs/member1_p2_handoff.md](docs/member1_p2_handoff.md).
 
 ## Frozen decisions
 

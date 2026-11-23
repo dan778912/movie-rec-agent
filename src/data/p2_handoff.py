@@ -29,7 +29,6 @@ REPORTS = ("p2_quality_report.json", "p2_samples.report.json", "catalog_seed.rep
 DOCS = {
     "README.md": Path("docs/member1_p2_handoff.md"),
     "docs/member1_p2_report.md": Path("docs/member1_p2_report.md"),
-    "docs/member1_p2_team_decisions.md": Path("docs/member1_p2_team_decisions.md"),
     "examples/p2_sample_examples.jsonl": Path("docs/p2_sample_examples.jsonl"),
     "examples/p2_score_sample_examples.jsonl": Path("docs/p2_score_sample_examples.jsonl"),
 }

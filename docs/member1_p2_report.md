@@ -1,6 +1,6 @@
 # Member 1 — Phase 2 data handoff: P2 samples, catalog seed, quality report
 
-**Status:** `p2-samples-v2`, generated and checked on 2026-11-22 with zero check errors from commit `94a9740`. The method follows the project proposal, midterm report §3.4 and H2, and Member 2's proposed Phase 2 protocol. `p2-v2` supersedes `p2-v1` (2026-11-14), which was never handed off. v2 adds 25%/50% masked profiles and per-movie scoring samples. Decisions and open items are in [member1_p2_team_decisions.md](member1_p2_team_decisions.md). The field guide for the handoff ZIP is [member1_p2_handoff.md](member1_p2_handoff.md).
+**Status:** `p2-samples-v2`, generated and checked on 2026-11-22 with zero check errors from commit `94a9740`. The method follows the project proposal, midterm report §3.4 and H2, and Member 2's proposed Phase 2 protocol. `p2-v2` supersedes `p2-v1` (2026-11-14), which was never handed off. v2 adds 25%/50% masked profiles and per-movie scoring samples. The field guide for the handoff ZIP is [member1_p2_handoff.md](member1_p2_handoff.md).
 
 | Deliverable | Location (Git-ignored data) | Code |
 |---|---|---|
@@ -35,9 +35,9 @@ The run takes about 20 minutes on a laptop: 10 for generation, 10 for the full r
 | Template questions about preferences masked from earlier history; answers come only from that hidden history | Midterm §3.4; roadmap §6 | Masked and sparse profiles plus the template-driven simulator `pre_cutoff_history_sim_v1`. |
 | Profile masks at 25% and 50% | Midterm H2 | `masked_25` / `masked_50` episodes hide 25% / 50% of the canonical profile's liked and disliked entries. |
 | P2 starts from the unchanged canonical profile | Member 2 protocol | `canonical` episodes (40%) use the frozen formatter exactly (parity check below). |
-| "LoRA learns action/question outputs"; "clarification updates scoring on fixed candidates" | Midterm §3.4 | Listwise `rank_candidates` over the fixed pool after clarifications, which is the format the team built (decision D6). Per-movie scoring samples (P1 prompt plus clarifications) are kept as a backup. |
+| "LoRA learns action/question outputs"; "clarification updates scoring on fixed candidates" | Midterm §3.4 | Listwise `rank_candidates` over the fixed pool after clarifications, which is the format the team built. Per-movie scoring samples (P1 prompt plus clarifications) are kept as a backup. |
 | Validation/test targets never supply answers or action labels | Midterm §3.4 | Both splits (`train`, and a user-disjoint `dev` for loss monitoring) read **training ratings only**. The generator never opens validation or test rating files. |
-| Select models on validation | Midterm §5; Member 2 protocol | Final checkpoint choice on the 300 validation users; `dev` is for screening (decision D7). |
+| Select models on validation | Midterm §5; Member 2 protocol | Final checkpoint choice on the 300 validation users; `dev` is for screening. |
 | Explanations use supplied history and metadata and are audited for support | Proposal; midterm §3.4, H4 | Templates cite only displayed items. An independent grounding check covers all 43,740 explanations. Member 2's two-reviewer audit is still planned. |
 | Train P2 on train-only examples | Midterm §5 (Nov 4–10) | Same as above. |
 | Simulation cannot establish real-user satisfaction | Midterm §3.4 | Stated as a limitation (§5). |
@@ -144,7 +144,7 @@ Because held-out positives are sparse, most comparisons tie. Ties go to "proceed
    - *Size:* 1,172 of 3,779 test profiles (31%) list at least one liked movie outside the catalog, against 174 of 4,751 validation profiles (3.7%).
    - *Cause:* 2,412 of the 2,520 such entries were rated after the validation cutoff. They are newer movies that the training-defined catalog cannot contain.
    - *Training data:* only 5 of 1,610 canonical P2 training profiles (0.3%) show any out-of-catalog entry, and Member 3's P1 profiles exclude them by construction.
-   - *Status:* the formatter matches evaluation; the test distribution does not. See decision D3.
+   - *Status:* the formatter matches evaluation; the test distribution does not.
 2. **Catalog metadata gaps.** Of 21,333 catalog movies:
    - 8,443 lack genome tags and 4,054 lack user tags; 3,166 have no displayable tag at all;
    - 111 have no genre and 9 have no parseable year;
@@ -158,9 +158,9 @@ Because held-out positives are sparse, most comparisons tie. Ties go to "proceed
 
 - Clarification answers are simulated from earlier ratings, not real replies, so they support only a controlled offline claim (midterm §3.4).
 - NDCG@10 in the action labels comes from a lightweight preference-vector ranker, not the P2 model. The labels show which actions helped that ranker reach held-out positives. Held-out positives are sparse, so "proceed" dominates through ties.
-- Training pools come from the simulator's feature index, not Member 3's vector index or the frozen B3 pools (decision D10). Off-target pools simulate a retrieval miss. Ranking pools contain injected held-out items.
-- Action prompts with 50–105 candidates reach about 18k characters, measured at up to 6,458 Qwen tokens including the completion. That is well above P1's 1,024-token limit and above the proposed 5,120 (decision D2). Per-movie scoring records stay under 800 tokens.
-- Nearly every rank sample contains injected held-out movies: only 3 train and 0 dev rank samples are retriever-only (decision D11).
+- Training pools come from the simulator's feature index, not Member 3's vector index or the frozen B3 pools. Off-target pools simulate a retrieval miss. Ranking pools contain injected held-out items.
+- Action prompts with 50–105 candidates reach about 18k characters, measured at up to 6,458 Qwen tokens including the completion. That is well above P1's 1,024-token limit and above the proposed 5,120. Per-movie scoring records stay under 800 tokens.
+- Nearly every rank sample contains injected held-out movies: only 3 train and 0 dev rank samples are retriever-only.
 - Per-movie scoring labels, like P1's, use explicitly rated movies only, not unrated pool members. About three quarters are `relevant`.
 - Explanations are deterministic templates — grounded but plain.
 - As in Phase 1, genome tags are static transductive metadata. User tags and catalog membership come from the whole pre-validation period, so an early anchor can see metadata dated after `t` (midterm §3.1).
@@ -171,14 +171,14 @@ The handoff ZIP and its field guide ([member1_p2_handoff.md](member1_p2_handoff.
 
 - **Member 6 (P1 → P2 fine-tuning):**
   - Train action samples on `prompt` → `completion`. Train scoring samples on the P1 path (`profile`, `candidate_document`, `label`). Keep `provenance` out of the input.
-  - Use `dev` as the eval set for loss and parse validity. The final checkpoint choice uses the 300 validation users (D7).
-  - `max_length` 6,656 for training, with no truncation; serve with 6,144 input and 1,024 output (D2).
-  - Rank listwise; the per-movie files are an optional backup (D6).
-  - "Proceed" labels dominate; consider task-level reweighting (D4).
+  - Use `dev` as the eval set for loss and parse validity. The final checkpoint choice uses the 300 validation users.
+  - `max_length` 6,656 for training, with no truncation; serve with 6,144 input and 1,024 output.
+  - Rank listwise; the per-movie files are an optional backup.
+  - "Proceed" labels dominate; consider task-level reweighting.
 - **Member 4 (agent):**
   - Render prompts with `render_prompt` (`p2-prompt-v1`) or `render_score_prompt` (`p2-score-prompt-v1`). Parse with `parse_action`.
   - `validate_episode` implements the contract's ordering rules, and the episode files are ready-made traces for tests.
-  - The offline runner answers questions with `clarification_sim.build_fact_pool` + `answer_question`, passing only ratings before the split cutoff (D1).
+  - The offline runner answers questions with `clarification_sim.build_fact_pool` + `answer_question`, passing only ratings before the split cutoff.
   - Invalid-output proposal: D9.
 - **Member 3 (retrieval / Service B):** embed the `catalog_seed.jsonl` `text` field. Retrieval queries are free text, so embed them with the same encoder.
 - **Member 5 (Service A):** `catalog_seed.jsonl` contains every `movies` column (`genres` is a list; join with `|`), with the same training-only `rating_avg`/`rating_count` that `seed_catalog.py` computes. It adds `display_title` and `popularity_rank`.

@@ -9,7 +9,7 @@ For Member 6 (P1 → P2 fine-tuning), with notes for Members 2–5. The data fil
 | Path | Use |
 |---|---|
 | `data/p2_samples_train.jsonl` / `data/p2_samples_dev.jsonl` | **Action samples:** one agent decision per line, covering all six actions |
-| `data/p2_score_samples_train.jsonl` / `data/p2_score_samples_dev.jsonl` | **Per-movie scoring samples:** P1 format plus clarifications. Optional backup; the team ranks listwise (decision D6) |
+| `data/p2_score_samples_train.jsonl` / `data/p2_score_samples_dev.jsonl` | **Per-movie scoring samples:** P1 format plus clarifications. Optional backup; the team ranks listwise |
 | `data/p2_episodes_train.jsonl` / `data/p2_episodes_dev.jsonl` | Whole simulated episodes in the `p2-trace-v1` event vocabulary. For Member 4's tests and audit; **not** training input. |
 | `data/catalog_seed.jsonl` | One row per catalog movie, for Service A (Member 5) and the vector index (Member 3) |
 | `reports/p2_quality_report.json` | Data-quality and leakage checks. `error_count` is 0. |
@@ -17,7 +17,7 @@ For Member 6 (P1 → P2 fine-tuning), with notes for Members 2–5. The data fil
 | `reports/catalog_seed.report.json` | Seed receipt |
 | `examples/p2_sample_examples.jsonl` | One complete episode: all six actions in order |
 | `examples/p2_score_sample_examples.jsonl` | Per-movie scoring examples, with and without clarifications |
-| `docs/` | Full method report and the team decision record |
+| `docs/` | Full method report |
 | `SHA256SUMS.txt` | Checksums of everything above |
 
 ## Splits
@@ -25,7 +25,7 @@ For Member 6 (P1 → P2 fine-tuning), with notes for Members 2–5. The data fil
 - **`train`** and **`dev`** both anchor inside the training period and use **training ratings only**. Validation and test targets never supply answers or labels.
 - **`dev` users are disjoint from `train` users.** The 300 validation and 500 test evaluation users are excluded from both.
 - **Use `dev` as the eval set during training:** loss, action accuracy, and the share of outputs that parse. Do not take a random fraction of `train` (`validation_fraction` in the P1 config), because that would put one user's episodes on both sides.
-- **The final checkpoint choice is separate.** It uses full-system NDCG@10 on Member 2's 300 validation users (decision D7).
+- **The final checkpoint choice is separate.** It uses full-system NDCG@10 on Member 2's 300 validation users.
 
 ## Counts
 
@@ -95,17 +95,17 @@ Score with the P1 rule, the relevant-minus-not_relevant log-probability, then or
 
 ## Notes for training
 
-- **Prompt length (D2).** Measured with the pinned Qwen tokenizer as prompt + completion + `<|im_end|>`:
+- **Prompt length.** Measured with the pinned Qwen tokenizer as prompt + completion + `<|im_end|>`:
   - the longest record is a `rank_candidates` sample of 6,458 tokens (dev: 6,242);
   - 898 train and 75 dev records exceed 5,120, so `p2_qwen_lora_v1.json` would stop at its length check;
   - **Proposed:** `max_length` 6,656 for training, with `allow_truncation: false`. For serving, 6,144 input and 1,024 output.
-- **Ranking format (D6): listwise.** Train the `rank_candidates` samples in `p2_samples_*`. The per-movie files are an optional backup; you do not need them.
-- **Rank-step injection (D11).**
+- **Ranking format: listwise.** Train the `rank_candidates` samples in `p2_samples_*`. The per-movie files are an optional backup; you do not need them.
+- **Rank-step injection.**
   - Almost every rank sample (3,971 / 3,974 train, 400 / 400 dev) adds up to 3 held-out positives and 2 held-out dislikes to the pool, at random positions, displayed like any other movie. They are all training-period ratings.
   - Only 3 train rank samples are retriever-only, so test the checkpoint on plain 100-movie pools before selection.
   - `provenance.label_basis.injected_movie_ids` lists the injected movies.
-- **Label balance (D4).** "Proceed" outnumbers "ask"/"retrieve" because the midterm rule sends ties to fewer actions. Reweight by task or label if needed; do not relabel.
-- **Profiles (D8).** Episodes mix four levels: canonical 40%, 25%-masked 20%, 50%-masked 20%, and sparse (last 1–8 ratings) 20%. These match the primary evaluation, midterm H2, and live app users. `provenance.level` gives the level per sample.
+- **Label balance.** "Proceed" outnumbers "ask"/"retrieve" because the midterm rule sends ties to fewer actions. Reweight by task or label if needed; do not relabel.
+- **Profiles.** Episodes mix four levels: canonical 40%, 25%-masked 20%, 50%-masked 20%, and sparse (last 1–8 ratings) 20%. These match the primary evaluation, midterm H2, and live app users. `provenance.level` gives the level per sample.
 
 ## Notes for other members
 
