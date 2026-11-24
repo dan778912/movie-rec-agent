@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,25 @@ from .p2_training_data import (
 
 class P2GenerationError(RuntimeError):
     """Raised when P2 inference cannot safely produce an action."""
+
+
+def has_complete_json_object(text: str) -> bool:
+    """Return whether text begins with one complete JSON object.
+
+    This is used only as a generation stopping condition. The strict
+    action parser still validates the final raw output separately.
+    """
+    if not isinstance(text, str) or not text.strip():
+        return False
+
+    stripped = text.lstrip()
+
+    try:
+        value, _ = json.JSONDecoder().raw_decode(stripped)
+    except json.JSONDecodeError:
+        return False
+
+    return isinstance(value, dict)
 
 
 def validate_generated_action(
@@ -170,9 +190,8 @@ class P2ActionGenerator:
         self.model.to(self.device)
         self.model.eval()
 
-        # The upstream generation configuration contains sampling
-        # defaults. Clear them because P2 uses deterministic greedy
-        # decoding.
+        # Clear upstream sampling defaults because P2 uses deterministic
+        # greedy decoding.
         self.model.generation_config.do_sample = False
         self.model.generation_config.temperature = None
         self.model.generation_config.top_p = None
@@ -202,6 +221,16 @@ class P2ActionGenerator:
                 "The prompt was not truncated."
             )
 
+        try:
+            from transformers import (
+                StoppingCriteria,
+                StoppingCriteriaList,
+            )
+        except ImportError as error:
+            raise P2GenerationError(
+                "Transformers generation utilities are missing"
+            ) from error
+
         encoded = self.tokenizer(
             prompt,
             add_special_tokens=True,
@@ -212,6 +241,28 @@ class P2ActionGenerator:
             key: value.to(self.device)
             for key, value in encoded.items()
         }
+        prompt_length = encoded["input_ids"].shape[1]
+        tokenizer = self.tokenizer
+
+        class StopAfterCompleteJson(StoppingCriteria):
+            """Stop immediately after the first complete JSON object."""
+
+            def __call__(
+                self,
+                input_ids: Any,
+                scores: Any,
+                **kwargs: Any,
+            ) -> bool:
+                new_tokens = input_ids[0, prompt_length:]
+                text = tokenizer.decode(
+                    new_tokens,
+                    skip_special_tokens=True,
+                )
+                return has_complete_json_object(text)
+
+        stopping_criteria = StoppingCriteriaList(
+            [StopAfterCompleteJson()]
+        )
 
         with self.torch.inference_mode():
             generated = self.model.generate(
@@ -220,11 +271,11 @@ class P2ActionGenerator:
                 do_sample=False,
                 num_beams=1,
                 use_cache=True,
+                stopping_criteria=stopping_criteria,
                 pad_token_id=self.tokenizer.pad_token_id,
                 eos_token_id=self.tokenizer.eos_token_id,
             )
 
-        prompt_length = encoded["input_ids"].shape[1]
         new_tokens = generated[0, prompt_length:]
 
         return self.tokenizer.decode(
@@ -243,6 +294,7 @@ class P2ActionGenerator:
             "max_input_tokens": self.max_input_tokens,
             "max_new_tokens": self.max_new_tokens,
             "decoding": "greedy",
+            "stop_condition": "first_complete_json_object",
             "chat_template_applied": False,
             "truncation_allowed": False,
         }

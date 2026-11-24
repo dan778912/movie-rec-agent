@@ -7,6 +7,7 @@ import unittest
 from src.reranking.p2_generator import (
     P2ActionGenerator,
     P2GenerationError,
+    has_complete_json_object,
     validate_generated_action,
 )
 
@@ -35,6 +36,39 @@ class FakeTokenizer:
 
 
 class P2GeneratorTests(unittest.TestCase):
+    def test_complete_json_object_stops_generation(self) -> None:
+        self.assertTrue(
+            has_complete_json_object(
+                '{"action": "assess_sufficiency", '
+                '"sufficient": true}'
+            )
+        )
+
+    def test_partial_json_does_not_stop_generation(self) -> None:
+        self.assertFalse(
+            has_complete_json_object(
+                '{"action": "rank_candidates", '
+                '"movie_ids": [10, 20'
+            )
+        )
+
+    def test_complete_json_array_is_not_an_action_object(
+        self,
+    ) -> None:
+        self.assertFalse(
+            has_complete_json_object(
+                '[{"action": "assess_sufficiency"}]'
+            )
+        )
+
+    def test_brace_inside_string_does_not_end_early(self) -> None:
+        self.assertTrue(
+            has_complete_json_object(
+                '{"action": "ask_clarification", '
+                '"question": "Do you like } symbols?"}'
+            )
+        )
+
     def test_valid_action_is_accepted(self) -> None:
         action = validate_generated_action(
             '{"action": "assess_sufficiency", '
