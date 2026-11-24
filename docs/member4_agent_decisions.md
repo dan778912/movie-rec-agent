@@ -314,6 +314,38 @@ Member 3's reply to my confirmation request (relayed from the group chat), read 
   prediction. That would affect at most a user or two in 300, but a `failed` episode would show in the manifest. A cap of 1,536 would remove
   the question at no cost other than worst-case latency of a runaway output; that choice belongs to Members 3 and 6.
 
+## Member 3's pre-run questions (2026-11-24)
+
+Member 3 asked the group (Member 2 and me) to confirm seven things before the 300-user run. Member 2's own handoff
+(`phase2_checkpoint_selection_handoff.md` on `member2-phase2`) lists the same items, says no numeric threshold is ratified, and asks Members 1, 2,
+3, 4 and 6 to review them before final-test inference. The positions below are proposals, not decisions.
+
+| Question | What this module does today | Proposed position | Decides |
+|---|---|---|---|
+| Budgets (2 questions, 1 retrieval, 100 candidates, 8 control events) | These are the defaults. Eight is exactly the worst case (3 assessments + 2 questions + 2 pool evaluations + 1 retrieval). The ranking keeps 50. | Confirm. | Member 2 ratifies |
+| Budget exhaustion | `fallback_b3_order`. `rank_available_pool` needs the evaluator to accept `budget_exhausted_rank` (A1). | Keep `fallback_b3_order` unless Member 2 confirms the new label before the run. Whichever is chosen, fix it before reading results. | Member 2 (evaluator), team (report wording) |
+| Invalid outputs, zero retries | 0 extra attempts (greedy decoding repeats the same output). B3-order fallback for assess, ask, evaluate, retrieve and rank. **No fallback for the explanation step: the episode ends `failed`** (A4). | Keep 0 retries. The explanation step needs a rule (consequence 1 below). | Member 2 |
+| Grounding | `flag`: keep the text, record the problems. | `flag` for the official run: the human audit then sees what the model really wrote. `repair` replaces text the audit should judge. `reject` turns each flagged explanation into a `failed` episode. | Member 2 (audit) |
+| Timeouts | None here; the module has no clock. Member 3's client: 20 s per call, 25 s per request. | Measure on the GPU first, then freeze (consequence 2 below). Member 2's protocol assigns timeouts and a terminal response on failure to Member 4; the terminal response is `{"action": "error", ...}`. | Members 3 and 4, with Member 6's GPU timings |
+| Checkpoint selection | n/a | No objection from the agent side. Dev loss cannot show plain-pool behaviour (A6), which supports deciding on the 300-user run; the 500 test users stay untouched. A run with a `failed` episode is not structurally valid, so it cannot be selected. | Members 1, 2, 6 |
+| Numeric thresholds | n/a | Report latency and invalid-action rates by action type without pass/fail for the validation run: no measurement exists yet. Set any numeric gate after the first measured run, on dev data, and freeze it before the test run. | Member 2, team |
+
+**Consequence 1: one `failed` episode makes the whole run incomplete.** On `d21180f`, `offline.py` raises `EpisodeFailed` when the response is
+`{"action": "error"}`, writes `failures.jsonl`, sets `status: incomplete` and publishes no manifest; Member 2's protocol says never to drop a user.
+An explanation that is invalid (including cut off at the output cap), an explanation-step timeout, or a flagged explanation under `reject` each
+produce `failed`. This corrects the earlier note above that a cut-off explanation "would show in the manifest": it blocks the official run. A rerun
+with greedy decoding repeats the same output, so the options are (a) leave it strict and treat any failure as a reason to change the setting and rerun,
+or (b) for the explanation step only, fall back to a deterministic explanation built from the movie's displayed fields, labelled and counted in
+the trace. (b) is a code change here and needs Member 2 to confirm that the validator and the audit accept it.
+
+**Consequence 2: the 25 s limit is cumulative per episode offline.** As I read `run_episode`, the model deadline is `request_timeout_seconds` minus the
+time already spent in earlier calls of the same episode, so the offline run gives a whole episode (up to ten model calls) 25 s, while online the
+same number applies per request. Nobody has GPU timings. Rough arithmetic only, at an assumed 30 to 60 generated tokens per second: a median rank
+completion is about 380 tokens and a median explanation about 500, which is about 14 to 30 s for those two calls alone. A timeout on a non-explanation step
+becomes a B3 fallback (muddying what is measured); on the explanation step it becomes `failed`. Proposal: run a smoke on the real checkpoint, set the
+call and episode deadlines from the measured worst case with headroom for the offline run, and keep the 25 s figure for the online path under Service A's
+30 s.
+
 ## Real-data rehearsal (stand-in model)
 
 On 2026-11-19, after Member 6 shared the original ordered B3 validation pool (`validation_candidates_300.jsonl`,
