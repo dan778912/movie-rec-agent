@@ -1,11 +1,54 @@
 # Member 2 Phase 2 results status
 
-**Status: P2 comparison pending.** The [Phase 2 protocol](phase2_evaluation_protocol.md),
+**Updated 2026-11-24: P2 comparison pending.** The [Phase 2 protocol](phase2_evaluation_protocol.md),
 [interface contract](phase2_interface_contract.md), [evaluator runbook](phase2_member2_runbook.md),
 and [failure-analysis plan](phase2_failure_analysis_plan.md) are prepared for team review.
 No P2 prediction, execution trace, checkpoint, or real Service B result has been handed off
 in the inspected branches. This page records the evidence available now; it is not the
 final B3/P1/P2 result table.
+
+## Completed 300-user validation control
+
+The corrected untuned `qwen_base` prediction export and exact ordered B3
+validation pool were received from Member 6, verified against their posted
+SHA-256 hashes, and scored under one `eval-p2-draft-v1` configuration and clean
+evaluator revision. Both files passed 300/300 structural validation with zero
+errors. The [portable scored bundles and commands](results/member2_qwen_base_validation_300_v1/README.md)
+record complete provenance.
+
+| Metric | B3 | Untuned Qwen | Qwen minus B3 | Paired 95% interval |
+|---|---:|---:|---:|---|
+| NDCG@10 | 0.014578 | 0.019772 | +0.005194 | [-0.000675, 0.011195] |
+| Recall@10 | 0.005026 | 0.007733 | +0.002707 | [-0.000792, 0.006608] |
+| HitRate@10 | 0.110000 | 0.150000 | +0.040000 | [0.003333, 0.076667] |
+
+The original 300-user P1 validation prediction JSONL is still needed to
+rescore P1 under this same evaluator and publish the authoritative
+P1-versus-untuned paired interval. The historical P1 bundle uses an earlier
+evaluation version and cannot be passed directly to the strict comparator.
+
+Member 1's v2 P2 sample ZIP has also arrived and passed its ZIP and internal
+checksums. The [checkpoint and validation handoff](phase2_checkpoint_selection_handoff.md)
+records its counts, dev/validation roles, and current producer requests. No
+selected P2 checkpoint or real P2 predictions and traces have arrived yet.
+
+The following are **training/dev action-label counts**, parsed from the
+complete v2 sample JSONLs; each saved completion action matched its target.
+They are not observed action frequencies from a running P2 agent.
+
+| Action | Train samples | Dev samples |
+|---|---:|---:|
+| Assess information sufficiency | 6,675 | 628 |
+| Ask clarification | 2,701 | 228 |
+| Evaluate candidates | 4,726 | 461 |
+| Widen / retrieve candidates | 752 | 61 |
+| Rank candidates | 3,974 | 400 |
+| Explain recommendations | 3,974 | 400 |
+| **Total** | **22,802** | **2,178** |
+
+One train/dev episode yields one Rank label; Ask can appear zero, one, or two
+times. Actual validation action counts, invalid-action rate, and mean control
+events per episode need Member 3's real P2 execution traces.
 
 ## Canonical data verified locally
 

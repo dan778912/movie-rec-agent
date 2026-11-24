@@ -15,9 +15,11 @@ Recall@10 and HitRate@10 are secondary final-ranking outcomes. Report B3, P1,
 and P2 together so the reader can distinguish the original retrieval order,
 one-shot reranking, and the agentic system. B0 popularity and B2 BM25 belong in
 the broader shared results table when their matching outputs are available.
-An untuned Qwen control may be scored as the distinct `qwen_base` method and
-compared with P1 on the same frozen B3 pool once its real prediction export is
-available; no control result exists yet.
+The corrected untuned Qwen control was scored as the distinct `qwen_base`
+method on the saved 300 validation users and exact frozen B3 pool; see the
+[control archive](results/member2_qwen_base_validation_300_v1/README.md).
+Its same-revision paired comparison with P1 still requires the original P1
+validation prediction JSONL.
 
 P2 starts from each user's **exact frozen B3 top-50 order**. It can ask a
 clarifying question and add candidates through re-retrieval before ranking 50
@@ -42,12 +44,15 @@ inputs. Do not describe them as the primary P2 result.
 | Starting pool | The per-user frozen B3 50-item prediction file, including its order and SHA-256. P2's trace must reproduce this list exactly. |
 | P1 control | The existing frozen P1 50-item predictions on these 500 users, if P2 receives the same initial profile, catalog, and B3 pool. If any input representation changes, rerun a separately versioned matched P1 control before making a controlled P1/P2 claim. Preserve the historical P1 result either way. |
 
-Member 1's separate 400-user, training-period P2 `dev` samples are intended for
-checkpoint selection; they are distinct from the saved 300-user system-validation
-population above. The team has not yet frozen how these two stages choose the
-final checkpoint. The proposed division of roles, selection rule, and exact
-missing inputs are recorded in the [checkpoint-selection handoff](phase2_checkpoint_selection_handoff.md).
-Do not call a checkpoint-selection result final until that decision is recorded.
+Member 1's separate 400-user, training-period P2 `dev` samples are distinct
+from the saved 300-user system-validation population above. Member 1 supplied
+a checksum-verified v2 package and agreed with the proposed two-stage rule:
+shortlist three checkpoints by dev completion loss, then select by 300-user
+end-to-end macro NDCG@10, with an exact tie going to the earlier training step.
+Member 2 has confirmed the rule; the shared inference policy and remaining
+team freeze are recorded in the [checkpoint-selection handoff](phase2_checkpoint_selection_handoff.md).
+Do not call a checkpoint-selection result final until those settings are frozen
+and the real shortlist has been evaluated.
 
 The [published 500-user P1/B3 comparison](results/member2_p1_b3_test_500_v1/README.md)
 is historical evidence: P1 minus B3 NDCG@10 is +0.023992, with a paired 95%
