@@ -32,8 +32,8 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 | A8 | Repeated questions | The prompt says not to repeat. The protocol assigns the handling to Member 4. | A question matching an earlier one (ignoring case, punctuation, spacing) is an unusable output. | `reject_repeated_questions` | Member 4 proposes; Member 2 to acknowledge |
 | A9 | Strict versus lenient JSON | Training completions are one bare JSON object. No real P2 checkpoint output has been seen. | Strict (Member 1's `parse_action`): no code fences, no prose. Nothing is repaired silently. | none | Revisit with the measured invalid-output rate from the real checkpoint |
 | A10 | Live pause and resume | Service B is stateless. Service A resends `clarifications` (`{question, answer}`) on every call. The contract proposes envelope fields (`contract_version`, `request_id`, `decision_trace`) but names no error codes. | Two ways to continue are offered. `decide` rebuilds the state from the replayed clarifications: each counts as 2 control events against the cap, so the budget is not reset, and earlier events are not invented (replayed answers get `answer_source: "client_supplied"`). `resume` continues from a stored state and keeps its full event history. Both give the same recommendations in the example. A live trace is assembled across calls by Service A. | none | Members 3, 5, 2 |
-| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | none in this module: Service B's model client rejects an over-length prompt and `decide` records that as `model_error` ([details](#a11-in-detail-the-5120-token-proposal)) | Members 3 and 6 to freeze the limits (6,656 proposed for training; 6,144 in and 1,024 to 2,048 out proposed for serving); Members 4 and 6 for a changed renderer (it needs a new `PROMPT_VERSION` and regenerated samples) |
-| A12 | Who writes the offline runner (loops over the saved users, calls the controller and the answer simulator, writes prediction/trace/manifest files)? | Member 1 suggested it is Member 4's. The October work split does not list it. On 2026-11-23 Member 3's branch turned out to contain one ([group updates](#group-updates-2026-11-23)). | Not written here. The online `decide` entry point is a different thing and is included. | n/a | Member 3 (wrote it), Member 2 (validates its output); who runs it officially is not recorded |
+| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | none in this module: Service B's model client rejects an over-length prompt and `decide` records that as `model_error` ([details](#a11-in-detail-the-5120-token-proposal)) | Member 6's branch now trains at 6,656; serving is 6,144 in / 1,024 out in Member 3's example config and Member 6's generator, Member 6's confirmation pending ([later 2026-11-23 update](#later-on-2026-11-23-member-3s-reply-member-6s-generator)); Members 4 and 6 for a changed renderer (it needs a new `PROMPT_VERSION` and regenerated samples) |
+| A12 | Who writes the offline runner (loops over the saved users, calls the controller and the answer simulator, writes prediction/trace/manifest files)? | Member 1 suggested it is Member 4's. The October work split does not list it. On 2026-11-23 Member 3's branch turned out to contain one ([group updates](#group-updates-2026-11-23)). | Not written here. The online `decide` entry point is a different thing and is included. | n/a | Member 3 wrote it and said on 2026-11-23 it owns the 300-user inference/export run with this controller; Member 2 keeps authoritative scoring and comparisons |
 | A13 | Termination labels outside the contract | The proposed contract defines only `recommend` and `fallback`. | `budget_exhausted_rank` (under `rank_available_pool`) and `failed` are this module's own labels. See the A1 evidence. | n/a | Member 2, if A1 picks rank-available |
 | A14 | Validator coverage | Member 2's trace validator is on an unmerged branch. | The in-repo oracle is Member 1's `validate_episode`. A one-off cross-check against Member 2's validator at `9032fd1` is recorded below and was re-run after the grounding work with the same result. | n/a | Add a permanent test once the branches merge |
 | A15 | Which claims and evidence count as grounded? | The work split names a "grounding check" without criteria. Member 2 has a human audit rubric; Member 1 has a checker for its own template explanations. | A deterministic screen, `src/agent/grounding.py`, of what is mechanically checkable (see below). It never says "supported": that is the human audit's word. | `grounding_policy` | Members 2 and 4: are these the agreed criteria? |
@@ -235,7 +235,7 @@ Relayed from the group chat and read against the branches on origin (fetched 202
   file in its `SHA256SUMS.txt`) states, from the pinned Qwen tokenizer counting prompt + completion + `<|im_end|>`: the longest record is a
   `rank_candidates` sample of 6,458 tokens (dev 6,242), and 898 train and 75 dev records exceed 5,120, so Member 6's length check would stop
   the run. Member 1 proposes `max_length` 6,656 for training with no truncation, and 6,144 input / 1,024 output for serving.
-  Member 3's provisional serving limits are 6,144 input / 2,048 output.
+  Member 3's provisional serving limits were 6,144 input / 2,048 output (changed to 1,024 output later the same day, see the update below).
 * **How far off my estimates were.** Measured against those two facts on Member 1's training file, these prompts run about 2.9 to 3.1
   characters per token: the longest record is 18,995 characters for 6,458 tokens (2.94), and the 898th-longest is 15,771 characters
   for about 5,120 (3.08). I had assumed 3.9 (and 3.5 to 4.0 with digits split). Re-reading my rehearsal sizes at 2.9 to 3.1: the
@@ -247,6 +247,7 @@ Relayed from the group chat and read against the branches on origin (fetched 202
   thin margin. Output is the other risk: the longest training explanation completion is 3,311 characters, roughly 0.9k to 1.1k tokens, so a
   1,024-token output limit could cut it off and the strict parser would reject the truncated JSON. The 2,048 in Member 3's example is safe,
   because generation stops at the end-of-sequence token and the limit is only a cap. Rank completions are at most 779 characters.
+  **Corrected in the update below:** I overstated this. Across the whole training file almost nothing is that long, so 1,024 is probably enough.
 * **Ranking data (A6, confirmed by Member 1).** 3,971 of 3,974 train and all 400 dev ranking examples add up to 3 liked and 2 disliked
   movies from the user's later training-period ratings (no validation or test data; the input does not mark them), so pools are 101 to 105
   long. Only 3 train examples are retriever-only. Consequence: dev loss cannot show how a checkpoint behaves on a plain pool, so the
@@ -273,6 +274,45 @@ Relayed from the group chat and read against the branches on origin (fetched 202
   controller's `rank_candidates` step is unaffected.
 * **`main` has moved.** `main` is at `737f83d` (Member 5's pull requests 3 and 4, merged 2026-11-21). This branch and Member 1's still
   sit on the older `main`. The PR base question is unchanged and the PR stays on hold.
+
+## Later on 2026-11-23: Member 3's reply, Member 6's generator
+
+Member 3's reply to my confirmation request (relayed from the group chat), read against the branches fetched afterwards
+(`member-3-service-b-retrieval` at `d21180f`, `member-6-p2-training` at `5fa403f`). Nothing here is ratified.
+
+* **Interface (A16).** Member 3 says `decide()` fits Service B and is integrated, and that Service B uses both `decide()` and `resume()`.
+  `src/agent/` on `d21180f` is still byte-identical to this branch's.
+* **Runner ownership (A12).** Member 3 will own the 300-user inference/export runner using this controller. Its handoff says Member 2
+  keeps the protocol, authoritative scoring and comparisons. Not written or run here. The original ordered B3 file for the validation
+  users is now staged and validated on Member 3's side, and Member 3 reproduced all 22,802 train and 2,178 dev action prompts
+  byte-for-byte with the current renderer, so the prompt text this controller builds matches what the model was trained on.
+* **Serving limits.** Member 3's example config is now 6,144 input / 1,024 output tokens (it was 2,048), following Member 1's recommendation,
+  and Member 6's confirmation is still pending. Member 6's `P2ActionGenerator` defaults to the same two numbers.
+* **Training length.** Member 6's branch raised `max_length` from 5,120 to 6,656 (Member 1's proposal). That settles the 5,120 question above.
+* **Member 6's generator.** `src/reranking/p2_generator.py` has `generate(prompt) -> str`, the shape this module's `ModelClient` expects: raw
+  prompt text with no chat template, greedy decoding, no input truncation (an over-length prompt raises, which `decide` records as
+  `model_error`), and it stops as soon as the output begins with one complete JSON object. `run_p2_generation` writes raw outputs and a strict
+  parse result per record (20 per action gives 120). No checkpoint exists yet, so no outputs have been seen. One consequence for A9: because
+  generation stops at the first complete object, text after it can never appear, so a measured invalid-output rate will not show that
+  failure mode. The strict parser here still rejects it, which only matters for a different model client.
+* **Is a 1,024-token output cap enough?** Completion lengths in Member 1's v2 training file (characters; dev is shorter):
+
+| Task | Examples | Median | 99th percentile | Longest |
+|---|---|---|---|---|
+| `explain_recommendations` | 3,974 | 1,575 | 2,427 | 3,311 |
+| `rank_candidates` | 3,974 | 379 | 734 | 779 (105 ids) |
+| `retrieve_candidates` | 752 | 282 | 371 | 413 |
+| the three short actions (assess, evaluate, ask) | 14,102 | 52 to 97 | 53 to 132 | 132 |
+
+  Rank: even at one token per character the longest is 779 tokens, so it fits whatever the tokenizer does. Explanations are English text
+  (about 280 characters each, ten per completion), so the ratio is probably higher than the 2.9 to 3.1 I measured on the id-heavy prompts.
+  The longest, 3,311 characters, is about 950 tokens at 3.5 characters per token and about 1,070 to 1,140 at 2.9 to 3.1. At the pessimistic
+  ratio 1 of 3,974 training examples (3.1) or 2 (2.9) would not fit, and none of the 400 dev examples. So 1,024 is probably enough and
+  my earlier advice to ask for 2,048 was too strong. It is an estimate: Member 6's tokenizer settles it in one line (longest completion in
+  tokens, per task).
+  If an explanation is cut off, the JSON is invalid, and under A4 the episode ends `failed` (not a B3 fallback), so that user would have no
+  prediction. That would affect at most a user or two in 300, but a `failed` episode would show in the manifest. A cap of 1,536 would remove
+  the question at no cost other than worst-case latency of a runaway output; that choice belongs to Members 3 and 6.
 
 ## Real-data rehearsal (stand-in model)
 
