@@ -42,6 +42,11 @@ POOL_FULL = "pool_size_cap_reached"
 EVENT_CAP = "control_event_cap_reached"
 NO_NEW_CANDIDATES = "retrieval_returned_no_new_candidates"
 
+# explanation_failure_policy="template": the marker on the fallback decision, and the failure recorded
+# when the catalog cannot supply a movie (the episode then fails as under the default policy).
+TEMPLATE_EXPLANATION = "template_explanation"
+TEMPLATE_UNAVAILABLE = "template_unavailable"
+
 
 class TransitionError(RuntimeError):
     """The caller used a function in the wrong phase or passed unusable arguments (a caller bug)."""
@@ -176,7 +181,7 @@ def apply_model_output(state: EpisodeState, raw_text: str, *, catalog: Mapping[i
             reject_repeated_questions=config.reject_repeated_questions,
         )
     except AgentActionError as error:
-        return _on_invalid(new, task, digest, error)
+        return _on_invalid(new, task, digest, error, catalog)
 
     if task == "explain_recommendations":
         return _apply_explanation(new, action, digest, catalog)
@@ -187,12 +192,13 @@ def apply_model_output(state: EpisodeState, raw_text: str, *, catalog: Mapping[i
     return new
 
 
-def apply_model_error(state: EpisodeState, reason: str) -> EpisodeState:
+def apply_model_error(state: EpisodeState, reason: str, *, catalog: Mapping[int, Mapping] | None = None) -> EpisodeState:
     """The model call itself failed (exception, timeout). It follows the same path as an unusable
-    output: retries if configured, then the contract fallback, or "failed" for the explanation."""
+    output: retries if configured, then the contract fallback, or for the explanation step "failed"
+    (or, under ``explanation_failure_policy="template"``, explanations built from ``catalog``)."""
     task = _model_task(state)
     detail = (str(reason) or "unspecified")[:200]
-    return _on_invalid(state.copy(), task, None, AgentActionError("model_error", detail))
+    return _on_invalid(state.copy(), task, None, AgentActionError("model_error", detail), catalog)
 
 
 def _on_assess(state: EpisodeState, action: dict) -> None:
@@ -288,7 +294,7 @@ def _apply_explanation(state: EpisodeState, action: dict, digest, catalog) -> Ep
         state.grounding.append({"attempt": attempt, "policy": policy, "outcome": outcome, "results": results})
         if outcome == "rejected":
             message = f"{len(flagged)} explanation(s) cite evidence that was not shown"
-            return _on_invalid(state, "explain_recommendations", digest, AgentActionError(UNGROUNDED, message))
+            return _on_invalid(state, "explain_recommendations", digest, AgentActionError(UNGROUNDED, message), catalog)
     state.decisions.append({"index": len(state.decisions), "source": "model", "task": "explain_recommendations",
                             "raw_sha256": digest, "valid": True, "error": None, "parsed": action})
     state.step_invalid_count = 0
@@ -299,7 +305,41 @@ def _apply_explanation(state: EpisodeState, action: dict, digest, catalog) -> Ep
     return state
 
 
-def _on_invalid(state: EpisodeState, task: str, digest, error: AgentActionError) -> EpisodeState:
+def _apply_template_explanations(state: EpisodeState, catalog) -> bool:
+    """``explanation_failure_policy="template"``: the explanation step has no usable model output, so write
+    the ten explanations from each movie's own displayed catalog fields (``repair_text``, which passes the
+    grounding screen by construction) and keep the model's ranking untouched.
+
+    The substitution is never quiet. A ``fallback`` decision marks the step (``fallback ==
+    "template_explanation"``), the unusable model attempt stays in ``decisions`` and ``failures``, and
+    telemetry reports ``explanation_source: "template_fallback"``. The trace event is the contract's
+    ordinary explanation event: the proposed validator checks binding and presence, not truthfulness.
+
+    Returns False, recording why, when ``catalog`` cannot supply every shown movie; the caller then ends
+    the episode "failed" exactly as the default policy does.
+    """
+    shown_ids = state.ranked[: state.config.explain_count]
+    if catalog is None:
+        state.failures.append({"code": TEMPLATE_UNAVAILABLE, "stage": "explain_recommendations",
+                               "detail": "no catalog was supplied"})
+        return False
+    missing = [movie_id for movie_id in shown_ids if movie_id not in catalog]
+    if missing:
+        state.failures.append({"code": TEMPLATE_UNAVAILABLE, "stage": "explain_recommendations",
+                               "detail": f"no catalog entry for movies {missing[:5]}"})
+        return False
+    explanations = [{"movie_id": movie_id, "text": repair_text(catalog[movie_id])} for movie_id in shown_ids]
+    state.decisions.append({"index": len(state.decisions), "source": "fallback", "task": "explain_recommendations",
+                            "raw_sha256": None, "valid": True, "error": None, "parsed": None,
+                            "fallback": TEMPLATE_EXPLANATION})
+    state.events.append({"action": "explain_recommendations", "explanations": explanations})
+    if state.termination_reason is None:
+        state.termination_reason = "recommend"  # a fallback ranking keeps its own label
+    state.phase = "done"
+    return True
+
+
+def _on_invalid(state: EpisodeState, task: str, digest, error: AgentActionError, catalog=None) -> EpisodeState:
     state.decisions.append({"index": len(state.decisions), "source": "model", "task": task,
                             "raw_sha256": digest, "valid": False,
                             "error": {"code": error.code, "message": error.message}, "parsed": None})
@@ -310,7 +350,10 @@ def _on_invalid(state: EpisodeState, task: str, digest, error: AgentActionError)
     state.step_invalid_count = 0
     if task == "explain_recommendations":
         # No contract rule says what to do with a ranking whose explanations are unusable, and
-        # inventing text here would defeat the grounding audit. Report it (decision A4).
+        # inventing text here would defeat the grounding audit. By default report it (decision A4);
+        # under explanation_failure_policy="template" write plain explanations instead, openly recorded.
+        if state.config.explanation_failure_policy == "template" and _apply_template_explanations(state, catalog):
+            return state
         _finish_failed(state, f"explanation_invalid:{error.code}")
     elif error.code == "model_error":
         _to_fallback(state, f"model_error:{task}")  # the call itself failed; the output was never judged

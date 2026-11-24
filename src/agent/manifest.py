@@ -46,8 +46,12 @@ _LIMIT_REASONS = {CLARIFICATION_BUDGET, RETRIEVAL_BUDGET, POOL_FULL, EVENT_CAP, 
 
 
 def explanation_policy_version(config: AgentConfig) -> str:
-    """Names the grounding screen and the policy applied to what it flags."""
-    return f"{GROUNDING_SCREEN_VERSION}/{config.grounding_policy}"
+    """Names the grounding screen, the policy applied to what it flags and, when it is on, the rule for an
+    explanation step with no usable output. The default (``fail``) leaves the string as it always was."""
+    version = f"{GROUNDING_SCREEN_VERSION}/{config.grounding_policy}"
+    if config.explanation_failure_policy == "template":
+        version += "/template_on_failure"
+    return version
 
 
 def agent_policy(config: AgentConfig, *, timeout_ms: int) -> dict:

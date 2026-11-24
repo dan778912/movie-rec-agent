@@ -61,7 +61,8 @@ class SettingsTableTests(unittest.TestCase):
             self.assertEqual(shown, str(getattr(config, name)).lower(), name)
         self.assertEqual({name for name, _ in rows}, {
             "max_clarifications", "max_retrievals", "max_pool_size", "max_control_events", "ranking_size",
-            "max_invalid_actions_per_step", "exhaustion_policy", "reject_repeated_questions", "grounding_policy"})
+            "max_invalid_actions_per_step", "exhaustion_policy", "reject_repeated_questions", "grounding_policy",
+            "explanation_failure_policy"})
 
     def test_the_event_arithmetic_stated_on_the_page_is_true(self):
         self.assertEqual(AgentConfig().worst_case_control_events, 8)

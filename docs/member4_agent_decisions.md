@@ -25,7 +25,7 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 | **A1** | What happens when a budget runs out and the latest judgment is still "no"? | **Conflict**, see below. | Both rules implemented. Default `fallback_b3_order`. | `exhaustion_policy` | Members 2 and 1, then the whole team (the final report must describe what runs) |
 | A2 | Operational limits: questions, retrievals, pool size, event cap | Member 1 trained at 2 questions, 1 retrieval, 50 → at most 100. The proposed trace allows 8 control events. These agree: 8 is exactly the worst case of 2 + 1 (3 assessments + 2 questions + 2 pool checks + 1 retrieval). The protocol assigns the online loop cap and timeouts to Member 4. None is ratified. | 2 / 1 / 100 / 8. A question or retrieval is refused when its follow-up events would not fit under the cap. | `max_clarifications`, `max_retrievals`, `max_pool_size`, `max_control_events` | Members 1, 2, 3, 4. Freeze on validation data before any test inference. |
 | A3 | A model output that cannot be used, or a failed model call | The contract allows the frozen fallback for it but ratifies no numeric validity threshold. With greedy decoding a retry repeats the same prompt. Timeouts belong to whoever owns the model client. | No retry; the first unusable output, or an exception from the model call, at a step triggers the B3 fallback (any policy). The raw output's SHA-256 (none for an exception) and the reason are recorded. | `max_invalid_actions_per_step` | Members 2, 4, 6 (after seeing real checkpoint output) |
-| A4 | What to do with an explanation the grounding screen marks `unsupported`, or with no usable explanation at all | No rule. The contract requires explanations in every episode, including fallbacks, and says the manifest states the explanation policy. The audit rubric is human. | `grounding_policy`: `flag` (default: keep the text, record the problems), `repair` (replace only that explanation with a text built from the movie's own displayed fields), `reject` (treat as unusable: retries, then `failed`), `off`. Unusable explanations end the episode `failed`: the ranking is kept, no text is invented, no trace is produced, and the caller returns an explicit error. | `grounding_policy` | Members 2 and 4 |
+| A4 | What to do with an explanation the grounding screen marks `unsupported`, or with no usable explanation at all | No rule. The contract requires explanations in every episode, including fallbacks, and says the manifest states the explanation policy. The audit rubric is human. | `grounding_policy`: `flag` (default: keep the text, record the problems), `repair` (replace only that explanation with a text built from the movie's own displayed fields), `reject` (treat as unusable: retries, then `failed`), `off`. Unusable explanations end the episode `failed`: the ranking is kept, no text is invented, no trace is produced, and the caller returns an explicit error. Optional and off by default: `explanation_failure_policy="template"` writes plain explanations from each movie's own catalog fields instead and records that it did ([details](#template-explanation-fallback-built-2026-11-24-off-by-default)). | `grounding_policy`, `explanation_failure_policy` | Members 2 and 4 |
 | A5 | Ranking length | The prompt asks the model to rank the whole pool (50–100). The contract's rank event is the 50 prediction IDs. | The model's output must be a permutation of the pool shown; the top `ranking_size` are kept. The full ranking's digest is in telemetry. Explained movies are `min(10, ranking_size)` because the shared validator requires exactly that. | `ranking_size` | Member 2 to confirm |
 | A6 | Rank step: does training on pools with injected held-out items transfer to retriever-only pools at inference? | Member 1's report documents the injection as deliberate supervision (up to 3 held-out positives and 2 dislikes added to the final pool; the committed example has 105 candidates where the retriever returned 100, and all 3 injected positives land in the explained top ten). At inference no such movies exist. Member 6 has replied (relayed 2026-11-19): inference compatibility is intended and will be tested before checkpoint selection; Member 1 confirmed on 2026-11-23 that nearly all ranking examples carry the injected items ([group updates](#group-updates-2026-11-23); [details](#a6-in-detail-what-is-known-after-member-6s-reply)). Whether the mismatch costs anything is still unmeasured. | Strict: a ranking must be a permutation of the pool shown, and `injected_movie_ids` is never emitted. A test replays Member 1's example and pins this. A question, not a defect claim. | none | Member 6 (testing on plain 100-movie pools); see [member4_team_review_note.md](member4_team_review_note.md) |
 | A7 | Retrieval interface and ownership | The model emits a free-text `query`. Member 3's interface does not exist yet. Unspecified: who removes duplicates, watched movies and over-cap results, and who updates the dynamic profile from clarification answers. | The caller receives `query` and `max_new`. The controller filters defensively (pool members, watched, duplicates, over-cap) and logs counts per retrieval. Answers go into the prompt's Clarifications block; `profile_text` is never edited. | none | Members 3 and 4 |
@@ -339,7 +339,8 @@ produce `failed` (after Member 6's audit below, a cut-off at 1,024 is unlikely; 
 rates). This corrects the earlier note above that a cut-off explanation "would show in the manifest": it blocks the official run. A rerun
 with greedy decoding repeats the same output, so the options are (a) leave it strict and treat any failure as a reason to change the setting and rerun,
 or (b) for the explanation step only, fall back to a deterministic explanation built from the movie's displayed fields, labelled and counted in
-the trace. (b) is a code change here and needs Member 2 to confirm that the validator and the audit accept it.
+the trace. (b) is now built here and off by default ([details](#template-explanation-fallback-built-2026-11-24-off-by-default)); Member 2 still has
+to confirm that the audit and the manifest handling accept it.
 
 **Consequence 2: the 25 s limit is cumulative per episode offline.** As I read `run_episode`, the model deadline is `request_timeout_seconds` minus the
 time already spent in earlier calls of the same episode, so the offline run gives a whole episode (up to ten model calls) 25 s, while online the
@@ -375,6 +376,37 @@ Relayed from the group chat; the numbers are Member 6's, from the pinned Qwen to
 * **Still no model outputs.** The A40 smoke test trained on the longest sample and saved a 71 MB adapter (18,464,768 trainable parameters); it
   generated nothing. Member 6 will share the selected adapter's location, hashes and loading example after checkpoint selection, so the first real
   outputs through the strict parser will come from the shortlisted-checkpoint runs, not before.
+
+## Template explanation fallback (built 2026-11-24, off by default)
+
+`AgentConfig.explanation_failure_policy` has two values. `fail` (the default) is the behaviour described in A4 and consequence 1 above, unchanged.
+`template` is the option proposed to Member 2: when the explain step has no usable model output (invalid or cut-off JSON, wrong movies, a model
+error such as a timeout, or every retry rejected under `grounding_policy="reject"`), the controller keeps the model's ranking and writes the ten
+explanations itself with `repair_text`: "It is listed under Drama and Comedy and is tagged ..." from that movie's own displayed genres and tags.
+Nothing changes until the team chooses it.
+
+* **What is recorded, so it is never quiet.** The failed model attempt stays in `decisions` and `failures`. A `fallback` decision for
+  `explain_recommendations` with `fallback: "template_explanation"` marks the substitution. Telemetry gains `explanation_source`: `"model"`,
+  `"template_fallback"` or null (no explanation event, as for a `failed` episode). It is derived from the decisions, so the stored state gains no field.
+  The manifest's `explanation_policy_version` becomes `p2-grounding-screen-v1/<grounding policy>/template_on_failure` when the setting is on and is
+  unchanged when it is off.
+* **What the trace looks like.** An ordinary `explain_recommendations` event. The termination label is unchanged (`recommend`, or `fallback` when the
+  ranking itself was the B3 order). Member 2's manifest validator allows exactly the listed fields in an episode entry, so the label is not
+  added there; counting template episodes per run means counting `explanation_source` in telemetry.
+* **When it cannot apply.** `apply_model_error` and `apply_model_output` take the catalog (`decide` passes it). If it is missing or lacks a shown movie, the
+  episode ends `failed` as before and `failures` gets a `template_unavailable` entry saying why.
+* **Evidence.** 20 new tests (213 in all) cover the default staying off, every failure kind, the record, retries first, grounding `reject`, the B3-fallback
+  label, a missing catalog, and the whole path through `decide`; disabling the template, the loader tolerance or the telemetry field each makes them
+  fail. A one-off run (scratch script, not committed) put 300 real validation users with the real B3 pools through the controller, half with a timed-out explain
+  step: Member 2's validator at `9032fd1` returned `status: valid`, 300 of 300 users, with 150 template and 150 model-text episodes. The model there is a
+  rule-based stand-in, so this shows structure only.
+* **What it does not do.** It does not make the explanations model-written or grounded in the user's profile: they cite only genres and tags, so
+  they carry little justification. The audit should report those rows separately (Member 2's worksheet takes the trace text, so it needs the telemetry
+  label to tell them apart). Whether the team accepts such episodes in the official table is Member 2's call, as is any ceiling on how many are tolerated.
+* **Effect on Member 3's runner.** `AgentConfig.to_dict()` has one more key, so a freeze bundle written before this change no longer matches the loaded
+  configuration and `prepare` must be re-run after pulling it. `AgentConfig(**block)` loading from the service config keeps working (the field has a
+  default), and a stored state or config without the field loads as `fail`. Telemetry gains one key, `explanation_source`; its schema string is still
+  the provisional `p2-agent-telemetry-v0`.
 
 ## Real-data rehearsal (stand-in model)
 

@@ -85,6 +85,7 @@ All are fields of `AgentConfig` (`src/agent/config.py`) and are passed to `decid
 | `exhaustion_policy` | `fallback_b3_order` | The other value, `rank_available_pool`, writes a label the proposed validator rejects (A1). |
 | `reject_repeated_questions` | `true` | Whether a repeated question counts as unusable. |
 | `grounding_policy` | `flag` | `off`, `flag`, `repair` or `reject`. It acts only on explanations that cite evidence not shown. |
+| `explanation_failure_policy` | `fail` | What to do when the explain step has no usable output. `fail` ends the episode as `failed`; `template` writes the ten explanations from each movie's own genres and tags and records that it did (A4). Off by default and unratified. |
 
 ## 6. When the output is unusable
 
@@ -102,8 +103,11 @@ What happens next, with `max_invalid_actions_per_step` at its default of `0`:
 
 - At the assess, ask, evaluate, retrieve or rank step, the episode takes the fallback above. The reason is
   recorded as `invalid_action:<step>:<code>`, or `model_error:<step>` when the call failed.
-- At the explain step, the episode ends as `failed`. The ranking is kept, no trace is produced, and the
-  service answers `{"action": "error", ...}`. The controller does not invent explanation text.
+- At the explain step, by default (`explanation_failure_policy` = `fail`) the episode ends as `failed`. The
+  ranking is kept, no trace is produced, and the service answers `{"action": "error", ...}`. The controller
+  does not invent explanation text. With `template`, the ranking is kept and the ten explanations are built
+  from each movie's own genres and tags instead; the trace event looks like any other explanation event, and
+  telemetry says `explanation_source: "template_fallback"` (otherwise `"model"`).
 - With a value above `0`, the same step is asked again with the same prompt, up to that many times. No
   error message is added to the prompt.
 

@@ -54,6 +54,18 @@ def is_contract_termination(state: EpisodeState) -> bool:
     return state.termination_reason in CONTRACT_TERMINATIONS
 
 
+def explanation_source(state: EpisodeState) -> str | None:
+    """Where the explanations in the trace came from: ``"model"`` (the model's text, after any grounding
+    policy), ``"template_fallback"`` (written from catalog fields because the model gave nothing usable,
+    ``explanation_failure_policy="template"``), or None (no explanation event: unfinished or failed).
+
+    Derived from the decision records, so it adds no field to the stored state."""
+    for entry in reversed(state.decisions):
+        if entry["task"] == "explain_recommendations" and entry["valid"]:
+            return "template_fallback" if entry["source"] == "fallback" else "model"
+    return None
+
+
 def telemetry_record(state: EpisodeState) -> dict:
     """Audit data kept beside, not inside, the trace."""
     return {
@@ -64,6 +76,7 @@ def telemetry_record(state: EpisodeState) -> dict:
         "termination_reason": state.termination_reason,
         "reason": state.reason,
         "contract_termination": is_contract_termination(state),
+        "explanation_source": explanation_source(state),
         "control_events": state.control_events,
         "clarifications_used": state.asks,
         "clarifications_replayed": state.resumed_clarifications,
