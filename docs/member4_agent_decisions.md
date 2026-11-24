@@ -32,7 +32,7 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 | A8 | Repeated questions | The prompt says not to repeat. The protocol assigns the handling to Member 4. | A question matching an earlier one (ignoring case, punctuation, spacing) is an unusable output. | `reject_repeated_questions` | Member 4 proposes; Member 2 to acknowledge |
 | A9 | Strict versus lenient JSON | Training completions are one bare JSON object. No real P2 checkpoint output has been seen. | Strict (Member 1's `parse_action`): no code fences, no prose. Nothing is repaired silently. | none | Revisit with the measured invalid-output rate from the real checkpoint |
 | A10 | Live pause and resume | Service B is stateless. Service A resends `clarifications` (`{question, answer}`) on every call. The contract proposes envelope fields (`contract_version`, `request_id`, `decision_trace`) but names no error codes. | Two ways to continue are offered. `decide` rebuilds the state from the replayed clarifications: each counts as 2 control events against the cap, so the budget is not reset, and earlier events are not invented (replayed answers get `answer_source: "client_supplied"`). `resume` continues from a stored state and keeps its full event history. Both give the same recommendations in the example. A live trace is assembled across calls by Service A. | none | Members 3, 5, 2 |
-| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | none in this module: Service B's model client rejects an over-length prompt and `decide` records that as `model_error` ([details](#a11-in-detail-the-5120-token-proposal)) | Member 6's branch now trains at 6,656; serving is 6,144 in / 1,024 out in Member 3's example config and Member 6's generator, Member 6's confirmation pending ([later 2026-11-23 update](#later-on-2026-11-23-member-3s-reply-member-6s-generator)); Members 4 and 6 for a changed renderer (it needs a new `PROMPT_VERSION` and regenerated samples) |
+| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | none in this module: Service B's model client rejects an over-length prompt and `decide` records that as `model_error` ([details](#a11-in-detail-the-5120-token-proposal)) | Settled by measurement on 2026-11-24: Member 6's real-tokenizer audit verifies training at 6,656 and recommends serving at 6,144 in / 1,024 out, the same as Member 3's config ([tokenizer audit](#member-6s-tokenizer-audit-2026-11-24)); Members 4 and 6 for a changed renderer (it needs a new `PROMPT_VERSION` and regenerated samples) |
 | A12 | Who writes the offline runner (loops over the saved users, calls the controller and the answer simulator, writes prediction/trace/manifest files)? | Member 1 suggested it is Member 4's. The October work split does not list it. On 2026-11-23 Member 3's branch turned out to contain one ([group updates](#group-updates-2026-11-23)). | Not written here. The online `decide` entry point is a different thing and is included. | n/a | Member 3 wrote it and said on 2026-11-23 it owns the 300-user inference/export run with this controller; Member 2 keeps authoritative scoring and comparisons |
 | A13 | Termination labels outside the contract | The proposed contract defines only `recommend` and `fallback`. | `budget_exhausted_rank` (under `rank_available_pool`) and `failed` are this module's own labels. See the A1 evidence. | n/a | Member 2, if A1 picks rank-available |
 | A14 | Validator coverage | Member 2's trace validator is on an unmerged branch. | The in-repo oracle is Member 1's `validate_episode`. A one-off cross-check against Member 2's validator at `9032fd1` is recorded below and was re-run after the grounding work with the same result. | n/a | Add a permanent test once the branches merge |
@@ -287,7 +287,8 @@ Member 3's reply to my confirmation request (relayed from the group chat), read 
   users is now staged and validated on Member 3's side, and Member 3 reproduced all 22,802 train and 2,178 dev action prompts
   byte-for-byte with the current renderer, so the prompt text this controller builds matches what the model was trained on.
 * **Serving limits.** Member 3's example config is now 6,144 input / 1,024 output tokens (it was 2,048), following Member 1's recommendation,
-  and Member 6's confirmation is still pending. Member 6's `P2ActionGenerator` defaults to the same two numbers.
+  and Member 6's confirmation was still pending (confirmed on 2026-11-24, see the tokenizer audit below). Member 6's `P2ActionGenerator`
+  defaults to the same two numbers.
 * **Training length.** Member 6's branch raised `max_length` from 5,120 to 6,656 (Member 1's proposal). That settles the 5,120 question above.
 * **Member 6's generator.** `src/reranking/p2_generator.py` has `generate(prompt) -> str`, the shape this module's `ModelClient` expects: raw
   prompt text with no chat template, greedy decoding, no input truncation (an over-length prompt raises, which `decide` records as
@@ -313,6 +314,7 @@ Member 3's reply to my confirmation request (relayed from the group chat), read 
   If an explanation is cut off, the JSON is invalid, and under A4 the episode ends `failed` (not a B3 fallback), so that user would have no
   prediction. That would affect at most a user or two in 300, but a `failed` episode would show in the manifest. A cap of 1,536 would remove
   the question at no cost other than worst-case latency of a runaway output; that choice belongs to Members 3 and 6.
+  **Settled on 2026-11-24:** Member 6's tokenizer audit found a longest training completion of 905 tokens, so 1,024 covers it; see below.
 
 ## Member 3's pre-run questions (2026-11-24)
 
@@ -333,7 +335,8 @@ Member 3 asked the group (Member 2 and me) to confirm seven things before the 30
 **Consequence 1: one `failed` episode makes the whole run incomplete.** On `d21180f`, `offline.py` raises `EpisodeFailed` when the response is
 `{"action": "error"}`, writes `failures.jsonl`, sets `status: incomplete` and publishes no manifest; Member 2's protocol says never to drop a user.
 An explanation that is invalid (including cut off at the output cap), an explanation-step timeout, or a flagged explanation under `reject` each
-produce `failed`. This corrects the earlier note above that a cut-off explanation "would show in the manifest": it blocks the official run. A rerun
+produce `failed` (after Member 6's audit below, a cut-off at 1,024 is unlikely; invalid JSON from the model and a timeout remain possible, at unknown
+rates). This corrects the earlier note above that a cut-off explanation "would show in the manifest": it blocks the official run. A rerun
 with greedy decoding repeats the same output, so the options are (a) leave it strict and treat any failure as a reason to change the setting and rerun,
 or (b) for the explanation step only, fall back to a deterministic explanation built from the movie's displayed fields, labelled and counted in
 the trace. (b) is a code change here and needs Member 2 to confirm that the validator and the audit accept it.
@@ -345,6 +348,33 @@ completion is about 380 tokens and a median explanation about 500, which is abou
 becomes a B3 fallback (muddying what is measured); on the explanation step it becomes `failed`. Proposal: run a smoke on the real checkpoint, set the
 call and episode deadlines from the measured worst case with headroom for the offline run, and keep the 25 s figure for the online path under Service A's
 30 s.
+
+## Member 6's tokenizer audit (2026-11-24)
+
+Relayed from the group chat; the numbers are Member 6's, from the pinned Qwen tokenizer on Member 1's complete v2 handoff. No new commit on
+`member-6-p2-training` carries them (still `5fa403f`). Nothing here is ratified.
+
+| Measure | Member 6 (real tokenizer) | What I had estimated |
+|---|---|---|
+| Longest training prompt | 5,735 tokens | 5.7k to 5.9k, scaled to 100 candidates from the 105-candidate prompt (so about 5% high) |
+| Longest training completion | 905 tokens | about 950 at 3.5 characters per token, 1,070 to 1,140 at 2.9 to 3.1 |
+| Longest training sequence | 6,458 tokens | 6,458 (Member 1's figure) |
+| Longest dev prompt / completion | 5,577 / 773 tokens | none |
+| Records over 6,656 | 0 | none |
+
+* **Verdict on my numbers.** The 905-token completion can only be an explanation (the longest rank completion is 779 characters), so
+  3,311 characters took about 905 tokens: roughly 3.7 characters per token. That matches my optimistic case, not the 2.9 to 3.1 I measured on
+  prompts, so my worry about a cut-off at 1,024 was unfounded. The headroom is 119 tokens (13%) over the worst training completion. The longest
+  prompt is about 3.2 characters per token if it is the 18,290-character one, so my prompt estimates were close and slightly high.
+* **Serving limits.** Member 6 recommends 6,144 in / 1,024 out, greedy decoding, no truncation, no chat template, exactly one JSON action using
+  `p2-prompt-v1`: what Member 3's config and Member 6's generator already use. The 6,144 input covers the measured maximum prompt with 409 tokens to
+  spare at 105 candidates, and this controller caps a pool at 100. Validation users' prompts have not been tokenized, so the real guard is the
+  model client rejecting an over-length prompt (recorded as `model_error`, a B3 fallback at the rank or evaluate step).
+* **What it means here.** Nothing to change in this module for A11. A cut-off explanation stops being a likely cause of a `failed` episode; the
+  explanation-failure question above still stands for model-written invalid JSON and for timeouts, at rates nobody can know until real outputs exist.
+* **Still no model outputs.** The A40 smoke test trained on the longest sample and saved a 71 MB adapter (18,464,768 trainable parameters); it
+  generated nothing. Member 6 will share the selected adapter's location, hashes and loading example after checkpoint selection, so the first real
+  outputs through the strict parser will come from the shortlisted-checkpoint runs, not before.
 
 ## Real-data rehearsal (stand-in model)
 
