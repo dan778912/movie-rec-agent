@@ -57,7 +57,7 @@ must never be used as P2 training labels.
 
 ## P2 token-length policy
 
-P2 provisionally uses a maximum sequence length of 5,120 tokens because ranking
+P2 provisionally uses a maximum sequence length of 6,656 tokens because ranking
 and candidate-evaluation prompts are much longer than P1's 1,024-token inputs.
 
 Silent truncation is prohibited. Before training, the code measures every
@@ -93,7 +93,7 @@ python -m src.reranking.train_p2_qwen \
 ```
 
 A smoke test confirms that the P1 adapter can be loaded as trainable, the
-5,120-token configuration fits the selected GPU, and a P2 adapter can be saved
+6,656-token configuration fits the selected GPU, and a P2 adapter can be saved
 and reloaded. Smoke-test metrics are not final experiment results.
 
 ## Full P2 training

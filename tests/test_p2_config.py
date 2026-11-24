@@ -20,7 +20,7 @@ def valid_config() -> dict:
         "initial_model": "p1-qwen-lora-v1",
         "prompt_version": "p2-prompt-v1",
         "seed": 20261001,
-        "max_length": 5120,
+        "max_length": 6656,
         "allow_truncation": False,
         "learning_rate": 0.0001,
         "num_train_epochs": 1,
@@ -51,7 +51,7 @@ class P2ConfigTests(unittest.TestCase):
 
             config = load_p2_config(path)
 
-            self.assertEqual(config["max_length"], 5120)
+            self.assertEqual(config["max_length"], 6656)
             self.assertEqual(config["shortlist_size"], 3)
             self.assertFalse(config["allow_truncation"])
 
