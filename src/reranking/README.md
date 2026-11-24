@@ -155,3 +155,41 @@ python -m unittest discover -s tests -v
 
 The keyword-overlap scorer in `reranker.py` is only for pipeline smoke tests.
 It is not an official P1 or P2 model.
+
+
+## P2 adapter loading and raw-output validation
+
+`p2_generator.py` provides the Service-B-compatible interface:
+
+```python
+from src.reranking.p2_generator import P2ActionGenerator
+
+generator = P2ActionGenerator(
+    "/path/to/p2/adapter",
+    base_model="Qwen/Qwen2.5-1.5B-Instruct",
+    model_revision="775b11afaf83e0dc75bd5abaf90133e47b3ec082",
+    max_input_tokens=6144,
+    max_new_tokens=1024,
+)
+
+raw_json = generator.generate(prompt)
+```
+
+The generator applies no chat-template wrapper, uses greedy decoding, and never
+truncates an input. JSON validation is separate so invalid raw attempts can be
+recorded before the frozen fallback policy is applied.
+
+Generate a deterministic set of raw outputs from saved P2 samples:
+
+```bash
+python -m src.reranking.run_p2_generation \
+  --samples /path/to/p2_samples_dev.jsonl \
+  --split dev \
+  --adapter /path/to/p2/adapter \
+  --output /new/path/to/p2_raw_outputs.jsonl \
+  --examples-per-task 20
+```
+
+The command writes the raw model text, strict parse result, latency, adapter
+hashes, model revision, decoding settings, and an output checksum. An
+`examples-per-task` value of 20 produces 120 records covering all six actions.
