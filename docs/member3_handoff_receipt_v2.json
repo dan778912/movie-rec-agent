@@ -1,0 +1,46 @@
+{
+  "schema_version": "member3-handoff-receipt-v1",
+  "source_branch": "member-1-samples-p2",
+  "source_commit": "47e4872e718bedbc3b0a842a8d21b49720bee475",
+  "zip_sha256": "18af124d1f42c1b57460db6ee0902c062aec17d5b7038c90f115553e08be32e2",
+  "zip_files_verified": 14,
+  "seed_sha256": "3efd7d4199027843c37d8fcd98d69e15977b553c05c3f32a9ca8a65d2e1b07dc",
+  "seed_movies": 21333,
+  "catalog_ids_equal": true,
+  "embedding_text_equal": true,
+  "prompt_metadata_equal": true,
+  "index_rebuild_required": false,
+  "index_version": "movies-468568c3d1c6251f9cd0ffcf34659e4a",
+  "simulator_version": "pre_cutoff_history_sim_v1",
+  "simulator_source_sha256": "e746127bd91cb2238f98a5e486aab150ca5d94236ae3790e710c74ae3561776a",
+  "simulator_source_matches_handoff": true,
+  "simulator_confirmation": "Member 1 confirmed in user-supplied team message; full team policy not yet frozen",
+  "prompt_version": "p2-prompt-v1",
+  "prompt_parity_samples": {
+    "train": 22802,
+    "dev": 2178
+  },
+  "prompt_parity_mismatches": 0,
+  "b3_sha256": "c388c0fd10bb895c1e0710ec10fa96a7d87785939f2498a5bf23533d18d000a9",
+  "b3_validation_users": 300,
+  "runner_owner": "Member 3 (user accepted responsibility in this chat)",
+  "serving_tokens": {
+    "max_input_tokens": 6144,
+    "max_new_tokens": 1024,
+    "status": "aligned with Member 1 recommendation; Member 6 confirmation pending"
+  },
+  "p2_checkpoint_status": "not found in inspected Member 6 branches or repository releases",
+  "official_inference_run": false,
+  "verified_date": "2026-11-23",
+  "zip_git_blob_sha": "361e45018dc26f7a39b4471daad1415eaa277847",
+  "latest_agent_branch_commit": "bb6f9764ec7e08b70b6dab5b93234aa4f22db918",
+  "agent_python_sources_match_latest_branch": true,
+  "data_quality_report": {
+    "reported_error_count": 0,
+    "status": "Member 1 report verified by supplied checksum; full quality audit not rerun"
+  },
+  "local_regression": {
+    "passed": 208,
+    "failed": 0
+  }
+}

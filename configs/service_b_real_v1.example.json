@@ -16,7 +16,7 @@
     "device": "cuda",
     "seed": 20261001,
     "max_input_tokens": 6144,
-    "max_new_tokens": 2048,
+    "max_new_tokens": 1024,
     "call_timeout_seconds": 20,
     "startup_timeout_seconds": 300,
     "max_worker_restarts": 2

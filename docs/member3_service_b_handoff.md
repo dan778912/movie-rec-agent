@@ -116,6 +116,14 @@ Equal returned distances are ordered by movie ID. Filters run inside Chroma and
 are checked again before returning IDs. Exhausted eligible catalogs return fewer
 IDs explicitly; a live response with fewer than ten eligible items fails explicitly.
 
+Member 1's `p2-samples-v2` handoff has now been received and verified: all 14
+SHA256SUMS entries passed. Its seed has the same 21,333 IDs, embedded `text`, and
+prompt metadata as the canonical documents already indexed. The current index
+therefore remains valid without rebuilding or changing its immutable manifest.
+The seed is available locally at
+`data/processed/handoff/member1-p2-v2/catalog_seed.jsonl`; provenance and parity
+checks are recorded in `docs/member3_handoff_receipt_v2.json`.
+
 Copy `configs/service_b_real_v1.example.json` to ignored
 `configs/service_b_local.json` and set actual checkpoint paths and limits:
 
@@ -136,13 +144,22 @@ models/p2-selected/
 The adapter's `base_model_name_or_path` must match configuration. Pin the base
 revision; the loader currently supports Member 6's Qwen2.5 architecture and PEFT
 format. It uses raw `p2-prompt-v1` prompts with no added chat-template wrapper,
-greedy generation, and no input truncation. The example's 6,144 input / 2,048 output
-budgets are provisional: Members 4 and 6 must confirm them against P2 training and
-the longest 100-candidate prompt. P1's 1,024-token pointwise scoring limit is not
+greedy generation, and no input truncation. The example now uses 6,144 input /
+1,024 output tokens, following Member 1's serving recommendation. Member 6 must
+still confirm compatibility with the delivered P2 checkpoint. The v2 handoff
+reports a longest training record of 6,458 total tokens and proposes a 6,656-token
+training budget; Member 6's currently published 5,120-token training setting would
+reject over-length examples. Training length and serving limits are separate.
+P1's 1,024-token pointwise scoring limit is not
 silently reused for P2. P1 remains a separate upstream ranking/scoring pipeline;
 this service does not label a P1 adapter as a trained P2 agent.
 
 ## Offline producer and approval gate
+
+Member 3 has accepted ownership of running the fixed 300-user validation pipeline
+with Priyanka's controller and handing predictions, traces, and measured run evidence
+to Member 2. Member 2 retains the protocol, authoritative scoring, and comparisons.
+No official inference has been run by this handoff update.
 
 The exporter uses the same agent/model/retrieval components. Every offline episode
 starts with the exact original ordered B3 top 50; expansions append fresh valid
@@ -153,7 +170,11 @@ adoption of the versioned trace/state extension above to persist a complete live
 
 Before official inference obtain:
 
-- Member 5's original ordered B3 JSONL for the selected split, with Member 2's hashes.
+- For validation, the original ordered B3 file is already verified and staged at
+  `outputs/predictions/incoming/member3-validation/b3.jsonl` (SHA-256
+  `c388c0fd10bb895c1e0710ec10fa96a7d87785939f2498a5bf23533d18d000a9`).
+  It passed the authoritative validator for all 300 frozen users. Test pools still
+  need their separate handoff and authorization.
 - Member 6's P2 adapter/tokenizer, P1 identity, training-sample version, and loading settings.
 - A team-approved policy: simulator, prompt length, budgets, invalid-output/grounding
   handling, fallback rule, timeouts, and checkpoint-selection procedure.
@@ -161,6 +182,11 @@ Before official inference obtain:
 
 The imported draft defaults allow two questions, one expansion, 100 pool items,
 eight control events, and exact-initial-order fallback. They remain unratified.
+Member 1 has confirmed `pre_cutoff_history_sim_v1`; its source bytes match the v2
+handoff receipt. All 22,802 train and 2,178 dev action prompts were reproduced
+byte-for-byte by our current `p2-prompt-v1` renderer. The newer upstream renderer
+file adds optional per-movie scoring helpers, but action-prompt parity is intact.
+This source/parity confirmation is not approval of the full experiment policy.
 `grounding_policy:flag` records unsupported explanations without repairing them;
 it is not a guarantee of factual correctness. The competing `rank_available_pool`
 budget policy is incompatible with the present official export contract. For live
@@ -280,9 +306,11 @@ envelope remains compatible with the existing Service A client.
 Docker is not installed on this machine, so Compose/Docker files were inspected
 but not built or run locally. `.github/workflows/service-b.yml` runs the regression
 suite, validates Compose, builds the CPU image, and smoke-tests its legacy and v1
-HTTP endpoints after a branch push or relevant PR. This workflow has not yet run;
-it is not evidence of a successful container build. No cloud deployment, GPU
-timings, or real P2 scoring is claimed.
+HTTP endpoints after a branch push or relevant PR. The f66d683 implementation
+passed that workflow, including the CPU image and container smoke:
+[verified run](https://github.com/dan778912/movie-rec-agent/actions/runs/45112474963).
+The current configuration/handoff changes have not yet had their own GitHub CI
+run. No cloud deployment, GPU timings, or real P2 scoring is claimed.
 
 ## Imported teammate sources
 

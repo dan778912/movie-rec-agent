@@ -16,7 +16,10 @@
     "signed_live_continuation": "passed",
     "bounded_model_recovery": "passed",
     "member5_http_client_compatibility": "passed",
-    "live_v1_http_smoke": "passed_with_labelled_demonstration_model"
+    "live_v1_http_smoke": "passed_with_labelled_demonstration_model",
+    "member1_v2_handoff": "all 14 supplied checksums passed",
+    "v2_action_prompt_parity": "24980 samples; zero differences",
+    "b3_validation_input": "received; expected SHA-256 matched; all 300 users validated"
   },
   "not_run": [
     "real P2 inference",
@@ -27,9 +30,16 @@
   ],
   "external_dependencies": [
     "P2 checkpoint/tokenizer and loading settings from Member 6",
-    "original frozen B3 prediction JSONLs from Member 5",
-    "team ratification of simulator, action and fallback policies, timeouts, and checkpoint selection"
+    "Member 6 confirmation of 6144 input / 1024 output serving limits",
+    "team ratification of remaining prompt/action, fallback, timeout, and checkpoint-selection policy",
+    "GPU environment for real P2 integration and latency testing"
   ],
-  "git_state": "local feature commit; remote push pending",
-  "ci": "Service B regression, Compose validation, CPU image build, and HTTP smoke workflow added; not yet run on GitHub"
+  "git_state": "local handoff alignment commit; push pending",
+  "ci": {
+    "last_verified_commit": "f66d68376a65d32685eeffda3cb0c4d344447c9a",
+    "conclusion": "success",
+    "url": "https://github.com/dan778912/movie-rec-agent/actions/runs/45112474963",
+    "current_changes": "not run on GitHub yet"
+  },
+  "runner_owner": "Member 3: inference/export execution; Member 2: scoring and comparisons"
 }
