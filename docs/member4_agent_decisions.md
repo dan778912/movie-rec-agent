@@ -27,17 +27,17 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 | A3 | A model output that cannot be used, or a failed model call | The contract allows the frozen fallback for it but ratifies no numeric validity threshold. With greedy decoding a retry repeats the same prompt. Timeouts belong to whoever owns the model client. | No retry; the first unusable output, or an exception from the model call, at a step triggers the B3 fallback (any policy). The raw output's SHA-256 (none for an exception) and the reason are recorded. | `max_invalid_actions_per_step` | Members 2, 4, 6 (after seeing real checkpoint output) |
 | A4 | What to do with an explanation the grounding screen marks `unsupported`, or with no usable explanation at all | No rule. The contract requires explanations in every episode, including fallbacks, and says the manifest states the explanation policy. The audit rubric is human. | `grounding_policy`: `flag` (default: keep the text, record the problems), `repair` (replace only that explanation with a text built from the movie's own displayed fields), `reject` (treat as unusable: retries, then `failed`), `off`. Unusable explanations end the episode `failed`: the ranking is kept, no text is invented, no trace is produced, and the caller returns an explicit error. | `grounding_policy` | Members 2 and 4 |
 | A5 | Ranking length | The prompt asks the model to rank the whole pool (50–100). The contract's rank event is the 50 prediction IDs. | The model's output must be a permutation of the pool shown; the top `ranking_size` are kept. The full ranking's digest is in telemetry. Explained movies are `min(10, ranking_size)` because the shared validator requires exactly that. | `ranking_size` | Member 2 to confirm |
-| A6 | Rank step: does training on pools with injected held-out items transfer to retriever-only pools at inference? | Member 1's report documents the injection as deliberate supervision (up to 3 held-out positives and 2 dislikes added to the final pool; the committed example has 105 candidates where the retriever returned 100, and all 3 injected positives land in the explained top ten). At inference no such movies exist. Member 6 has replied (relayed 2026-11-19): inference compatibility is intended and will be tested before checkpoint selection; Member 1's confirmation is pending ([details](#a6-in-detail-what-is-known-after-member-6s-reply)). Whether the mismatch costs anything is still unmeasured. | Strict: a ranking must be a permutation of the pool shown, and `injected_movie_ids` is never emitted. A test replays Member 1's example and pins this. A question, not a defect claim. | none | Member 1 (confirmation pending; Member 6 has replied); see [member4_team_review_note.md](member4_team_review_note.md) |
+| A6 | Rank step: does training on pools with injected held-out items transfer to retriever-only pools at inference? | Member 1's report documents the injection as deliberate supervision (up to 3 held-out positives and 2 dislikes added to the final pool; the committed example has 105 candidates where the retriever returned 100, and all 3 injected positives land in the explained top ten). At inference no such movies exist. Member 6 has replied (relayed 2026-11-19): inference compatibility is intended and will be tested before checkpoint selection; Member 1 confirmed on 2026-11-23 that nearly all ranking examples carry the injected items ([group updates](#group-updates-2026-11-23); [details](#a6-in-detail-what-is-known-after-member-6s-reply)). Whether the mismatch costs anything is still unmeasured. | Strict: a ranking must be a permutation of the pool shown, and `injected_movie_ids` is never emitted. A test replays Member 1's example and pins this. A question, not a defect claim. | none | Member 6 (testing on plain 100-movie pools); see [member4_team_review_note.md](member4_team_review_note.md) |
 | A7 | Retrieval interface and ownership | The model emits a free-text `query`. Member 3's interface does not exist yet. Unspecified: who removes duplicates, watched movies and over-cap results, and who updates the dynamic profile from clarification answers. | The caller receives `query` and `max_new`. The controller filters defensively (pool members, watched, duplicates, over-cap) and logs counts per retrieval. Answers go into the prompt's Clarifications block; `profile_text` is never edited. | none | Members 3 and 4 |
 | A8 | Repeated questions | The prompt says not to repeat. The protocol assigns the handling to Member 4. | A question matching an earlier one (ignoring case, punctuation, spacing) is an unusable output. | `reject_repeated_questions` | Member 4 proposes; Member 2 to acknowledge |
 | A9 | Strict versus lenient JSON | Training completions are one bare JSON object. No real P2 checkpoint output has been seen. | Strict (Member 1's `parse_action`): no code fences, no prose. Nothing is repaired silently. | none | Revisit with the measured invalid-output rate from the real checkpoint |
 | A10 | Live pause and resume | Service B is stateless. Service A resends `clarifications` (`{question, answer}`) on every call. The contract proposes envelope fields (`contract_version`, `request_id`, `decision_trace`) but names no error codes. | Two ways to continue are offered. `decide` rebuilds the state from the replayed clarifications: each counts as 2 control events against the cap, so the budget is not reset, and earlier events are not invented (replayed answers get `answer_source: "client_supplied"`). `resume` continues from a stored state and keeps its full event history. Both give the same recommendations in the example. A live trace is assembled across calls by Service A. | none | Members 3, 5, 2 |
-| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | `max_input_tokens` is not a setting yet (see [A11 in detail](#a11-in-detail-the-5120-token-proposal)) | Members 3 and 6 (Member 6 proposes 5,120 for training and serving, unconfirmed); Members 4 and 6 for a changed renderer (it needs a new `PROMPT_VERSION` and regenerated samples) |
-| A12 | Who writes the offline runner (loops over the saved users, calls the controller and the answer simulator, writes prediction/trace/manifest files)? | Member 1 suggests it is Member 4's. The October work split does not list it. | Not written, and not started until ownership is confirmed. The online `decide` entry point is a different thing and is included. | n/a | Members 2, 3, 4 |
+| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | none in this module: Service B's model client rejects an over-length prompt and `decide` records that as `model_error` ([details](#a11-in-detail-the-5120-token-proposal)) | Members 3 and 6 to freeze the limits (6,656 proposed for training; 6,144 in and 1,024 to 2,048 out proposed for serving); Members 4 and 6 for a changed renderer (it needs a new `PROMPT_VERSION` and regenerated samples) |
+| A12 | Who writes the offline runner (loops over the saved users, calls the controller and the answer simulator, writes prediction/trace/manifest files)? | Member 1 suggested it is Member 4's. The October work split does not list it. On 2026-11-23 Member 3's branch turned out to contain one ([group updates](#group-updates-2026-11-23)). | Not written here. The online `decide` entry point is a different thing and is included. | n/a | Member 3 (wrote it), Member 2 (validates its output); who runs it officially is not recorded |
 | A13 | Termination labels outside the contract | The proposed contract defines only `recommend` and `fallback`. | `budget_exhausted_rank` (under `rank_available_pool`) and `failed` are this module's own labels. See the A1 evidence. | n/a | Member 2, if A1 picks rank-available |
 | A14 | Validator coverage | Member 2's trace validator is on an unmerged branch. | The in-repo oracle is Member 1's `validate_episode`. A one-off cross-check against Member 2's validator at `9032fd1` is recorded below and was re-run after the grounding work with the same result. | n/a | Add a permanent test once the branches merge |
 | A15 | Which claims and evidence count as grounded? | The work split names a "grounding check" without criteria. Member 2 has a human audit rubric; Member 1 has a checker for its own template explanations. | A deterministic screen, `src/agent/grounding.py`, of what is mechanically checkable (see below). It never says "supported": that is the human audit's word. | `grounding_policy` | Members 2 and 4: are these the agreed criteria? |
-| A16 | Adapter shapes between the controller and Service B | Member 3's interfaces do not exist yet. | `ModelClient.generate(prompt)`, `Retriever.initial_pool(...)` / `search(...)`, a `catalog` mapping, and `decide` / `resume` returning a Service-A-shaped response plus the explicit state. Proposed in `src/agent/decide.py` and shown running in `src/agent/example.py`. Timeouts belong to the client. | n/a | Member 3 to accept or change |
+| A16 | Adapter shapes between the controller and Service B | Member 3's branch `member-3-service-b-retrieval` now implements these interfaces ([group updates](#group-updates-2026-11-23)). | `ModelClient.generate(prompt)`, `Retriever.initial_pool(...)` / `search(...)`, a `catalog` mapping, and `decide` / `resume` returning a Service-A-shaped response plus the explicit state. Proposed in `src/agent/decide.py` and shown running in `src/agent/example.py`. Timeouts belong to the client. | n/a | Member 3 implemented them unchanged; no change requested |
 | A17 | Which fallback trigger codes do we declare, and what do the controller-derived manifest counts mean? | Member 2's proposed `p2-run-manifest-v1` wants per-user counts and a fallback trigger taken from a list the producer freezes. It does not say which codes. Its test fixture uses three examples: `timeout`, `invalid_action`, `loop_cap`. | `src/agent/manifest.py` proposes 11 codes, definitions of `invalid_action_count` and `loop_cap_hit`, and parser and explanation-policy version strings. Latency, cost, timeouts and answerability come from the caller. Details below. | constants in `manifest.py` | Member 2: accept or change the list and definitions |
 
 ## A1 in detail: the two fallback rules
@@ -190,6 +190,8 @@ about model calls made while earlier turns were served, so whole-episode counts 
 
 ## A11 in detail: the 5,120-token proposal
 
+**Update 2026-11-23: the real tokenizer showed 5,120 is too short and my estimates below were too optimistic; see [the group updates](#group-updates-2026-11-23). The text below is kept as the record of what was known on 2026-11-20.**
+
 Member 6 replied (2026-11-20, relayed in private chat) that P1's 1,024-token limit is not enough for the P2 ranking prompts and
 proposed a **5,120-token maximum sequence length for both LoRA training and Service B inference**. Member 6 will confirm after
 measuring the final training-data token lengths and running a GPU memory smoke test, does not want training or serving code to
@@ -213,15 +215,64 @@ estimate**):
 | digits one token each, other text 4.0 per token | 4,233 | 4,477 | 4,601 | 0 |
 | digits one token each, other text 3.5 per token | 4,711 | 4,988 | 5,130 | 166 |
 
-  So 5,120 fits under the first two estimates (the second leaves about 75 tokens at the maximum) and does not under the third.
+  So 5,120 fits under the first two estimates and does not under the third. **Superseded:** the real count is close to the third or worse.
   The margin is real but thin. The deciding number is the real tokenizer's count of the real rank prompts, which Member 6 is
   already planning to measure; this document should not be read as saying 5,120 is safe.
 * **Serving never exceeds training.** The controller caps the pool at `max_pool_size=100`, while Member 1's samples have up to
   105 candidates, so a prompt Service B builds is never longer than the longest training prompt.
-* **What I will add once the number is frozen** (not built now, because the limit and the tokenizer are not settled): an
+* **Length guard (superseded: not needed here).** I had planned, once the number was frozen, an
   optional `max_input_tokens` and a `count_tokens` callable passed to `decide`, so that an over-length prompt is a loud
   `model_error`-style failure (B3-order fallback under the default policy) rather than silent truncation. Member 3 would
   supply the callable, since the service owns the tokenizer. Chunking stays out unless Member 6 reports that 5,120 does not fit.
+  Update: Member 3's model client already raises on an over-length prompt with truncation disabled, and `decide` records any exception from
+  `generate` as a `model_error`, so nothing is added here.
+
+## Group updates (2026-11-23)
+
+Relayed from the group chat and read against the branches on origin (fetched 2026-11-23). Nothing here is ratified.
+
+* **Real token counts replace my estimates (A11).** Member 1's v2 handoff ZIP (SHA-256 `18af124d...be32e2`, checked here against every
+  file in its `SHA256SUMS.txt`) states, from the pinned Qwen tokenizer counting prompt + completion + `<|im_end|>`: the longest record is a
+  `rank_candidates` sample of 6,458 tokens (dev 6,242), and 898 train and 75 dev records exceed 5,120, so Member 6's length check would stop
+  the run. Member 1 proposes `max_length` 6,656 for training with no truncation, and 6,144 input / 1,024 output for serving.
+  Member 3's provisional serving limits are 6,144 input / 2,048 output.
+* **How far off my estimates were.** Measured against those two facts on Member 1's training file, these prompts run about 2.9 to 3.1
+  characters per token: the longest record is 18,995 characters for 6,458 tokens (2.94), and the 898th-longest is 15,771 characters
+  for about 5,120 (3.08). I had assumed 3.9 (and 3.5 to 4.0 with digits split). Re-reading my rehearsal sizes at 2.9 to 3.1: the
+  100-candidate rank prompt is about 4.6k to 4.8k tokens at the median and 5.1k to 5.3k at the maximum (not 3.7k and 4.0k); the
+  50-candidate evaluate and rank prompts are about 2.6k to 2.7k and at most about 3.2k. These are still estimates from a character ratio, not a
+  tokenizer run, and the ratio varies by record.
+* **Do the proposed serving limits fit?** Training pools reach 105 candidates (the injected items), but this controller caps a pool at
+  100. Scaling the longest training prompt (18,290 characters, 105 candidates) to 100 gives roughly 5.7k to 5.9k tokens, under 6,144 by a
+  thin margin. Output is the other risk: the longest training explanation completion is 3,311 characters, roughly 0.9k to 1.1k tokens, so a
+  1,024-token output limit could cut it off and the strict parser would reject the truncated JSON. The 2,048 in Member 3's example is safe,
+  because generation stops at the end-of-sequence token and the limit is only a cap. Rank completions are at most 779 characters.
+* **Ranking data (A6, confirmed by Member 1).** 3,971 of 3,974 train and all 400 dev ranking examples add up to 3 liked and 2 disliked
+  movies from the user's later training-period ratings (no validation or test data; the input does not mark them), so pools are 101 to 105
+  long. Only 3 train examples are retriever-only. Consequence: dev loss cannot show how a checkpoint behaves on a plain pool, so the
+  300-user end-to-end run (retriever-only pools starting from B3) is the real test. Member 6 has been asked to test on plain 100-movie
+  pools; Member 1 offered to regenerate with more retriever-only examples. Explanations use only movie information and the visible profile.
+* **Budget exhaustion (A1).** Member 1 prefers the midterm wording: when a budget runs out the model ranks the pool it has, labelled
+  separately, and the B3 fallback is only for errors; the argument is that training teaches the model to stop at the budget, so it should
+  be rare. That is this module's `rank_available_pool` setting, and it needs Member 2's evaluator to accept the label
+  (`budget_exhausted_rank`, currently rejected). Member 3's handoff says the same thing about the contract. Member 2 has not answered in
+  anything I have seen. The default stays `fallback_b3_order`. Member 1 also confirmed that 2 questions plus 1 retrieval is exactly 8
+  control events.
+* **An offline producer exists (A12).** `member-3-service-b-retrieval` (tip `f66d683`, 2026-11-20) has `src/app/service_b/offline.py`:
+  `prepare` builds a freeze bundle, `run` loops saved users from the original ordered B3 top 50 with the pre-cutoff simulator and this
+  module, and the output goes through Member 2's validator in Member 3's tests (208 pass). Nothing official has run: no P2 weights, no
+  original B3 files and no GPU on that machine. Its copy of `src/agent/` and `tests/test_agent_*.py` is byte-identical to this branch's.
+* **Service B integration (A16).** `OnlineRetriever.initial_pool` / `search` match this module's `Retriever`; the model client is
+  `generate(prompt) -> str` on raw `p2-prompt-v1` text with no chat template, greedy decoding, a subprocess with a call timeout, and a
+  `ValueError` for a prompt over the token budget. `/decide` keeps Service A's `ask` / `recommend` shape, `{"action": "error"}` becomes
+  HTTP 503, and `/v1/decide` + `/v1/resume` carry a signed continuation built on this module's resume state. Its handoff asks Members 4 and 6
+  to confirm the 6,144 / 2,048 limits against P2 training and the longest 100-candidate prompt (the point above is my part of that answer).
+* **Prompt text and grammar unchanged.** Member 1's v2 changes `agent_text.py` only by extracting a `clarification_lines` helper, and
+  adds `p2-score-prompt-v1` (the P1 template) for a per-movie scoring sample set. Rendering of the six tasks is byte-for-byte as before,
+  `p2_actions.py` is untouched, and the ZIP README calls the scoring samples an optional backup ("the team ranks listwise"), so this
+  controller's `rank_candidates` step is unaffected.
+* **`main` has moved.** `main` is at `737f83d` (Member 5's pull requests 3 and 4, merged 2026-11-21). This branch and Member 1's still
+  sit on the older `main`. The PR base question is unchanged and the PR stays on hold.
 
 ## Real-data rehearsal (stand-in model)
 
