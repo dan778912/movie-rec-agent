@@ -44,8 +44,14 @@ without truncating its 50-item ranking. The bootstrap and table tools can
 compare this control with P1 when both runs use the same users, config,
 evaluator revision, and B3 source bytes.
 
-From the repository root, after the producer exports the original ordered B3
-pool and control predictions:
+The corrected 300-user untuned export and original ordered B3 pool were received
+and scored on 2026-11-24. See the [portable control report](../../docs/results/member2_qwen_base_validation_300_v1/README.md)
+for exact hashes, metrics, validation, and the B3 comparison. The original P1
+prediction JSONL remains outstanding, so a same-revision P1 comparison is not
+yet available.
+
+From the repository root, with the original ordered B3 pool and control
+predictions:
 
 ```powershell
 python -m src.evaluation.evaluate --config configs/evaluation_phase2_validation_draft_v1.json --predictions <qwen_base.jsonl> --method qwen_base --candidate-pool <b3.jsonl> --output-dir <new-qwen-base-report-dir>
@@ -55,8 +61,7 @@ python -m src.evaluation.bootstrap --baseline-dir <qwen-base-report-dir> --chall
 Member 6's inference command defaults to `p1`, so an untuned export must set
 `--method qwen_base` explicitly. The producer must pin and record the exact
 base-model revision and decoding settings; structural evaluation cannot verify
-which weights generated a ranking. No untuned-Qwen prediction export or metric
-has been received.
+which weights generated a ranking.
 
 ## Activate the environment on your Mac
 
