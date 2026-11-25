@@ -102,6 +102,7 @@ def create_app(resources=None, config_path=None, state_secret=None):
                 "index_version": s.initial_index_version}
             LOG.info(json.dumps({"request_id": request_id, "mode": r.mode,
                 "trace_segment": decision.state.events, "telemetry": telemetry_record(decision.state),
+                "model_call_audit": model.model_call_audit,
                 "latency_ms": {"model": model.seconds * 1000, "retrieval": retrieval.seconds * 1000,
                                "end_to_end": (time.perf_counter() - start) * 1000}}))
             if result["action"] == "error":
@@ -120,7 +121,8 @@ def create_app(resources=None, config_path=None, state_secret=None):
                 return {**result, "contract_version": "service-b-v1", "request_id": request_id,
                     "trace_id": trace_id, "mode": r.mode,
                     "continuation": codec(r).encode(s, trace_id) if result["action"] == "ask" else None,
-                    "decision_trace": live_trace, "telemetry": telemetry_record(s)}
+                    "decision_trace": live_trace, "telemetry": telemetry_record(s),
+                    "model_call_audit": model.model_call_audit}
             return result
         except (RequestError, TransitionError) as error:
             raise HTTPException(422, str(error)) from error

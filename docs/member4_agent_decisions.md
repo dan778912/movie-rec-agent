@@ -22,22 +22,22 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 
 | ID | Question | What the sources say | What the code does now | Setting | Who needs to decide |
 |---|---|---|---|---|---|
-| **A1** | What happens when a budget runs out and the latest judgment is still "no"? | **Conflict**, see below. | Both rules implemented. Default `fallback_b3_order`. | `exhaustion_policy` | Members 2 and 1, then the whole team (the final report must describe what runs) |
+| **A1** | What happens when a budget runs out and the latest judgment is still "no"? | **Conflict**, see below. | Both rules implemented. Default `fallback_b3_order`. Member 2 (2026-11-24) fixed the B3 order for the first validation run; ranking the pool on exhaustion would be a separately versioned contract change. | `exhaustion_policy` | Members 2 and 1, then the whole team (the final report must describe what runs) |
 | A2 | Operational limits: questions, retrievals, pool size, event cap | Member 1 trained at 2 questions, 1 retrieval, 50 → at most 100. The proposed trace allows 8 control events. These agree: 8 is exactly the worst case of 2 + 1 (3 assessments + 2 questions + 2 pool checks + 1 retrieval). The protocol assigns the online loop cap and timeouts to Member 4. None is ratified. | 2 / 1 / 100 / 8. A question or retrieval is refused when its follow-up events would not fit under the cap. | `max_clarifications`, `max_retrievals`, `max_pool_size`, `max_control_events` | Members 1, 2, 3, 4. Freeze on validation data before any test inference. |
 | A3 | A model output that cannot be used, or a failed model call | The contract allows the frozen fallback for it but ratifies no numeric validity threshold. With greedy decoding a retry repeats the same prompt. Timeouts belong to whoever owns the model client. | No retry; the first unusable output, or an exception from the model call, at a step triggers the B3 fallback (any policy). The raw output's SHA-256 (none for an exception) and the reason are recorded. | `max_invalid_actions_per_step` | Members 2, 4, 6 (after seeing real checkpoint output) |
-| A4 | What to do with an explanation the grounding screen marks `unsupported`, or with no usable explanation at all | No rule. The contract requires explanations in every episode, including fallbacks, and says the manifest states the explanation policy. The audit rubric is human. | `grounding_policy`: `flag` (default: keep the text, record the problems), `repair` (replace only that explanation with a text built from the movie's own displayed fields), `reject` (treat as unusable: retries, then `failed`), `off`. Unusable explanations end the episode `failed`: the ranking is kept, no text is invented, no trace is produced, and the caller returns an explicit error. | `grounding_policy` | Members 2 and 4 |
+| A4 | What to do with an explanation the grounding screen marks `unsupported`, or with no usable explanation at all | No rule. The contract requires explanations in every episode, including fallbacks, and says the manifest states the explanation policy. The audit rubric is human. | `grounding_policy`: `flag` (default: keep the text, record the problems), `repair` (replace only that explanation with a text built from the movie's own displayed fields), `reject` (treat as unusable: retries, then `failed`), `off`. Unusable explanations end the episode `failed`: the ranking is kept, no text is invented, no trace is produced, and the caller returns an explicit error. Member 2 specified a labelled catalog-metadata fallback for the first real validation run (2026-11-24). `explanation_failure_policy="template"` implements it with their exact event fields; it stays off unless a run's config sets it ([details](#template-explanation-fallback-built-2026-11-24-off-by-default), [their reply](#member-2s-reply-2026-11-24-member2-phase2-at-bab49dc)). | `grounding_policy`, `explanation_failure_policy` | Decided for the first run by Member 2; Member 3 sets it in the run config |
 | A5 | Ranking length | The prompt asks the model to rank the whole pool (50–100). The contract's rank event is the 50 prediction IDs. | The model's output must be a permutation of the pool shown; the top `ranking_size` are kept. The full ranking's digest is in telemetry. Explained movies are `min(10, ranking_size)` because the shared validator requires exactly that. | `ranking_size` | Member 2 to confirm |
-| A6 | Rank step: does training on pools with injected held-out items transfer to retriever-only pools at inference? | Member 1's report documents the injection as deliberate supervision (up to 3 held-out positives and 2 dislikes added to the final pool; the committed example has 105 candidates where the retriever returned 100, and all 3 injected positives land in the explained top ten). At inference no such movies exist. Member 6 has replied (relayed 2026-11-19): inference compatibility is intended and will be tested before checkpoint selection; Member 1's confirmation is pending ([details](#a6-in-detail-what-is-known-after-member-6s-reply)). Whether the mismatch costs anything is still unmeasured. | Strict: a ranking must be a permutation of the pool shown, and `injected_movie_ids` is never emitted. A test replays Member 1's example and pins this. A question, not a defect claim. | none | Member 1 (confirmation pending; Member 6 has replied); see [member4_team_review_note.md](member4_team_review_note.md) |
+| A6 | Rank step: does training on pools with injected held-out items transfer to retriever-only pools at inference? | Member 1's report documents the injection as deliberate supervision (up to 3 held-out positives and 2 dislikes added to the final pool; the committed example has 105 candidates where the retriever returned 100, and all 3 injected positives land in the explained top ten). At inference no such movies exist. Member 6 has replied (relayed 2026-11-19): inference compatibility is intended and will be tested before checkpoint selection; Member 1 confirmed on 2026-11-23 that nearly all ranking examples carry the injected items ([group updates](#group-updates-2026-11-23); [details](#a6-in-detail-what-is-known-after-member-6s-reply)). Whether the mismatch costs anything is still unmeasured. | Strict: a ranking must be a permutation of the pool shown, and `injected_movie_ids` is never emitted. A test replays Member 1's example and pins this. A question, not a defect claim. | none | Member 6 (testing on plain 100-movie pools); see [member4_team_review_note.md](member4_team_review_note.md) |
 | A7 | Retrieval interface and ownership | The model emits a free-text `query`. Member 3's interface does not exist yet. Unspecified: who removes duplicates, watched movies and over-cap results, and who updates the dynamic profile from clarification answers. | The caller receives `query` and `max_new`. The controller filters defensively (pool members, watched, duplicates, over-cap) and logs counts per retrieval. Answers go into the prompt's Clarifications block; `profile_text` is never edited. | none | Members 3 and 4 |
 | A8 | Repeated questions | The prompt says not to repeat. The protocol assigns the handling to Member 4. | A question matching an earlier one (ignoring case, punctuation, spacing) is an unusable output. | `reject_repeated_questions` | Member 4 proposes; Member 2 to acknowledge |
 | A9 | Strict versus lenient JSON | Training completions are one bare JSON object. No real P2 checkpoint output has been seen. | Strict (Member 1's `parse_action`): no code fences, no prose. Nothing is repaired silently. | none | Revisit with the measured invalid-output rate from the real checkpoint |
 | A10 | Live pause and resume | Service B is stateless. Service A resends `clarifications` (`{question, answer}`) on every call. The contract proposes envelope fields (`contract_version`, `request_id`, `decision_trace`) but names no error codes. | Two ways to continue are offered. `decide` rebuilds the state from the replayed clarifications: each counts as 2 control events against the cap, so the budget is not reset, and earlier events are not invented (replayed answers get `answer_source: "client_supplied"`). `resume` continues from a stored state and keeps its full event history. Both give the same recommendations in the example. A live trace is assembled across calls by Service A. | none | Members 3, 5, 2 |
-| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | none | Members 4 and 6 (a changed renderer needs a new `PROMPT_VERSION` and regenerated samples) |
-| A12 | Who writes the offline runner (loops over the saved users, calls the controller and the answer simulator, writes prediction/trace/manifest files)? | Member 1 suggests it is Member 4's. The October work split does not list it. | Not written, and not started until ownership is confirmed. The online `decide` entry point is a different thing and is included. | n/a | Members 2, 3, 4 |
+| A11 | Prompt length for 50–105 candidates (Member 1's D2) | About 4.6k tokens versus P1's 1,024. Options: longer training length, chunking, shorter lines. | Renders the full pool with the shared `p2-prompt-v1`. No chunking. Measured on the real 300 validation pools: see [the rehearsal](#real-data-rehearsal-stand-in-model). | none in this module: Service B's model client rejects an over-length prompt and `decide` records that as `model_error` ([details](#a11-in-detail-the-5120-token-proposal)) | Settled by measurement on 2026-11-24: Member 6's real-tokenizer audit verifies training at 6,656 and recommends serving at 6,144 in / 1,024 out, the same as Member 3's config ([tokenizer audit](#member-6s-tokenizer-audit-2026-11-24)); Members 4 and 6 for a changed renderer (it needs a new `PROMPT_VERSION` and regenerated samples) |
+| A12 | Who writes the offline runner (loops over the saved users, calls the controller and the answer simulator, writes prediction/trace/manifest files)? | Member 1 suggested it is Member 4's. The October work split does not list it. On 2026-11-23 Member 3's branch turned out to contain one ([group updates](#group-updates-2026-11-23)). | Not written here. The online `decide` entry point is a different thing and is included. | n/a | Member 3 wrote it and said on 2026-11-23 it owns the 300-user inference/export run with this controller; Member 2 keeps authoritative scoring and comparisons |
 | A13 | Termination labels outside the contract | The proposed contract defines only `recommend` and `fallback`. | `budget_exhausted_rank` (under `rank_available_pool`) and `failed` are this module's own labels. See the A1 evidence. | n/a | Member 2, if A1 picks rank-available |
 | A14 | Validator coverage | Member 2's trace validator is on an unmerged branch. | The in-repo oracle is Member 1's `validate_episode`. A one-off cross-check against Member 2's validator at `9032fd1` is recorded below and was re-run after the grounding work with the same result. | n/a | Add a permanent test once the branches merge |
 | A15 | Which claims and evidence count as grounded? | The work split names a "grounding check" without criteria. Member 2 has a human audit rubric; Member 1 has a checker for its own template explanations. | A deterministic screen, `src/agent/grounding.py`, of what is mechanically checkable (see below). It never says "supported": that is the human audit's word. | `grounding_policy` | Members 2 and 4: are these the agreed criteria? |
-| A16 | Adapter shapes between the controller and Service B | Member 3's interfaces do not exist yet. | `ModelClient.generate(prompt)`, `Retriever.initial_pool(...)` / `search(...)`, a `catalog` mapping, and `decide` / `resume` returning a Service-A-shaped response plus the explicit state. Proposed in `src/agent/decide.py` and shown running in `src/agent/example.py`. Timeouts belong to the client. | n/a | Member 3 to accept or change |
+| A16 | Adapter shapes between the controller and Service B | Member 3's branch `member-3-service-b-retrieval` now implements these interfaces ([group updates](#group-updates-2026-11-23)). | `ModelClient.generate(prompt)`, `Retriever.initial_pool(...)` / `search(...)`, a `catalog` mapping, and `decide` / `resume` returning a Service-A-shaped response plus the explicit state. Proposed in `src/agent/decide.py` and shown running in `src/agent/example.py`. Timeouts belong to the client. | n/a | Member 3 implemented them unchanged; no change requested |
 | A17 | Which fallback trigger codes do we declare, and what do the controller-derived manifest counts mean? | Member 2's proposed `p2-run-manifest-v1` wants per-user counts and a fallback trigger taken from a list the producer freezes. It does not say which codes. Its test fixture uses three examples: `timeout`, `invalid_action`, `loop_cap`. | `src/agent/manifest.py` proposes 11 codes, definitions of `invalid_action_count` and `loop_cap_hit`, and parser and explanation-policy version strings. Latency, cost, timeouts and answerability come from the caller. Details below. | constants in `manifest.py` | Member 2: accept or change the list and definitions |
 
 ## A1 in detail: the two fallback rules
@@ -188,6 +188,277 @@ the call failed. (2) Should `invalid_action_count` exclude failed model calls, a
 about model calls made while earlier turns were served, so whole-episode counts need a state carried through
 `resume`, or sums across calls.
 
+## A11 in detail: the 5,120-token proposal
+
+**Update 2026-11-23: the real tokenizer showed 5,120 is too short and my estimates below were too optimistic; see [the group updates](#group-updates-2026-11-23). The text below is kept as the record of what was known on 2026-11-20.**
+
+Member 6 replied (2026-11-20, relayed in private chat) that P1's 1,024-token limit is not enough for the P2 ranking prompts and
+proposed a **5,120-token maximum sequence length for both LoRA training and Service B inference**. Member 6 will confirm after
+measuring the final training-data token lengths and running a GPU memory smoke test, does not want training or serving code to
+truncate candidates silently, and will say so before the policy is frozen if 5,120 does not fit, so that chunking can be added.
+Member 3 has been asked whether Service B can use the same limit; no answer yet. Nothing here is ratified.
+
+My own check of whether 5,120 leaves room (scratch script, not committed; **no tokenizer is installed, so every number is an
+estimate**):
+
+* **Output is small.** The longest valid rank completion is 50 six-digit ids, 444 characters, so at most about 450 tokens even if
+  every character were a token. Member 1's longest explanation sample is 1,512 characters, but that prompt is only about 950
+  tokens, so the explain step is not the constraint.
+* **The prompt is the constraint, and it depends on the tokenizer.** The earlier figure of 3,636 median and 4,022 maximum for
+  100 candidates used a flat 3.9 characters per token. These prompts are full of movie ids, years and ratings, and Qwen-family
+  tokenizers are believed to split numbers into single digits (an assumption, not checked here), so a flat ratio may understate.
+  On all 300 validation users with 50 arbitrary movies added to each pool:
+
+| Estimate for the rank prompt at 100 candidates | Median | 95th percentile | Max | Prompts leaving under 444 tokens of room (of 300) |
+|---|---|---|---|---|
+| flat 3.9 characters per token | 3,660 | 3,915 | 4,045 | 0 |
+| digits one token each, other text 4.0 per token | 4,233 | 4,477 | 4,601 | 0 |
+| digits one token each, other text 3.5 per token | 4,711 | 4,988 | 5,130 | 166 |
+
+  So 5,120 fits under the first two estimates and does not under the third. **Superseded:** the real count is close to the third or worse.
+  The margin is real but thin. The deciding number is the real tokenizer's count of the real rank prompts, which Member 6 is
+  already planning to measure; this document should not be read as saying 5,120 is safe.
+* **Serving never exceeds training.** The controller caps the pool at `max_pool_size=100`, while Member 1's samples have up to
+  105 candidates, so a prompt Service B builds is never longer than the longest training prompt.
+* **Length guard (superseded: not needed here).** I had planned, once the number was frozen, an
+  optional `max_input_tokens` and a `count_tokens` callable passed to `decide`, so that an over-length prompt is a loud
+  `model_error`-style failure (B3-order fallback under the default policy) rather than silent truncation. Member 3 would
+  supply the callable, since the service owns the tokenizer. Chunking stays out unless Member 6 reports that 5,120 does not fit.
+  Update: Member 3's model client already raises on an over-length prompt with truncation disabled, and `decide` records any exception from
+  `generate` as a `model_error`, so nothing is added here.
+
+## Group updates (2026-11-23)
+
+Relayed from the group chat and read against the branches on origin (fetched 2026-11-23). Nothing here is ratified.
+
+* **Real token counts replace my estimates (A11).** Member 1's v2 handoff ZIP (SHA-256 `18af124d...be32e2`, checked here against every
+  file in its `SHA256SUMS.txt`) states, from the pinned Qwen tokenizer counting prompt + completion + `<|im_end|>`: the longest record is a
+  `rank_candidates` sample of 6,458 tokens (dev 6,242), and 898 train and 75 dev records exceed 5,120, so Member 6's length check would stop
+  the run. Member 1 proposes `max_length` 6,656 for training with no truncation, and 6,144 input / 1,024 output for serving.
+  Member 3's provisional serving limits were 6,144 input / 2,048 output (changed to 1,024 output later the same day, see the update below).
+* **How far off my estimates were.** Measured against those two facts on Member 1's training file, these prompts run about 2.9 to 3.1
+  characters per token: the longest record is 18,995 characters for 6,458 tokens (2.94), and the 898th-longest is 15,771 characters
+  for about 5,120 (3.08). I had assumed 3.9 (and 3.5 to 4.0 with digits split). Re-reading my rehearsal sizes at 2.9 to 3.1: the
+  100-candidate rank prompt is about 4.6k to 4.8k tokens at the median and 5.1k to 5.3k at the maximum (not 3.7k and 4.0k); the
+  50-candidate evaluate and rank prompts are about 2.6k to 2.7k and at most about 3.2k. These are still estimates from a character ratio, not a
+  tokenizer run, and the ratio varies by record.
+* **Do the proposed serving limits fit?** Training pools reach 105 candidates (the injected items), but this controller caps a pool at
+  100. Scaling the longest training prompt (18,290 characters, 105 candidates) to 100 gives roughly 5.7k to 5.9k tokens, under 6,144 by a
+  thin margin. Output is the other risk: the longest training explanation completion is 3,311 characters, roughly 0.9k to 1.1k tokens, so a
+  1,024-token output limit could cut it off and the strict parser would reject the truncated JSON. The 2,048 in Member 3's example is safe,
+  because generation stops at the end-of-sequence token and the limit is only a cap. Rank completions are at most 779 characters.
+  **Corrected in the update below:** I overstated this. Across the whole training file almost nothing is that long, so 1,024 is probably enough.
+* **Ranking data (A6, confirmed by Member 1).** 3,971 of 3,974 train and all 400 dev ranking examples add up to 3 liked and 2 disliked
+  movies from the user's later training-period ratings (no validation or test data; the input does not mark them), so pools are 101 to 105
+  long. Only 3 train examples are retriever-only. Consequence: dev loss cannot show how a checkpoint behaves on a plain pool, so the
+  300-user end-to-end run (retriever-only pools starting from B3) is the real test. Member 6 has been asked to test on plain 100-movie
+  pools; Member 1 offered to regenerate with more retriever-only examples. Explanations use only movie information and the visible profile.
+* **Budget exhaustion (A1).** Member 1 prefers the midterm wording: when a budget runs out the model ranks the pool it has, labelled
+  separately, and the B3 fallback is only for errors; the argument is that training teaches the model to stop at the budget, so it should
+  be rare. That is this module's `rank_available_pool` setting, and it needs Member 2's evaluator to accept the label
+  (`budget_exhausted_rank`, currently rejected). Member 3's handoff says the same thing about the contract. Member 2 has not answered in
+  anything I have seen. The default stays `fallback_b3_order`. Member 1 also confirmed that 2 questions plus 1 retrieval is exactly 8
+  control events.
+* **An offline producer exists (A12).** `member-3-service-b-retrieval` (tip `f66d683`, 2026-11-20) has `src/app/service_b/offline.py`:
+  `prepare` builds a freeze bundle, `run` loops saved users from the original ordered B3 top 50 with the pre-cutoff simulator and this
+  module, and the output goes through Member 2's validator in Member 3's tests (208 pass). Nothing official has run: no P2 weights, no
+  original B3 files and no GPU on that machine. Its copy of `src/agent/` and `tests/test_agent_*.py` is byte-identical to this branch's.
+* **Service B integration (A16).** `OnlineRetriever.initial_pool` / `search` match this module's `Retriever`; the model client is
+  `generate(prompt) -> str` on raw `p2-prompt-v1` text with no chat template, greedy decoding, a subprocess with a call timeout, and a
+  `ValueError` for a prompt over the token budget. `/decide` keeps Service A's `ask` / `recommend` shape, `{"action": "error"}` becomes
+  HTTP 503, and `/v1/decide` + `/v1/resume` carry a signed continuation built on this module's resume state. Its handoff asks Members 4 and 6
+  to confirm the 6,144 / 2,048 limits against P2 training and the longest 100-candidate prompt (the point above is my part of that answer).
+* **Prompt text and grammar unchanged.** Member 1's v2 changes `agent_text.py` only by extracting a `clarification_lines` helper, and
+  adds `p2-score-prompt-v1` (the P1 template) for a per-movie scoring sample set. Rendering of the six tasks is byte-for-byte as before,
+  `p2_actions.py` is untouched, and the ZIP README calls the scoring samples an optional backup ("the team ranks listwise"), so this
+  controller's `rank_candidates` step is unaffected.
+* **`main` has moved.** `main` is at `737f83d` (Member 5's pull requests 3 and 4, merged 2026-11-21). This branch and Member 1's still
+  sit on the older `main`. The PR base question is unchanged and the PR stays on hold.
+
+## Later on 2026-11-23: Member 3's reply, Member 6's generator
+
+Member 3's reply to my confirmation request (relayed from the group chat), read against the branches fetched afterwards
+(`member-3-service-b-retrieval` at `d21180f`, `member-6-p2-training` at `5fa403f`). Nothing here is ratified.
+
+* **Interface (A16).** Member 3 says `decide()` fits Service B and is integrated, and that Service B uses both `decide()` and `resume()`.
+  `src/agent/` on `d21180f` is still byte-identical to this branch's.
+* **Runner ownership (A12).** Member 3 will own the 300-user inference/export runner using this controller. Its handoff says Member 2
+  keeps the protocol, authoritative scoring and comparisons. Not written or run here. The original ordered B3 file for the validation
+  users is now staged and validated on Member 3's side, and Member 3 reproduced all 22,802 train and 2,178 dev action prompts
+  byte-for-byte with the current renderer, so the prompt text this controller builds matches what the model was trained on.
+* **Serving limits.** Member 3's example config is now 6,144 input / 1,024 output tokens (it was 2,048), following Member 1's recommendation,
+  and Member 6's confirmation was still pending (confirmed on 2026-11-24, see the tokenizer audit below). Member 6's `P2ActionGenerator`
+  defaults to the same two numbers.
+* **Training length.** Member 6's branch raised `max_length` from 5,120 to 6,656 (Member 1's proposal). That settles the 5,120 question above.
+* **Member 6's generator.** `src/reranking/p2_generator.py` has `generate(prompt) -> str`, the shape this module's `ModelClient` expects: raw
+  prompt text with no chat template, greedy decoding, no input truncation (an over-length prompt raises, which `decide` records as
+  `model_error`), and it stops as soon as the output begins with one complete JSON object. `run_p2_generation` writes raw outputs and a strict
+  parse result per record (20 per action gives 120). No checkpoint exists yet, so no outputs have been seen. One consequence for A9: because
+  generation stops at the first complete object, text after it can never appear, so a measured invalid-output rate will not show that
+  failure mode. The strict parser here still rejects it, which only matters for a different model client.
+* **Is a 1,024-token output cap enough?** Completion lengths in Member 1's v2 training file (characters; dev is shorter):
+
+| Task | Examples | Median | 99th percentile | Longest |
+|---|---|---|---|---|
+| `explain_recommendations` | 3,974 | 1,575 | 2,427 | 3,311 |
+| `rank_candidates` | 3,974 | 379 | 734 | 779 (105 ids) |
+| `retrieve_candidates` | 752 | 282 | 371 | 413 |
+| the three short actions (assess, evaluate, ask) | 14,102 | 52 to 97 | 53 to 132 | 132 |
+
+  Rank: even at one token per character the longest is 779 tokens, so it fits whatever the tokenizer does. Explanations are English text
+  (about 280 characters each, ten per completion), so the ratio is probably higher than the 2.9 to 3.1 I measured on the id-heavy prompts.
+  The longest, 3,311 characters, is about 950 tokens at 3.5 characters per token and about 1,070 to 1,140 at 2.9 to 3.1. At the pessimistic
+  ratio 1 of 3,974 training examples (3.1) or 2 (2.9) would not fit, and none of the 400 dev examples. So 1,024 is probably enough and
+  my earlier advice to ask for 2,048 was too strong. It is an estimate: Member 6's tokenizer settles it in one line (longest completion in
+  tokens, per task).
+  If an explanation is cut off, the JSON is invalid, and under A4 the episode ends `failed` (not a B3 fallback), so that user would have no
+  prediction. That would affect at most a user or two in 300, but a `failed` episode would show in the manifest. A cap of 1,536 would remove
+  the question at no cost other than worst-case latency of a runaway output; that choice belongs to Members 3 and 6.
+  **Settled on 2026-11-24:** Member 6's tokenizer audit found a longest training completion of 905 tokens, so 1,024 covers it; see below.
+
+## Member 3's pre-run questions (2026-11-24)
+
+Member 3 asked the group (Member 2 and me) to confirm seven things before the 300-user run. Member 2's own handoff
+(`phase2_checkpoint_selection_handoff.md` on `member2-phase2`) lists the same items, says no numeric threshold is ratified, and asks Members 1, 2,
+3, 4 and 6 to review them before final-test inference. The positions below are proposals, not decisions.
+
+| Question | What this module does today | Proposed position | Decides |
+|---|---|---|---|
+| Budgets (2 questions, 1 retrieval, 100 candidates, 8 control events) | These are the defaults. Eight is exactly the worst case (3 assessments + 2 questions + 2 pool evaluations + 1 retrieval). The ranking keeps 50. | Confirm. | Member 2 ratifies |
+| Budget exhaustion | `fallback_b3_order`. `rank_available_pool` needs the evaluator to accept `budget_exhausted_rank` (A1). | Keep `fallback_b3_order` unless Member 2 confirms the new label before the run. Whichever is chosen, fix it before reading results. | Member 2 (evaluator), team (report wording) |
+| Invalid outputs, zero retries | 0 extra attempts (greedy decoding repeats the same output). B3-order fallback for assess, ask, evaluate, retrieve and rank. **No fallback for the explanation step: the episode ends `failed`** (A4). | Keep 0 retries. The explanation step needs a rule (consequence 1 below). | Member 2 |
+| Grounding | `flag`: keep the text, record the problems. | `flag` for the official run: the human audit then sees what the model really wrote. `repair` replaces text the audit should judge. `reject` turns each flagged explanation into a `failed` episode. | Member 2 (audit) |
+| Timeouts | None here; the module has no clock. Member 3's client: 20 s per call, 25 s per request. | Measure on the GPU first, then freeze (consequence 2 below). Member 2's protocol assigns timeouts and a terminal response on failure to Member 4; the terminal response is `{"action": "error", ...}`. | Members 3 and 4, with Member 6's GPU timings |
+| Checkpoint selection | n/a | No objection from the agent side. Dev loss cannot show plain-pool behaviour (A6), which supports deciding on the 300-user run; the 500 test users stay untouched. A run with a `failed` episode is not structurally valid, so it cannot be selected. | Members 1, 2, 6 |
+| Numeric thresholds | n/a | Report latency and invalid-action rates by action type without pass/fail for the validation run: no measurement exists yet. Set any numeric gate after the first measured run, on dev data, and freeze it before the test run. | Member 2, team |
+
+**Consequence 1: one `failed` episode makes the whole run incomplete.** On `d21180f`, `offline.py` raises `EpisodeFailed` when the response is
+`{"action": "error"}`, writes `failures.jsonl`, sets `status: incomplete` and publishes no manifest; Member 2's protocol says never to drop a user.
+An explanation that is invalid (including cut off at the output cap), an explanation-step timeout, or a flagged explanation under `reject` each
+produce `failed` (after Member 6's audit below, a cut-off at 1,024 is unlikely; invalid JSON from the model and a timeout remain possible, at unknown
+rates). This corrects the earlier note above that a cut-off explanation "would show in the manifest": it blocks the official run. A rerun
+with greedy decoding repeats the same output, so the options are (a) leave it strict and treat any failure as a reason to change the setting and rerun,
+or (b) for the explanation step only, fall back to a deterministic explanation built from the movie's displayed fields, labelled and counted in
+the trace. (b) is now built here and off by default ([details](#template-explanation-fallback-built-2026-11-24-off-by-default)); Member 2 still has
+to confirm that the audit and the manifest handling accept it.
+
+**Consequence 2: the 25 s limit is cumulative per episode offline.** As I read `run_episode`, the model deadline is `request_timeout_seconds` minus the
+time already spent in earlier calls of the same episode, so the offline run gives a whole episode (up to ten model calls) 25 s, while online the
+same number applies per request. Nobody has GPU timings. Rough arithmetic only, at an assumed 30 to 60 generated tokens per second: a median rank
+completion is about 380 tokens and a median explanation about 500, which is about 14 to 30 s for those two calls alone. A timeout on a non-explanation step
+becomes a B3 fallback (muddying what is measured); on the explanation step it becomes `failed`. Proposal: run a smoke on the real checkpoint, set the
+call and episode deadlines from the measured worst case with headroom for the offline run, and keep the 25 s figure for the online path under Service A's
+30 s.
+
+## Member 6's tokenizer audit (2026-11-24)
+
+Relayed from the group chat; the numbers are Member 6's, from the pinned Qwen tokenizer on Member 1's complete v2 handoff. No new commit on
+`member-6-p2-training` carries them (still `5fa403f`). Nothing here is ratified.
+
+| Measure | Member 6 (real tokenizer) | What I had estimated |
+|---|---|---|
+| Longest training prompt | 5,735 tokens | 5.7k to 5.9k, scaled to 100 candidates from the 105-candidate prompt (so about 5% high) |
+| Longest training completion | 905 tokens | about 950 at 3.5 characters per token, 1,070 to 1,140 at 2.9 to 3.1 |
+| Longest training sequence | 6,458 tokens | 6,458 (Member 1's figure) |
+| Longest dev prompt / completion | 5,577 / 773 tokens | none |
+| Records over 6,656 | 0 | none |
+
+* **Verdict on my numbers.** The 905-token completion can only be an explanation (the longest rank completion is 779 characters), so
+  3,311 characters took about 905 tokens: roughly 3.7 characters per token. That matches my optimistic case, not the 2.9 to 3.1 I measured on
+  prompts, so my worry about a cut-off at 1,024 was unfounded. The headroom is 119 tokens (13%) over the worst training completion. The longest
+  prompt is about 3.2 characters per token if it is the 18,290-character one, so my prompt estimates were close and slightly high.
+* **Serving limits.** Member 6 recommends 6,144 in / 1,024 out, greedy decoding, no truncation, no chat template, exactly one JSON action using
+  `p2-prompt-v1`: what Member 3's config and Member 6's generator already use. The 6,144 input covers the measured maximum prompt with 409 tokens to
+  spare at 105 candidates, and this controller caps a pool at 100. Validation users' prompts have not been tokenized, so the real guard is the
+  model client rejecting an over-length prompt (recorded as `model_error`, a B3 fallback at the rank or evaluate step).
+* **What it means here.** Nothing to change in this module for A11. A cut-off explanation stops being a likely cause of a `failed` episode; the
+  explanation-failure question above still stands for model-written invalid JSON and for timeouts, at rates nobody can know until real outputs exist.
+* **Still no model outputs.** The A40 smoke test trained on the longest sample and saved a 71 MB adapter (18,464,768 trainable parameters); it
+  generated nothing. Member 6 will share the selected adapter's location, hashes and loading example after checkpoint selection, so the first real
+  outputs through the strict parser will come from the shortlisted-checkpoint runs, not before.
+
+## Template explanation fallback (built 2026-11-24, off by default)
+
+`AgentConfig.explanation_failure_policy` has two values. `fail` (the default) is the behaviour described in A4 and consequence 1 above, unchanged.
+`template` is the rule Member 2 then specified for the first real validation run ([their reply](#member-2s-reply-2026-11-24-member2-phase2-at-bab49dc)):
+when the explain step has no usable model output (invalid or cut-off JSON, wrong movies, a model error such as a timeout, or every retry rejected
+under `grounding_policy="reject"`), the controller keeps the model's ranking and writes the ten explanations itself with `repair_text`: "It is listed
+under Drama and Comedy and is tagged ..." from that movie's own displayed genres and tags. The setting stays `fail` unless a run's config sets it.
+
+* **What is recorded, so it is never quiet.** The failed model attempt stays in `decisions` and `failures`, with its error and the SHA-256 of the raw
+  output (a timeout has none). A `fallback` decision for `explain_recommendations` (`fallback: "catalog_metadata_fallback"`, plus the `reason`) marks
+  the substitution. Telemetry gains `explanation_source` (`"model"`, `"catalog_metadata_fallback"`, or null for a `failed` episode) and
+  `explanation_fallback_reason`; both are derived from the decisions, so the stored state gains no field. The manifest's `explanation_policy_version`
+  becomes `p2-grounding-screen-v1/<grounding policy>/catalog_metadata_fallback` when the setting is on and is unchanged when it is off.
+* **What the trace looks like.** Member 2's rule for the first run: the `explain_recommendations` event carries `source`, `"catalog_metadata_fallback"` here
+  and `"model"` on every event the model wrote, and for the fallback an `explanation_fallback_reason`: `model_error:explain_recommendations` or
+  `invalid_action:explain_recommendations:<code>` (the same shape as a ranking `fallback_reason`). The termination label is unchanged (`recommend`, or
+  `fallback` when the ranking itself was the B3 order). Member 2's manifest validator allows exactly the listed fields in an episode entry, so nothing is
+  added there. Member 2's contract says the manifest and the human audit check the producer's provenance and counts, so the per-run count of
+  fallback explanations is the number of users whose telemetry says `explanation_source: "catalog_metadata_fallback"`.
+* **When it cannot apply.** `apply_model_error` and `apply_model_output` take the catalog (`decide` passes it). If it is missing or lacks a shown movie, the
+  episode ends `failed` as before and `failures` gets a `template_unavailable` entry saying why.
+* **Evidence.** 26 tests in `tests/test_agent_explanation_fallback.py` (219 in the suite) cover the default staying off, every failure kind, the record,
+  Member 2's event fields and reason strings, the counting rule, the preserved evidence, flagged text left unmodified, retries first, grounding `reject`, the
+  B3-fallback label, a missing catalog, and the whole path through `decide`. Breaking the model `source`, the fallback reason, the timeout reason or the
+  model-call count each makes a test fail, as do disabling the template, the loader tolerance or the telemetry field. A one-off run (scratch script, not
+  committed) put 300 real validation users with the real B3 pools through the controller, with the explain step timing out for 50 users, returning cut-off
+  JSON for 50 and naming a movie that was not shown for 50, and 43 users forced onto the B3-order fallback: Member 2's validator at `bab49dc` returned
+  `status: valid`, 300 of 300, with 150 catalog-metadata and 150 model-text explanation events and all 150 fallback events carrying a reason. 21 episodes
+  had both labels at once (B3-order ranking and catalog text). The model there is a rule-based stand-in, so this shows structure only.
+* **What it does not do.** It does not make the explanations model-written or grounded in the user's profile: they cite only genres and tags, so
+  they carry little justification. The audit should report those rows separately; the `source` on the trace event is what lets Member 2's worksheet,
+  which reads the trace text, tell them apart. Any ceiling on how many fallback explanations the official table tolerates is still Member 2's call;
+  none has been set.
+* **Effect on Member 3's runner.** Three changes arrive together on pull. `AgentConfig.to_dict()` has one more key, so a freeze bundle written before this
+  change no longer matches the loaded configuration and `prepare` must be re-run. Every `explain_recommendations` trace event now carries `source`
+  (`"model"` for the model's text, even under the default `fail`), because Member 2's rule asks for it on every event in the first run; their validator
+  accepts the extra fields. Telemetry gains `explanation_source` and `explanation_fallback_reason`; its schema string is still the provisional
+  `p2-agent-telemetry-v0`. `AgentConfig(**block)` loading keeps working (the field has a default), and a stored state or config without the field loads
+  as `fail`.
+
+## Member 2's reply (2026-11-24, `member2-phase2` at `bab49dc`)
+
+Member 2 answered Member 3's seven questions and my fallback proposal in the group, and pushed three documentation and results commits
+(`1859a90`, `8242f4d`, `bab49dc`). No evaluator or validator code changed since `9032fd1`; the contract
+(`docs/phase2_interface_contract.md`), the protocol, the acceptance checklist and the checkpoint-selection handoff
+(`docs/phase2_checkpoint_selection_handoff.md`, section "Member 2 evaluator policy for the first P2 validation run") did. Their headline for the group:
+the untuned Qwen control scored NDCG@10 0.01977 against B3's 0.01458 on the 300 validation users, a paired difference of +0.00519 with a 95% interval
+of [-0.00068, 0.01119], both runs 300 of 300 valid. The page labels the policy below as Member 2's confirmation for the first validation run and says the producer settings and the measured
+timeout still need a shared freeze before inference. It is a decision for this run, not a frozen final-test policy.
+
+| Member 3's question | Member 2's answer | What the module does |
+|---|---|---|
+| 1. Budgets | Two questions, one expansion, at most 100 candidates, eight control events, zero retries. | These are the defaults; nothing to change. |
+| 2. Exhaustion | Exhausted budget, an unresolved decision, an invalid action before explanation, a retrieval error or an earlier model timeout all return the exact B3 order (`fallback`, `fallback_source: "frozen_b3_order"`, with a reason). Ranking the current pool instead would be a separately versioned contract change, not a different label for this run. | A1 is settled for this run: the default `fallback_b3_order` stays. `rank_available_pool` stays in the code but cannot be used for the run (the validator rejects `budget_exhausted_rank`). Member 1's preference for it is not adopted for now. |
+| 3. Invalid outputs | Zero retries. If the ranking is valid but the explanation call fails, times out or is unusable, keep the ranking, write all ten explanations from the displayed catalog fields (no inferred user preference), mark the event `source: "catalog_metadata_fallback"` with `explanation_fallback_reason`, preserve the raw failed output or its SHA-256 and the parser error, count a rejected output in `invalid_action_count` and a timeout as a model call and a timeout only. | Built, with these exact fields (see the template section above). Still off unless the run's config sets `explanation_failure_policy="template"`. |
+| 4. Grounding | Output the grounding screen flags is kept unmodified and flagged for the human audit, and must not be repaired or rejected silently. Report grounding failures separately from ranking quality. | `grounding_policy="flag"` is the default and does this. The first run must not use `repair` or `reject`. The screen's criteria (A15) are still mine to document and Member 2's audit to judge. |
+| 5. Timeouts | The 25 s offline episode deadline is not approved. Measure real GPU calls and full episodes (including the two-question, one-expansion path), then record separate per-call and whole-episode limits with headroom before the 300-user export. | Nothing for the module: it has no clock. Members 3 and 4 do this once Member 6's checkpoint exists. One point to confirm with Member 2: the manifest's `policy.agent.timeout_ms` is a single field. They call the 25 s an "episode deadline", so my reading is that it holds the whole-episode limit and the per-call limit goes in the freeze bundle. |
+| 6. Checkpoint selection | Confirmed: top three by 400-user dev loss, then highest macro NDCG@10 on the 300 validation users, an exact tie to the earlier step. | No module effect. |
+| 7. Thresholds | No numeric pass or fail for validation. Report p50 and p95 latency, timeouts, the invalid-output rate, the fallback rate and approximate cost. The structural gate is 300 of 300 valid records. | `controller_counts` and `manifest_episode` supply the counts; latency and cost come from the runner. |
+
+Also asked of Members 3 and 4: include the index version and evidence of the index's temporal boundary. The index version is already in every retrieval event and in telemetry
+(`retrieval_log`, `initial_index_version`); the temporal boundary of the live index is Member 3's evidence to produce (Member 2's checklist item A3).
+
+**What I changed to match.** Member 2's contract names two event fields, so the module now emits them and uses their label.
+
+* Every `explain_recommendations` event carries `source`: `"model"` or `"catalog_metadata_fallback"`; the fallback also carries
+  `explanation_fallback_reason`. I had called the fallback `template_fallback`; that name is gone from every trace, telemetry and manifest string.
+* The reason strings reuse the ranking fallback's shape: `invalid_action:explain_recommendations:<code>` or `model_error:explain_recommendations`.
+* Counting already matched their rule (`controller_counts`: the failed attempt is a model call; a rejected output is also an invalid action; a
+  `model_error` is not). Tests now pin it.
+* The setting is still named `template` and still defaults to `fail`. A run that wants Member 2's rule sets it; I did not flip the default.
+
+**What stays open.** None of the following was answered:
+
+* A17: the names of the fallback trigger codes. Member 2's fixtures use `timeout`, `invalid_action`, `loop_cap`; the module derives `model_error`, `invalid_action`,
+  `unexpected_action`, `unbound_ids` and the limit reasons. The manifest validator accepts any codes the run's policy declares, so this is a naming choice, not a blocker.
+* A15: whether Member 2's audit accepts the screen's categories as its sampling frame.
+* The timeout values (Members 3 and 4, after GPU timings), and the whole-episode deadline's behaviour at the boundary: the module turns any exception from the
+  model call into the step's fallback (B3 order at an earlier step, catalog text at the explanation step), so a deadline that the model client enforces
+  reaches the right fallback; how Member 3's runner enforces the cumulative deadline is the code read in consequence 2 above, not yet run.
+* The team's PR base, and Member 6's checkpoint, loader and first raw outputs.
+
 ## Real-data rehearsal (stand-in model)
 
 On 2026-11-19, after Member 6 shared the original ordered B3 validation pool (`validation_candidates_300.jsonl`,
@@ -218,7 +489,8 @@ The scripts are scratch and are not committed; this is not the offline runner (A
 | explain, top 10 | 3,285 | 3,688 | 842 / 945 |
 
   The 100-candidate row adds 50 arbitrary unwatched catalog movies to the B3 pool, so a real widened pool will differ a little.
-  Even before any widening, the evaluate and rank prompts are about twice P1's 1,024-token limit.
+  Even before any widening, the evaluate and rank prompts are about twice P1's 1,024-token limit. The flat 3.9 ratio is optimistic for
+  digit-heavy text; see [A11 in detail](#a11-in-detail-the-5120-token-proposal) for a stricter estimate.
 
 ## Review fixes (2026-11-19)
 

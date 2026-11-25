@@ -111,7 +111,7 @@ def advance(state: EpisodeState, *, model: ModelClient, retriever: Retriever,
             except ctl.MissingCandidateError:
                 raise  # a catalog gap is a data bug, not a model failure
             except Exception as error:  # any model failure is an ordinary, recorded outcome
-                state = ctl.apply_model_error(state, f"{type(error).__name__}: {error}")
+                state = ctl.apply_model_error(state, f"{type(error).__name__}: {error}", catalog=catalog)
             else:
                 state = ctl.apply_model_output(state, raw, catalog=catalog)
         elif step.kind == "answer":

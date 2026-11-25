@@ -18,6 +18,7 @@ from .model import ProcessModel
 class Timed:
     def __init__(self, target):
         self.target, self.seconds, self.calls, self.timed_out = target, 0.0, 0, False
+        self.model_call_audit = []
 
     def __getattr__(self, name):
         member = getattr(self.target, name)
@@ -26,13 +27,29 @@ class Timed:
         def call(*args, **kwargs):
             start = time.perf_counter()
             self.calls += 1
+            entry = None
+            if name == "generate":
+                prompt = args[0] if args else kwargs.get("prompt", "")
+                entry = {"call": self.calls, "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+                         "raw_sha256": None, "error_type": None, "error_message": None}
             try:
-                return member(*args, **kwargs)
-            except TimeoutError:
-                self.timed_out = True
+                result = member(*args, **kwargs)
+                if entry is not None:
+                    entry["raw_type"] = type(result).__name__
+                    if isinstance(result, str):
+                        entry["raw_sha256"] = hashlib.sha256(result.encode()).hexdigest()
+                return result
+            except Exception as error:
+                self.timed_out = self.timed_out or isinstance(error, TimeoutError)
+                if entry is not None:
+                    entry.update(error_type=type(error).__name__, error_message=str(error))
                 raise
             finally:
-                self.seconds += time.perf_counter() - start
+                duration = time.perf_counter() - start
+                self.seconds += duration
+                if entry is not None:
+                    entry["latency_ms"] = duration * 1000
+                    self.model_call_audit.append(entry)
         return call
 
 

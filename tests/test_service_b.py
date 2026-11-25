@@ -3,6 +3,7 @@ import json
 import threading
 import time
 import unittest
+from dataclasses import replace
 
 from fastapi.testclient import TestClient
 from src.agent.config import AgentConfig
@@ -82,6 +83,23 @@ class ServiceBTest(unittest.TestCase):
             self.assertEqual(response.status_code, 503)
             self.assertEqual(response.json()["detail"]["decision_trace"]["termination_reason"], "failed")
             self.assertTrue(response.headers["X-Request-ID"])
+
+    def test_enabled_template_policy_serves_valid_rank_and_provenance(self):
+        from tests.test_explanation_fallback import ExplanationModel, MALFORMED
+        import hashlib
+        r = self.resources(ExplanationModel(widen=True))
+        r.agent_config = replace(r.agent_config, explanation_failure_policy="template")
+        with TestClient(create_app(r, state_secret="test-only-secret-" * 3)) as client:
+            payload = {"profile_text": "Comedy", "history_movie_ids": [1]}
+            legacy = client.post("/decide", json=payload)
+            self.assertEqual(legacy.status_code, 200, legacy.text)
+            self.assertEqual([i["movie_id"] for i in legacy.json()["items"]], list(range(80, 70, -1)))
+            versioned = client.post("/v1/decide", json=payload)
+            self.assertEqual(versioned.status_code, 200, versioned.text)
+            result = versioned.json()
+            self.assertEqual(result["decision_trace"]["termination_reason"], "recommend")
+            self.assertEqual(result["decision_trace"]["events"][-1]["source"], "catalog_metadata_fallback")
+            self.assertEqual(result["model_call_audit"][-1]["raw_sha256"], hashlib.sha256(MALFORMED.encode()).hexdigest())
 
     def test_unavailable_model_recovers_for_following_requests(self):
         class Recoverable(ScriptedModel):

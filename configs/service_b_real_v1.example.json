@@ -22,7 +22,7 @@
     "max_worker_restarts": 2
   },
   "agent": {
-    "label": "development-only-unratified",
+    "label": "first-validation-policy-2026-11-24-timeouts-provisional",
     "max_clarifications": 2,
     "max_retrievals": 1,
     "max_pool_size": 100,
@@ -31,6 +31,7 @@
     "exhaustion_policy": "fallback_b3_order",
     "max_invalid_actions_per_step": 0,
     "reject_repeated_questions": true,
-    "grounding_policy": "flag"
+    "grounding_policy": "flag",
+    "explanation_failure_policy": "template"
   }
 }

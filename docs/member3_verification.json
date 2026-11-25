@@ -2,7 +2,7 @@
   "branch": "member-3-service-b-retrieval",
   "tests": {
     "command": ".venv-service-b/bin/python -m unittest discover -s tests -q",
-    "passed": 208,
+    "passed": 214,
     "failed": 0
   },
   "checks": {
@@ -19,27 +19,33 @@
     "live_v1_http_smoke": "passed_with_labelled_demonstration_model",
     "member1_v2_handoff": "all 14 supplied checksums passed",
     "v2_action_prompt_parity": "24980 samples; zero differences",
-    "b3_validation_input": "received; expected SHA-256 matched; all 300 users validated"
+    "b3_validation_input": "received; expected SHA-256 matched; all 300 users validated",
+    "explanation_template_policy": "passed: preserves ranking, labels/counts provenance, records errors and output digests",
+    "explanation_policy_export_manifest": "passed with authoritative validator",
+    "explanation_policy_http": "legacy and v1 passed"
   },
   "not_run": [
     "real P2 inference",
     "official 300-user P2 evaluation",
     "GPU latency",
-    "Docker build/Compose execution",
+    "local Docker/Compose execution",
     "AWS deployment"
   ],
   "external_dependencies": [
-    "P2 checkpoint/tokenizer and loading settings from Member 6",
-    "Member 6 confirmation of 6144 input / 1024 output serving limits",
-    "team ratification of remaining prompt/action, fallback, timeout, and checkpoint-selection policy",
-    "GPU environment for real P2 integration and latency testing"
+    "actual P2 adapters/tokenizers, hashes and loading handoff from Member 6",
+    "GPU-measured model-call and episode timeouts, then immutable run freeze",
+    "GPU laptop data/index restore and Windows portability work"
   ],
-  "git_state": "local handoff alignment commit; push pending",
+  "git_state": "local explanation-policy integration commit; push pending",
   "ci": {
     "last_verified_commit": "f66d68376a65d32685eeffda3cb0c4d344447c9a",
     "conclusion": "success",
     "url": "https://github.com/dan778912/movie-rec-agent/actions/runs/45112474963",
     "current_changes": "not run on GitHub yet"
   },
-  "runner_owner": "Member 3: inference/export execution; Member 2: scoring and comparisons"
+  "runner_owner": "Member 3: inference/export execution; Member 2: scoring and comparisons",
+  "integrated_sources": {
+    "member4_agent": "211a27448addb616c354b1649372302c250194fc",
+    "member2_policy": "bab49dc0f790d91d33d58743acb737537967a7e0"
+  }
 }

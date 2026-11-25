@@ -144,7 +144,7 @@ The lists preserve provenance for every ranked ID.
 | `evaluate_candidates` | `candidate_movie_ids` equal to the **entire current pool in order**; `pool_sufficient`: Boolean | P2's judgment of the current pool after a `sufficient:true` assessment. At least one is required for `recommend`; a truthful early-failure trace may omit it. The exact list binds the judgment to the pool version being evaluated. |
 | `retrieve_candidates` | Nonempty `added_movie_ids` of fresh catalog/unwatched IDs; nonempty `index_version` | Allowed after the latest candidate evaluation says `false`. A changed pool requires a later evaluation before ranking. |
 | `rank_candidates` | `movie_ids` exactly equal to the final prediction's 50 movie IDs in order | Exactly one required. All clarification, assessment, evaluation, and retrieval events occur before it. |
-| `explain_recommendations` | `explanations`: ordered objects with positive `movie_id` and nonempty `text` | Exactly the first `min(10, required_count)` ranked IDs in order. Required after ranking. The validator checks binding and presence, not truthfulness. |
+| `explain_recommendations` | `explanations`: ordered objects with positive `movie_id` and nonempty `text` | Exactly the first `min(10, required_count)` ranked IDs in order. Required after ranking. The validator checks binding and presence, not truthfulness. For the first real validation run, also record the event's `source` as `model` or `catalog_metadata_fallback`; the latter requires `explanation_fallback_reason` and preserved failed model-output evidence in the decision log. |
 
 There are at most **eight control events** (`assess_sufficiency`,
 `ask_clarification`, `evaluate_candidates`, `retrieve_candidates`) in an
@@ -167,6 +167,19 @@ and candidate assessments; record only decisions that actually happened.
 Do not fabricate assessments to make a timeout appear successful. The run
 manifest states fallback triggers and explanation policy. Never encode a
 timeout by omitting the user or quietly replacing their record.
+
+For the first real validation run, an unusable explanation output or
+explanation-call timeout may retain an otherwise valid final ranking. The
+producer then fills all ten explanation texts deterministically from the
+displayed catalog fields and marks the explanation event with
+`source: "catalog_metadata_fallback"` and `explanation_fallback_reason`.
+It must preserve the raw failed output or digest, record the parser/model
+error, and count the attempted call. This explanation provenance is separate
+from `termination_reason`: a successful current-pool ranking remains
+`recommend`; a B3-order ranking fallback remains `fallback`. Parseable model
+explanations that the grounding screen flags remain unmodified for the audit.
+The structural validator accepts and preserves these event fields; the run
+manifest and human audit must check the producer's provenance and counts.
 
 The validator rejects malformed/nonfinite JSON, duplicate keys, missing/extra
 users, wrong method or split, invalid actions/fields/types/order, invalid or

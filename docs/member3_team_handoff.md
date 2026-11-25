@@ -8,19 +8,20 @@ Priyanka's controller. Member 2 retains authoritative scoring and comparisons.
 | Recipient | What is ready to hand off | What is still needed |
 |---|---|---|
 | Member 1 | Your v2 ZIP passed all 14 supplied checksums. Seed IDs/text/prompt metadata match the current 21,333-movie index, so no rebuild is needed. Your simulator source is byte-identical to ours. | Simulator confirmation received; remaining full-policy freeze is coordinated with the team. |
-| Member 2 | Offline 50-item prediction producer, complete `p2-trace-v1` traces, `p2-run-manifest-v1` receipt validated on synthetic exports; real retrieval timing and tests. | Ratify checkpoint selection, prompt/simulator policy, budgets, fallback/grounding behavior, and runtime limits before official inference. |
-| Member 4 | Your agent is integrated unchanged with real retrieval and a Qwen/LoRA process host. `/v1/decide` + `/v1/resume` preserve complete live episodes. | Joint smoke test on the actual P2 checkpoint and agreement on the proposed policy defaults. |
+| Member 2 | Your November 24 first-validation policy is now reflected in the runtime template. Explanation-template sources/reasons are traced and counted separately; complete synthetic exports pass your validator. | Freeze checkpoint/index identity and GPU-measured deadlines before the 300-user export; authoritative scoring remains yours. |
+| Member 4 | Your `211a274` explanation-fallback implementation is integrated unchanged. Malformed output, wrong IDs and timeouts retain the valid ranking, with ten labelled catalog explanations. | Raw P2 output/parser checks when the actual checkpoint is available; no new interface implementation needed. |
 | Member 5 | Existing `/decide` client compatibility passes. Optional signed continuation API returns full live traces. Original 300-user B3 JSONL received, hash-matched, and validated. | Adopt the v1 trace storage/continuation flow when agreed and run the full Service A/database/B integration. |
-| Member 6 | Hugging Face base + single effective PEFT adapter/tokenizer loader, pinned base revision, greedy raw `p2-prompt-v1` inputs, no silent truncation; tiny real Qwen/LoRA load test passes. | Actual P2 artifact and loading settings, including whether P1 weights are merged into the effective adapter/base; confirm input/output budgets and provide GPU execution access. |
+| Member 6 | Your tokenizer audit and 6,144 / 1,024 serving limits are acknowledged. Single effective continued-P1 adapter loading is supported. | Actual P2 checkpoint shortlist, hashes/identity, loading example, training provenance, and raw action outputs. |
 
 See `docs/member3_service_b_handoff.md` for exact commands, checkpoint directory
 layout, request formats, trace storage, measurements, and remaining limitations.
-The template now uses 6,144 input / 1,024 output tokens, following Member 1's
-serving recommendation; Member 6 confirmation is still pending. The 25-second
-HTTP deadline, retries, grounding/fallback rules, and other agent defaults are
-not approved experiment limits. The v2 data handoff reports training samples up
-to 6,458 total tokens, exceeding Member 6's current 5,120-token training config;
-its proposed training budget is 6,656. Member 6 must resolve training lengths.
+The template uses 6,144 input / 1,024 output tokens, confirmed by Member 6's real
+tokenizer audit. Training uses 6,656 total tokens. Andrew confirmed budgets,
+zero retries, B3-order fallback, flagged grounding, and labelled template
+explanations after explanation failure. The 20-second model / 25-second episode
+or request deadlines remain provisional until the GPU smoke measurements.
+Enable `agent.explanation_failure_policy: "template"` in an existing local real
+configuration; upstream's default is intentionally still `fail` for old callers.
 
 On a model timeout, the failed action stays recorded. Background recovery can reload
 the same checkpoint for later live requests within a bounded restart budget. The

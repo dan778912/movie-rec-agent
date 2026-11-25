@@ -28,6 +28,18 @@ EXHAUSTION_POLICIES = ("fallback_b3_order", "rank_available_pool")
 #   reject  - treat the whole explanation as unusable (retries, then the episode ends "failed")
 GROUNDING_POLICIES = ("off", "flag", "repair", "reject")
 
+# What to do when the explanation step has no usable model output at all (invalid or cut-off JSON, the
+# wrong movies, a timeout, or every retry rejected under grounding_policy="reject"):
+#   fail     - the episode ends "failed": no trace, an explicit error, and Member 3's offline runner then
+#              marks the whole run incomplete (default: the behaviour before this setting existed)
+#   template - keep the model's ranking and write the ten explanations from each movie's own displayed
+#              catalog fields (``repair_text``); the episode is recorded as using them (decision A4)
+EXPLANATION_FAILURE_POLICIES = ("fail", "template")
+
+# Fields added after the first stored states existed, with the value that reproduces the behaviour
+# those states ran under. ``from_dict`` fills only these when absent; every other field stays required.
+_ADDED_LATER = {"explanation_failure_policy": "fail"}
+
 # The product shows ten recommendations, and the shared validator requires exactly this many
 # explanations (or fewer only when fewer movies are ranked).
 EXPLAINED_MOVIES = 10
@@ -78,6 +90,10 @@ class AgentConfig:
     # explanation, so the default records it and changes nothing.
     grounding_policy: str = "flag"
 
+    # See EXPLANATION_FAILURE_POLICIES. Unratified and OFF by default: "template" is a proposal for
+    # Member 2 to accept (it changes what counts as a valid export), so nothing changes until it is chosen.
+    explanation_failure_policy: str = "fail"
+
     def __post_init__(self) -> None:
         if not isinstance(self.label, str) or not self.label.strip():
             raise ConfigError("label must be a nonempty string")
@@ -89,6 +105,8 @@ class AgentConfig:
             raise ConfigError(f"exhaustion_policy must be one of {EXHAUSTION_POLICIES}")
         if self.grounding_policy not in GROUNDING_POLICIES:
             raise ConfigError(f"grounding_policy must be one of {GROUNDING_POLICIES}")
+        if self.explanation_failure_policy not in EXPLANATION_FAILURE_POLICIES:
+            raise ConfigError(f"explanation_failure_policy must be one of {EXPLANATION_FAILURE_POLICIES}")
         if type(self.reject_repeated_questions) is not bool:
             raise ConfigError("reject_repeated_questions must be a Boolean")
 
@@ -109,9 +127,11 @@ class AgentConfig:
     @classmethod
     def from_dict(cls, data) -> "AgentConfig":
         """Strict loader: every field must be present, so a stored state never silently picks up
-        a newer default."""
+        a newer default. The one exception is ``_ADDED_LATER``: a state stored before such a field existed
+        loads with the value that reproduces how it ran."""
         if not isinstance(data, dict):
             raise ConfigError("config must be an object")
+        data = {**{name: value for name, value in _ADDED_LATER.items() if name not in data}, **data}
         expected = set(cls.__dataclass_fields__)
         if set(data) != expected:
             missing, extra = sorted(expected - set(data)), sorted(set(data) - expected)

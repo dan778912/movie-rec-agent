@@ -23,6 +23,7 @@ from src.retrieval.online import canonical, file_hash
 from .model import checkpoint_identity
 from .runtime import Timed, load_resources
 from .simulator import load_simulator_metadata
+from .explanations import summarize_explanations
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -76,6 +77,8 @@ def prepare(args):
     agent = AgentConfig(**service.get("agent", {}))
     if agent.exhaustion_policy != "fallback_b3_order" or agent.ranking_size != config["required_predictions_per_user"]:
         raise ValueError("Agent policy is incompatible with Member 2's export contract")
+    if agent.explanation_failure_policy != "template" or agent.grounding_policy != "flag":
+        raise ValueError("First validation requires explanation_failure_policy='template' and grounding_policy='flag'")
     checkpoint = checkpoint_identity(service["model"]["adapter_path"])
     policy = {
         "dataset_version": config["dataset_version"], "split": config["split"], "user_count": config["sample_size"],
@@ -159,7 +162,8 @@ def run_episode(resources, profile, pool, facts, split, *, hourly_rate=0):
             previous_state = decision.state
         state = decision.state
         evidence = {"telemetry": telemetry_record(state), "answers": answers,
-                    "model_calls": model.calls, "search_calls": max(0, retrieval.calls - 1)}
+                    "model_calls": model.calls, "search_calls": max(0, retrieval.calls - 1),
+                    "model_call_audit": model.model_call_audit}
         if decision.response["action"] == "error":
             raise EpisodeFailed(state.reason, evidence)
         trace = to_trace_record(state)
@@ -250,6 +254,7 @@ def run(args):
     output.mkdir(parents=True, exist_ok=False)
     resources = load_resources(args.service_config)
     predictions, traces, episodes, failures = [], [], [], []
+    completed_evidence = {}
     try:
         if resources.mode != "real":
             raise ValueError("Offline production requires real model and retrieval")
@@ -267,6 +272,7 @@ def run(args):
                         [i["movie_id"] for i in pools[uid]["recommendations"]], facts[uid], config["split"],
                         hourly_rate=args.hourly_rate)
                     predictions.append(pred); traces.append(trace); episodes.append(episode)
+                    completed_evidence[uid] = evidence
                     audit.write(canonical({"user_id": uid, **evidence}))
                 except Exception as error:
                     failure = {"user_id": uid, "error": f"{type(error).__name__}: {error}",
@@ -278,8 +284,12 @@ def run(args):
         resources.close()
     for name, rows in (("p2.jsonl", predictions), ("p2_trace.jsonl", traces), ("failures.jsonl", failures)):
         (output / name).write_bytes(b"".join(canonical(r) for r in rows))
+    explanation_summary = summarize_explanations(traces, completed_evidence)
+    explanation_path = output / "explanation_fallback_summary.json"
+    explanation_path.write_bytes(canonical(explanation_summary))
     result = {"status": "incomplete" if failures else ("smoke_only" if args.smoke else "awaiting_validation"),
               "attempted_users": len(selected), "failed_users": len(failures),
+              "explanation_fallback_users": explanation_summary["catalog_metadata_fallback_user_count"],
               "cost_basis": {"hourly_rate_usd": args.hourly_rate, "scope": "measured episode work only; excludes loading and idle time"}}
     (output / "status.json").write_bytes(canonical(result))
     if failures:
@@ -291,7 +301,11 @@ def run(args):
         "policy": policy, "policy_sha256": bundle["policy_sha256"],
         "output_sha256": {"predictions": file_hash(output / "p2.jsonl"), "trace": file_hash(output / "p2_trace.jsonl")},
         "episodes": episodes, "aggregate": _validate_episodes(episodes, trace_by_user, policy),
-        "owner_notes": "Estimated marginal episode compute cost; see status.json. Full source snapshot is bound by the approval receipt."}
+        "owner_notes": "Estimated marginal episode compute cost; see status.json. "
+            "Full source snapshot is bound by the approval receipt. "
+            f"Explanation provenance/counts: explanation_fallback_summary.json SHA-256 {file_hash(explanation_path)}; "
+            f"catalog_metadata_fallback users: {explanation_summary['catalog_metadata_fallback_user_count']}. "
+            f"Per-call errors/digests: telemetry.jsonl SHA-256 {file_hash(output / 'telemetry.jsonl')}."}
     candidate = output / "run_manifest.pending.json"
     candidate.write_bytes(canonical(receipt))
     report = validate_run_manifest(candidate, paths["config"], paths["candidate_pool"],

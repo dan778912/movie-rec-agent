@@ -6,8 +6,9 @@ Run commands from `/Users/karunya/Documents/movie-rec-agent` (or your clone's ro
 This implements the Member 3 Phase 2 integration. It provides real Chroma retrieval,
 a Qwen/PEFT checkpoint host, Member 4 agent integration, a Service A-compatible API,
 an offline producer, measurements, and container configuration. It does not establish
-that P2 improves recommendation quality. No P2 weights or original frozen B3 JSONLs
-are present locally, and this Mac has no CUDA GPU. No official P2 run was performed.
+that P2 improves recommendation quality. No P2 weights are present locally, and
+this Mac has no CUDA GPU. The original 300-user B3 JSONL has been received and
+verified. No official P2 run was performed.
 
 ## What each section does
 
@@ -180,13 +181,21 @@ Before official inference obtain:
   handling, fallback rule, timeouts, and checkpoint-selection procedure.
 - Test-specific authorization before any test inference.
 
-The imported draft defaults allow two questions, one expansion, 100 pool items,
-eight control events, and exact-initial-order fallback. They remain unratified.
+Andrew's first-validation policy (recorded 2026-11-24) confirms two questions,
+one expansion, 100 pool items, eight control events, zero extra invalid-output
+retries, exact-B3-order fallback for exhaustion/earlier errors, and grounding
+`flag`. The real configuration template now explicitly selects
+`explanation_failure_policy: "template"`. Upstream's default stays `fail` for
+backward compatibility; merge the new field into an existing ignored
+`configs/service_b_local.json` on the GPU laptop without overwriting its local
+paths or hardware settings. The complete run freeze still needs actual checkpoint
+and index identities plus GPU-measured per-call/episode deadlines.
 Member 1 has confirmed `pre_cutoff_history_sim_v1`; its source bytes match the v2
 handoff receipt. All 22,802 train and 2,178 dev action prompts were reproduced
 byte-for-byte by our current `p2-prompt-v1` renderer. The newer upstream renderer
 file adds optional per-movie scoring helpers, but action-prompt parity is intact.
-This source/parity confirmation is not approval of the full experiment policy.
+Member 6 has also confirmed the 6,144 input / 1,024 output token settings after a
+real-tokenizer audit. The checkpoint and measured timeouts still need a run freeze.
 `grounding_policy:flag` records unsupported explanations without repairing them;
 it is not a guarantee of factual correctness. The competing `rank_available_pool`
 budget policy is incompatible with the present official export contract. For live
@@ -228,13 +237,47 @@ and no official run manifest is published. Test-split smoke is blocked. Select
 appropriate offline deadlines in a separate configuration before freezing.
 
 Outputs: `p2.jsonl`, `p2_trace.jsonl`, `telemetry.jsonl`, `failures.jsonl`,
+`explanation_fallback_summary.json`,
 `status.json`, and, only for a complete validated official export,
-`run_manifest.json` and `validation.json`. An unusable explanation or another
-untraceable failure is retained and makes the run incomplete; no fake explanation
-or successful assessment is inserted. Input hashes and source snapshots are
+`run_manifest.json` and `validation.json`. An untraceable failure still makes the
+run incomplete; successful assessments are never fabricated. Input hashes and source snapshots are
 rechecked. Simulator history is training-only for validation, training plus
 validation for test, with cutoff and full-watched-set checks. Target bytes are
 hashed for provenance; their labels are never parsed by this producer.
+
+### Explanation failure under the first-validation policy
+
+Priyanka's agent update at `211a27448addb616c354b1649372302c250194fc`
+implements the opt-in rule accepted by Member 2 at
+`bab49dc0f790d91d33d58743acb737537967a7e0`:
+
+- If a final ranking is valid but explanation output is unusable (including a
+  timeout), retain that ranking and generate all ten explanations from each
+  movie's displayed catalog fields, with no inferred user preference.
+- The explanation event carries `source: "catalog_metadata_fallback"` and
+  `explanation_fallback_reason`. A model explanation carries `source: "model"`.
+- Keep the original ranking termination: `recommend` remains `recommend`, and
+  a B3-order ranking remains `fallback`. Explanation substitution is not a B3
+  ranking fallback.
+- Keep rejected-output SHA-256 and parser error in controller telemetry. Per-call
+  audit additionally preserves complete exception type/message, raw-output digest,
+  prompt digest, attempted call count, and measured latency.
+- Parseable but unsupported model text is retained under `grounding_policy:flag`;
+  it is not replaced by the template fallback.
+
+`explanation_fallback_summary.json` records counts, reasons, and per-user sources
+separately from ranking fallbacks. Its SHA-256 and the telemetry SHA-256 are bound
+in the standard manifest's `owner_notes`; no incompatible keys were added to the
+strict `p2-run-manifest-v1` episode/aggregate schema. Send these companion files
+with the three main exports so Member 2 can audit explanation provenance.
+If catalog evidence is missing or explicit `explanation_failure_policy:fail` is
+selected for a different experiment, unrepairable episodes remain failures.
+
+Old source/config freeze bundles no longer match this code; prepare a new bundle
+after committing the changes and measuring the target GPU. The template's
+20-second model call and 25-second request/episode settings remain development
+values and are not approved export deadlines. Priyanka's controller calls and
+trace fields were integrated without rewriting her implementation.
 
 Simulator metadata now calls Member 1's exact `load_metadata` and `check_documents`
 helpers. Raw metadata hashes, training-cutoff tag aggregation, and canonical
@@ -266,13 +309,17 @@ HTTP question/recommendation flow and cancellation, a real tiny locally generate
 Qwen+LoRA checkpoint, process termination, complete simulated agent episodes,
 and the full export/receipt path against Member 2's validator. Scripted models and
 tiny random weights test plumbing, not trained-model recommendation quality.
-Final regression result: **208 tests passed**. A separate local Uvicorn HTTP smoke
+Final regression result: **214 tests passed**. A separate local Uvicorn HTTP smoke
 passed the ask/answer/recommendation flow. A real Chroma 1.3.5 native HTTP-server
 smoke passed ingestion, query filtering, and the bounded-client configuration.
 Additional tests cover signed full-episode continuation, trace-bearing failures,
 bounded checkpoint recovery, index health, exact Member 5 HTTP-client compatibility,
 and full-universe simulator metadata. The legacy and v1 endpoints also passed a
 real local HTTP smoke with explicitly labelled demonstration resources.
+Explanation-policy regressions additionally cover malformed/wrong-ID outputs,
+timeouts, preserved expanded-pool ranking, separate B3/explanation fallback counts,
+unchanged flagged text, full error/digest evidence, live HTTP behavior, and a
+complete synthetic manifest accepted by Member 2's unchanged validator.
 
 The real-catalog retrieval benchmark used 20 canonical validation profiles, one
 warmup, concurrency one, on this ARM Mac CPU. Initial search p50/p95 was
@@ -317,8 +364,12 @@ run. No cloud deployment, GPU timings, or real P2 scoring is claimed.
 These integration dependencies were copied without altering their implementation:
 
 - Member 4 agent and its shared Member 1 helpers/tests: `63b40aad0bf3605b40737dbb24d8f1b3c2ba4868`.
+  Explanation-policy agent files, action reference and decision notes were updated
+  from `211a27448addb616c354b1649372302c250194fc`.
 - Member 2 evaluator, synthetic fixtures, receipt tests, contracts and frozen-user configs:
   `9032fd13c62b7b18d3c53a2e3c685c53f4f49b55`.
+  Policy/interface documents were refreshed from
+  `bab49dc0f790d91d33d58743acb737537967a7e0`; evaluator implementation is unchanged.
 - Member 1 configuration and handoff docs: `321c28443bca3e502ebcf393a079ba6527109027`.
 - MiniLM settings referenced from Member 5's selected embedding config:
   `cd80dbf67e5505e8b1a26173e89830686face813`.
