@@ -1,12 +1,14 @@
 """Tests for ``explanation_failure_policy`` (decision A4): what happens when the explain step has no usable
 model output.
 
-Default ``fail``: the episode ends "failed" (unchanged behaviour). ``template`` (off until the team accepts
-it): the model's ranking is kept and the ten explanations are written from each movie's own displayed catalog
-fields, openly recorded. The model here is a software test double, so these tests show how the controller
-handles a failure, not how often a real model fails.
+Default ``fail``: the episode ends "failed" (unchanged behaviour). ``template`` (Member 2 accepted this rule
+for the first real validation run on 2026-11-24; the setting itself stays off unless the caller sets it): the
+model's ranking is kept and the ten explanations are written from each movie's own displayed catalog fields,
+openly recorded with Member 2's labels. The model here is a software test double, so these tests show how the
+controller handles a failure, not how often a real model fails.
 """
 
+import hashlib
 import json
 import re
 import unittest
@@ -17,9 +19,10 @@ from src.agent import example
 from src.agent.config import AgentConfig, ConfigError
 from src.agent.decide import decide
 from src.agent.grounding import PASSED_SCREEN, Evidence, check_explanation, repair_text
-from src.agent.manifest import agent_policy, explanation_policy_version, fallback_trigger, manifest_episode
-from src.agent.state import EpisodeState, StateError
-from src.agent.trace import explanation_source, telemetry_record, to_trace_record
+from src.agent.manifest import (agent_policy, controller_counts, explanation_policy_version, fallback_trigger,
+                                manifest_episode)
+from src.agent.state import EXPLANATION_SOURCE_FALLBACK, EXPLANATION_SOURCE_MODEL, EpisodeState, StateError
+from src.agent.trace import explanation_fallback_reason, explanation_source, telemetry_record, to_trace_record
 from src.profiles.agent_text import serialize_action
 from tests.test_agent_controller import AutoCatalog, ControllerCase, ScriptedModel, drive
 
@@ -89,11 +92,11 @@ class TemplateFallbackTest(ExplainCase):
                 attempt, substitute = state.decisions[-2], state.decisions[-1]
                 self.assertEqual((attempt["source"], attempt["valid"], attempt["error"]["code"]), ("model", False, code))
                 self.assertEqual((substitute["source"], substitute["task"], substitute["valid"], substitute["fallback"]),
-                                 ("fallback", "explain_recommendations", True, "template_explanation"))
+                                 ("fallback", "explain_recommendations", True, "catalog_metadata_fallback"))
                 self.assertEqual(state.failures[-1]["code"], code)  # the unusable attempt stays on record
-                self.assertEqual(explanation_source(state), "template_fallback")
+                self.assertEqual(explanation_source(state), "catalog_metadata_fallback")
                 telemetry = telemetry_record(state)
-                self.assertEqual(telemetry["explanation_source"], "template_fallback")
+                self.assertEqual(telemetry["explanation_source"], "catalog_metadata_fallback")
                 self.assertEqual(telemetry["config"]["explanation_failure_policy"], "template")
                 self.assertEqual(json.loads(json.dumps(telemetry)), telemetry)
                 self.assertEqual(EpisodeState.from_dict(json.loads(json.dumps(state.to_dict()))).to_dict(), state.to_dict())
@@ -136,7 +139,7 @@ class TemplateFallbackTest(ExplainCase):
         state = ctl.apply_model_output(state, raw, catalog=AutoCatalog())
         self.assertEqual((state.phase, state.termination_reason), ("done", "recommend"))
         self.assertEqual(state.grounding[-1]["outcome"], "rejected")
-        self.assertEqual(explanation_source(state), "template_fallback")
+        self.assertEqual(explanation_source(state), "catalog_metadata_fallback")
         self.assertEqual(state.events[-1]["explanations"][0]["text"], repair_text(AutoCatalog()[shown[0]]))
 
     def test_a_contract_fallback_ranking_keeps_its_label_and_still_gets_explanations(self):
@@ -146,7 +149,7 @@ class TemplateFallbackTest(ExplainCase):
         state = drive(self, state, model)
         self.assertEqual((state.termination_reason, state.fallback_source), ("fallback", "frozen_b3_order"))
         self.assertEqual(state.ranked, state.initial_pool)
-        self.assertEqual(explanation_source(state), "template_fallback")
+        self.assertEqual(explanation_source(state), "catalog_metadata_fallback")
         record, _ = self.check_trace(state)
         self.assertEqual(record["fallback_reason"], state.reason)
         entry = manifest_episode(state, informative_answer_count=0, noninformative_answer_count=0, timed_out=False,
@@ -208,9 +211,9 @@ class ConfigAndPolicyTest(unittest.TestCase):
     def test_the_manifest_names_the_template_rule_only_when_it_is_on(self):
         self.assertEqual(explanation_policy_version(AgentConfig()), "p2-grounding-screen-v1/flag")  # unchanged
         on = replace(AgentConfig(), explanation_failure_policy="template")
-        self.assertEqual(explanation_policy_version(on), "p2-grounding-screen-v1/flag/template_on_failure")
+        self.assertEqual(explanation_policy_version(on), "p2-grounding-screen-v1/flag/catalog_metadata_fallback")
         self.assertEqual(agent_policy(on, timeout_ms=1000)["explanation_policy_version"],
-                         "p2-grounding-screen-v1/flag/template_on_failure")
+                         "p2-grounding-screen-v1/flag/catalog_metadata_fallback")
 
 
 class BrokenExplainModel(example.DemoModel):
@@ -250,7 +253,86 @@ class ThroughDecideTest(unittest.TestCase):
                 self.assertEqual(len(response["items"]), 10)
                 for item in response["items"]:
                     self.assertEqual(item["explanation"], repair_text(example.CATALOG[item["movie_id"]]))
-                self.assertEqual(telemetry_record(decision.state)["explanation_source"], "template_fallback")
+                self.assertEqual(telemetry_record(decision.state)["explanation_source"], "catalog_metadata_fallback")
+
+
+EXPECTED_REASON = {"unbound_ids": "invalid_action:explain_recommendations:unbound_ids",
+                   "invalid_action": "invalid_action:explain_recommendations:invalid_action",
+                   "model_error": "model_error:explain_recommendations"}
+
+
+class MemberTwoContractTest(ExplainCase):
+    """Member 2's rule for the first real validation run (docs/phase2_interface_contract.md and
+    docs/phase2_checkpoint_selection_handoff.md on origin/member2-phase2, 2026-11-24): label the event,
+    give a reason, keep the failed output's evidence, count the call correctly, leave flagged text alone."""
+
+    def test_the_fallback_event_carries_source_and_reason_in_the_trace(self):
+        for kind, reason in EXPECTED_REASON.items():
+            with self.subTest(kind):
+                state = self.fail_explain(self.at_explain(explanation_failure_policy="template"), kind)
+                record, _ = self.check_trace(state)
+                explain = [event for event in record["events"] if event["action"] == "explain_recommendations"]
+                self.assertEqual(len(explain), 1)
+                self.assertEqual(explain[0]["source"], EXPLANATION_SOURCE_FALLBACK)
+                self.assertEqual(explain[0]["explanation_fallback_reason"], reason)
+                self.assertEqual(explanation_fallback_reason(state), reason)
+                self.assertEqual(telemetry_record(state)["explanation_fallback_reason"], reason)
+                self.assertEqual(state.decisions[-1]["reason"], reason)
+                self.assertEqual(record["termination_reason"], "recommend")  # provenance is not a termination
+
+    def test_a_model_written_explanation_is_labelled_model_with_no_reason(self):
+        for policy in ("fail", "template"):
+            with self.subTest(policy):
+                state = drive(self, self.start(explanation_failure_policy=policy), ScriptedModel())
+                record, _ = self.check_trace(state)
+                explain = next(event for event in record["events"] if event["action"] == "explain_recommendations")
+                self.assertEqual(explain["source"], EXPLANATION_SOURCE_MODEL)
+                self.assertNotIn("explanation_fallback_reason", explain)
+                self.assertIsNone(telemetry_record(state)["explanation_fallback_reason"])
+
+    def test_the_failed_output_is_preserved_as_a_digest_and_an_error(self):
+        state = self.fail_explain(self.at_explain(explanation_failure_policy="template"), "invalid_action")
+        attempt = next(d for d in state.decisions if d["task"] == "explain_recommendations" and not d["valid"])
+        self.assertEqual(attempt["raw_sha256"], hashlib.sha256(CUT_OFF.encode("utf-8")).hexdigest())
+        self.assertEqual(attempt["error"]["code"], "invalid_action")
+        self.assertTrue(attempt["error"]["message"])
+        timed_out = self.fail_explain(self.at_explain(explanation_failure_policy="template"), "model_error")
+        attempt = next(d for d in timed_out.decisions if d["task"] == "explain_recommendations" and not d["valid"])
+        self.assertIsNone(attempt["raw_sha256"])  # nothing came back to hash
+        self.assertEqual(attempt["error"], {"code": "model_error", "message": "TimeoutError: explain call timed out"})
+
+    def test_a_rejected_output_counts_as_invalid_but_a_timeout_counts_only_as_a_model_call(self):
+        def counts(kind):
+            return controller_counts(self.fail_explain(self.at_explain(explanation_failure_policy="template"), kind))
+
+        after_ranking = controller_counts(self.at_explain(explanation_failure_policy="template"))
+        self.assertEqual(after_ranking["invalid_action_count"], 0)
+        for kind in ("unbound_ids", "invalid_action"):
+            with self.subTest(kind):
+                got = counts(kind)
+                self.assertEqual(got["model_call_count"], after_ranking["model_call_count"] + 1)  # the attempt counts
+                self.assertEqual(got["invalid_action_count"], 1)
+        got = counts("model_error")
+        self.assertEqual(got["model_call_count"], after_ranking["model_call_count"] + 1)
+        self.assertEqual(got["invalid_action_count"], 0)
+
+    def test_the_substitute_text_is_not_a_model_call(self):
+        state = self.fail_explain(self.at_explain(explanation_failure_policy="template"), "invalid_action")
+        self.assertEqual(sum(1 for d in state.decisions if d["source"] == "model"), controller_counts(state)["model_call_count"])
+        self.assertEqual(state.decisions[-1]["source"], "fallback")
+
+    def test_flagged_model_text_is_kept_unmodified_under_the_default_screen(self):
+        state = self.at_explain(explanation_failure_policy="template")
+        shown = state.ranked[:10]
+        texts = ["It is listed under Western."] + ["It is listed under Drama and Comedy."] * 9  # a genre shown nowhere
+        raw = serialize_action({"action": "explain_recommendations",
+                                "explanations": [{"movie_id": i, "text": t} for i, t in zip(shown, texts)]})
+        state = ctl.apply_model_output(state, raw, catalog=AutoCatalog())
+        self.assertEqual(state.grounding[-1]["outcome"], "kept")
+        self.assertEqual(state.grounding[-1]["results"][0]["status"], "unsupported")  # flagged for the audit
+        self.assertEqual([item["text"] for item in state.events[-1]["explanations"]], texts)  # but not changed
+        self.assertEqual(state.events[-1]["source"], EXPLANATION_SOURCE_MODEL)
+        self.assertEqual(explanation_source(state), EXPLANATION_SOURCE_MODEL)
 
 
 if __name__ == "__main__":

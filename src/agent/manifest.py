@@ -27,7 +27,7 @@ from src.agent.actions import INVALID_ACTION, REPEATED_QUESTION, UNBOUND_IDS, UN
 from src.agent.config import AgentConfig
 from src.agent.controller import (CLARIFICATION_BUDGET, EVENT_CAP, FALLBACK_SOURCE, NO_NEW_CANDIDATES, POOL_FULL,
                                   RETRIEVAL_BUDGET)
-from src.agent.state import EpisodeState
+from src.agent.state import EXPLANATION_SOURCE_FALLBACK, EpisodeState
 from src.agent.trace import TraceError, is_contract_termination
 
 PARSER_VERSION = "p2-agent-parser-v1"  # names the strict grammar in docs/member4_action_reference.md
@@ -50,7 +50,7 @@ def explanation_policy_version(config: AgentConfig) -> str:
     explanation step with no usable output. The default (``fail``) leaves the string as it always was."""
     version = f"{GROUNDING_SCREEN_VERSION}/{config.grounding_policy}"
     if config.explanation_failure_policy == "template":
-        version += "/template_on_failure"
+        version += f"/{EXPLANATION_SOURCE_FALLBACK}"  # Member 2's label for the explanation fallback
     return version
 
 

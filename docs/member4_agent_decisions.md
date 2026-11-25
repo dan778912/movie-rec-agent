@@ -22,10 +22,10 @@ every trace carries the configuration it ran with (`label: "unratified-defaults"
 
 | ID | Question | What the sources say | What the code does now | Setting | Who needs to decide |
 |---|---|---|---|---|---|
-| **A1** | What happens when a budget runs out and the latest judgment is still "no"? | **Conflict**, see below. | Both rules implemented. Default `fallback_b3_order`. | `exhaustion_policy` | Members 2 and 1, then the whole team (the final report must describe what runs) |
+| **A1** | What happens when a budget runs out and the latest judgment is still "no"? | **Conflict**, see below. | Both rules implemented. Default `fallback_b3_order`. Member 2 (2026-11-24) fixed the B3 order for the first validation run; ranking the pool on exhaustion would be a separately versioned contract change. | `exhaustion_policy` | Members 2 and 1, then the whole team (the final report must describe what runs) |
 | A2 | Operational limits: questions, retrievals, pool size, event cap | Member 1 trained at 2 questions, 1 retrieval, 50 → at most 100. The proposed trace allows 8 control events. These agree: 8 is exactly the worst case of 2 + 1 (3 assessments + 2 questions + 2 pool checks + 1 retrieval). The protocol assigns the online loop cap and timeouts to Member 4. None is ratified. | 2 / 1 / 100 / 8. A question or retrieval is refused when its follow-up events would not fit under the cap. | `max_clarifications`, `max_retrievals`, `max_pool_size`, `max_control_events` | Members 1, 2, 3, 4. Freeze on validation data before any test inference. |
 | A3 | A model output that cannot be used, or a failed model call | The contract allows the frozen fallback for it but ratifies no numeric validity threshold. With greedy decoding a retry repeats the same prompt. Timeouts belong to whoever owns the model client. | No retry; the first unusable output, or an exception from the model call, at a step triggers the B3 fallback (any policy). The raw output's SHA-256 (none for an exception) and the reason are recorded. | `max_invalid_actions_per_step` | Members 2, 4, 6 (after seeing real checkpoint output) |
-| A4 | What to do with an explanation the grounding screen marks `unsupported`, or with no usable explanation at all | No rule. The contract requires explanations in every episode, including fallbacks, and says the manifest states the explanation policy. The audit rubric is human. | `grounding_policy`: `flag` (default: keep the text, record the problems), `repair` (replace only that explanation with a text built from the movie's own displayed fields), `reject` (treat as unusable: retries, then `failed`), `off`. Unusable explanations end the episode `failed`: the ranking is kept, no text is invented, no trace is produced, and the caller returns an explicit error. Optional and off by default: `explanation_failure_policy="template"` writes plain explanations from each movie's own catalog fields instead and records that it did ([details](#template-explanation-fallback-built-2026-11-24-off-by-default)). | `grounding_policy`, `explanation_failure_policy` | Members 2 and 4 |
+| A4 | What to do with an explanation the grounding screen marks `unsupported`, or with no usable explanation at all | No rule. The contract requires explanations in every episode, including fallbacks, and says the manifest states the explanation policy. The audit rubric is human. | `grounding_policy`: `flag` (default: keep the text, record the problems), `repair` (replace only that explanation with a text built from the movie's own displayed fields), `reject` (treat as unusable: retries, then `failed`), `off`. Unusable explanations end the episode `failed`: the ranking is kept, no text is invented, no trace is produced, and the caller returns an explicit error. Member 2 specified a labelled catalog-metadata fallback for the first real validation run (2026-11-24). `explanation_failure_policy="template"` implements it with their exact event fields; it stays off unless a run's config sets it ([details](#template-explanation-fallback-built-2026-11-24-off-by-default), [their reply](#member-2s-reply-2026-11-24-member2-phase2-at-bab49dc)). | `grounding_policy`, `explanation_failure_policy` | Decided for the first run by Member 2; Member 3 sets it in the run config |
 | A5 | Ranking length | The prompt asks the model to rank the whole pool (50–100). The contract's rank event is the 50 prediction IDs. | The model's output must be a permutation of the pool shown; the top `ranking_size` are kept. The full ranking's digest is in telemetry. Explained movies are `min(10, ranking_size)` because the shared validator requires exactly that. | `ranking_size` | Member 2 to confirm |
 | A6 | Rank step: does training on pools with injected held-out items transfer to retriever-only pools at inference? | Member 1's report documents the injection as deliberate supervision (up to 3 held-out positives and 2 dislikes added to the final pool; the committed example has 105 candidates where the retriever returned 100, and all 3 injected positives land in the explained top ten). At inference no such movies exist. Member 6 has replied (relayed 2026-11-19): inference compatibility is intended and will be tested before checkpoint selection; Member 1 confirmed on 2026-11-23 that nearly all ranking examples carry the injected items ([group updates](#group-updates-2026-11-23); [details](#a6-in-detail-what-is-known-after-member-6s-reply)). Whether the mismatch costs anything is still unmeasured. | Strict: a ranking must be a permutation of the pool shown, and `injected_movie_ids` is never emitted. A test replays Member 1's example and pins this. A question, not a defect claim. | none | Member 6 (testing on plain 100-movie pools); see [member4_team_review_note.md](member4_team_review_note.md) |
 | A7 | Retrieval interface and ownership | The model emits a free-text `query`. Member 3's interface does not exist yet. Unspecified: who removes duplicates, watched movies and over-cap results, and who updates the dynamic profile from clarification answers. | The caller receives `query` and `max_new`. The controller filters defensively (pool members, watched, duplicates, over-cap) and logs counts per retrieval. Answers go into the prompt's Clarifications block; `profile_text` is never edited. | none | Members 3 and 4 |
@@ -380,33 +380,84 @@ Relayed from the group chat; the numbers are Member 6's, from the pinned Qwen to
 ## Template explanation fallback (built 2026-11-24, off by default)
 
 `AgentConfig.explanation_failure_policy` has two values. `fail` (the default) is the behaviour described in A4 and consequence 1 above, unchanged.
-`template` is the option proposed to Member 2: when the explain step has no usable model output (invalid or cut-off JSON, wrong movies, a model
-error such as a timeout, or every retry rejected under `grounding_policy="reject"`), the controller keeps the model's ranking and writes the ten
-explanations itself with `repair_text`: "It is listed under Drama and Comedy and is tagged ..." from that movie's own displayed genres and tags.
-Nothing changes until the team chooses it.
+`template` is the rule Member 2 then specified for the first real validation run ([their reply](#member-2s-reply-2026-11-24-member2-phase2-at-bab49dc)):
+when the explain step has no usable model output (invalid or cut-off JSON, wrong movies, a model error such as a timeout, or every retry rejected
+under `grounding_policy="reject"`), the controller keeps the model's ranking and writes the ten explanations itself with `repair_text`: "It is listed
+under Drama and Comedy and is tagged ..." from that movie's own displayed genres and tags. The setting stays `fail` unless a run's config sets it.
 
-* **What is recorded, so it is never quiet.** The failed model attempt stays in `decisions` and `failures`. A `fallback` decision for
-  `explain_recommendations` with `fallback: "template_explanation"` marks the substitution. Telemetry gains `explanation_source`: `"model"`,
-  `"template_fallback"` or null (no explanation event, as for a `failed` episode). It is derived from the decisions, so the stored state gains no field.
-  The manifest's `explanation_policy_version` becomes `p2-grounding-screen-v1/<grounding policy>/template_on_failure` when the setting is on and is
-  unchanged when it is off.
-* **What the trace looks like.** An ordinary `explain_recommendations` event. The termination label is unchanged (`recommend`, or `fallback` when the
-  ranking itself was the B3 order). Member 2's manifest validator allows exactly the listed fields in an episode entry, so the label is not
-  added there; counting template episodes per run means counting `explanation_source` in telemetry.
+* **What is recorded, so it is never quiet.** The failed model attempt stays in `decisions` and `failures`, with its error and the SHA-256 of the raw
+  output (a timeout has none). A `fallback` decision for `explain_recommendations` (`fallback: "catalog_metadata_fallback"`, plus the `reason`) marks
+  the substitution. Telemetry gains `explanation_source` (`"model"`, `"catalog_metadata_fallback"`, or null for a `failed` episode) and
+  `explanation_fallback_reason`; both are derived from the decisions, so the stored state gains no field. The manifest's `explanation_policy_version`
+  becomes `p2-grounding-screen-v1/<grounding policy>/catalog_metadata_fallback` when the setting is on and is unchanged when it is off.
+* **What the trace looks like.** Member 2's rule for the first run: the `explain_recommendations` event carries `source`, `"catalog_metadata_fallback"` here
+  and `"model"` on every event the model wrote, and for the fallback an `explanation_fallback_reason`: `model_error:explain_recommendations` or
+  `invalid_action:explain_recommendations:<code>` (the same shape as a ranking `fallback_reason`). The termination label is unchanged (`recommend`, or
+  `fallback` when the ranking itself was the B3 order). Member 2's manifest validator allows exactly the listed fields in an episode entry, so nothing is
+  added there. Member 2's contract says the manifest and the human audit check the producer's provenance and counts, so the per-run count of
+  fallback explanations is the number of users whose telemetry says `explanation_source: "catalog_metadata_fallback"`.
 * **When it cannot apply.** `apply_model_error` and `apply_model_output` take the catalog (`decide` passes it). If it is missing or lacks a shown movie, the
   episode ends `failed` as before and `failures` gets a `template_unavailable` entry saying why.
-* **Evidence.** 20 new tests (213 in all) cover the default staying off, every failure kind, the record, retries first, grounding `reject`, the B3-fallback
-  label, a missing catalog, and the whole path through `decide`; disabling the template, the loader tolerance or the telemetry field each makes them
-  fail. A one-off run (scratch script, not committed) put 300 real validation users with the real B3 pools through the controller, half with a timed-out explain
-  step: Member 2's validator at `9032fd1` returned `status: valid`, 300 of 300 users, with 150 template and 150 model-text episodes. The model there is a
-  rule-based stand-in, so this shows structure only.
+* **Evidence.** 26 tests in `tests/test_agent_explanation_fallback.py` (219 in the suite) cover the default staying off, every failure kind, the record,
+  Member 2's event fields and reason strings, the counting rule, the preserved evidence, flagged text left unmodified, retries first, grounding `reject`, the
+  B3-fallback label, a missing catalog, and the whole path through `decide`. Breaking the model `source`, the fallback reason, the timeout reason or the
+  model-call count each makes a test fail, as do disabling the template, the loader tolerance or the telemetry field. A one-off run (scratch script, not
+  committed) put 300 real validation users with the real B3 pools through the controller, with the explain step timing out for 50 users, returning cut-off
+  JSON for 50 and naming a movie that was not shown for 50, and 43 users forced onto the B3-order fallback: Member 2's validator at `bab49dc` returned
+  `status: valid`, 300 of 300, with 150 catalog-metadata and 150 model-text explanation events and all 150 fallback events carrying a reason. 21 episodes
+  had both labels at once (B3-order ranking and catalog text). The model there is a rule-based stand-in, so this shows structure only.
 * **What it does not do.** It does not make the explanations model-written or grounded in the user's profile: they cite only genres and tags, so
-  they carry little justification. The audit should report those rows separately (Member 2's worksheet takes the trace text, so it needs the telemetry
-  label to tell them apart). Whether the team accepts such episodes in the official table is Member 2's call, as is any ceiling on how many are tolerated.
-* **Effect on Member 3's runner.** `AgentConfig.to_dict()` has one more key, so a freeze bundle written before this change no longer matches the loaded
-  configuration and `prepare` must be re-run after pulling it. `AgentConfig(**block)` loading from the service config keeps working (the field has a
-  default), and a stored state or config without the field loads as `fail`. Telemetry gains one key, `explanation_source`; its schema string is still
-  the provisional `p2-agent-telemetry-v0`.
+  they carry little justification. The audit should report those rows separately; the `source` on the trace event is what lets Member 2's worksheet,
+  which reads the trace text, tell them apart. Any ceiling on how many fallback explanations the official table tolerates is still Member 2's call;
+  none has been set.
+* **Effect on Member 3's runner.** Three changes arrive together on pull. `AgentConfig.to_dict()` has one more key, so a freeze bundle written before this
+  change no longer matches the loaded configuration and `prepare` must be re-run. Every `explain_recommendations` trace event now carries `source`
+  (`"model"` for the model's text, even under the default `fail`), because Member 2's rule asks for it on every event in the first run; their validator
+  accepts the extra fields. Telemetry gains `explanation_source` and `explanation_fallback_reason`; its schema string is still the provisional
+  `p2-agent-telemetry-v0`. `AgentConfig(**block)` loading keeps working (the field has a default), and a stored state or config without the field loads
+  as `fail`.
+
+## Member 2's reply (2026-11-24, `member2-phase2` at `bab49dc`)
+
+Member 2 answered Member 3's seven questions and my fallback proposal in the group, and pushed three documentation and results commits
+(`1859a90`, `8242f4d`, `bab49dc`). No evaluator or validator code changed since `9032fd1`; the contract
+(`docs/phase2_interface_contract.md`), the protocol, the acceptance checklist and the checkpoint-selection handoff
+(`docs/phase2_checkpoint_selection_handoff.md`, section "Member 2 evaluator policy for the first P2 validation run") did. Their headline for the group:
+the untuned Qwen control scored NDCG@10 0.01977 against B3's 0.01458 on the 300 validation users, a paired difference of +0.00519 with a 95% interval
+of [-0.00068, 0.01119], both runs 300 of 300 valid. The page labels the policy below as Member 2's confirmation for the first validation run and says the producer settings and the measured
+timeout still need a shared freeze before inference. It is a decision for this run, not a frozen final-test policy.
+
+| Member 3's question | Member 2's answer | What the module does |
+|---|---|---|
+| 1. Budgets | Two questions, one expansion, at most 100 candidates, eight control events, zero retries. | These are the defaults; nothing to change. |
+| 2. Exhaustion | Exhausted budget, an unresolved decision, an invalid action before explanation, a retrieval error or an earlier model timeout all return the exact B3 order (`fallback`, `fallback_source: "frozen_b3_order"`, with a reason). Ranking the current pool instead would be a separately versioned contract change, not a different label for this run. | A1 is settled for this run: the default `fallback_b3_order` stays. `rank_available_pool` stays in the code but cannot be used for the run (the validator rejects `budget_exhausted_rank`). Member 1's preference for it is not adopted for now. |
+| 3. Invalid outputs | Zero retries. If the ranking is valid but the explanation call fails, times out or is unusable, keep the ranking, write all ten explanations from the displayed catalog fields (no inferred user preference), mark the event `source: "catalog_metadata_fallback"` with `explanation_fallback_reason`, preserve the raw failed output or its SHA-256 and the parser error, count a rejected output in `invalid_action_count` and a timeout as a model call and a timeout only. | Built, with these exact fields (see the template section above). Still off unless the run's config sets `explanation_failure_policy="template"`. |
+| 4. Grounding | Output the grounding screen flags is kept unmodified and flagged for the human audit, and must not be repaired or rejected silently. Report grounding failures separately from ranking quality. | `grounding_policy="flag"` is the default and does this. The first run must not use `repair` or `reject`. The screen's criteria (A15) are still mine to document and Member 2's audit to judge. |
+| 5. Timeouts | The 25 s offline episode deadline is not approved. Measure real GPU calls and full episodes (including the two-question, one-expansion path), then record separate per-call and whole-episode limits with headroom before the 300-user export. | Nothing for the module: it has no clock. Members 3 and 4 do this once Member 6's checkpoint exists. One point to confirm with Member 2: the manifest's `policy.agent.timeout_ms` is a single field. They call the 25 s an "episode deadline", so my reading is that it holds the whole-episode limit and the per-call limit goes in the freeze bundle. |
+| 6. Checkpoint selection | Confirmed: top three by 400-user dev loss, then highest macro NDCG@10 on the 300 validation users, an exact tie to the earlier step. | No module effect. |
+| 7. Thresholds | No numeric pass or fail for validation. Report p50 and p95 latency, timeouts, the invalid-output rate, the fallback rate and approximate cost. The structural gate is 300 of 300 valid records. | `controller_counts` and `manifest_episode` supply the counts; latency and cost come from the runner. |
+
+Also asked of Members 3 and 4: include the index version and evidence of the index's temporal boundary. The index version is already in every retrieval event and in telemetry
+(`retrieval_log`, `initial_index_version`); the temporal boundary of the live index is Member 3's evidence to produce (Member 2's checklist item A3).
+
+**What I changed to match.** Member 2's contract names two event fields, so the module now emits them and uses their label.
+
+* Every `explain_recommendations` event carries `source`: `"model"` or `"catalog_metadata_fallback"`; the fallback also carries
+  `explanation_fallback_reason`. I had called the fallback `template_fallback`; that name is gone from every trace, telemetry and manifest string.
+* The reason strings reuse the ranking fallback's shape: `invalid_action:explain_recommendations:<code>` or `model_error:explain_recommendations`.
+* Counting already matched their rule (`controller_counts`: the failed attempt is a model call; a rejected output is also an invalid action; a
+  `model_error` is not). Tests now pin it.
+* The setting is still named `template` and still defaults to `fail`. A run that wants Member 2's rule sets it; I did not flip the default.
+
+**What stays open.** None of the following was answered:
+
+* A17: the names of the fallback trigger codes. Member 2's fixtures use `timeout`, `invalid_action`, `loop_cap`; the module derives `model_error`, `invalid_action`,
+  `unexpected_action`, `unbound_ids` and the limit reasons. The manifest validator accepts any codes the run's policy declares, so this is a naming choice, not a blocker.
+* A15: whether Member 2's audit accepts the screen's categories as its sampling frame.
+* The timeout values (Members 3 and 4, after GPU timings), and the whole-episode deadline's behaviour at the boundary: the module turns any exception from the
+  model call into the step's fallback (B3 order at an earlier step, catalog text at the explanation step), so a deadline that the model client enforces
+  reaches the right fallback; how Member 3's runner enforces the cumulative deadline is the code read in consequence 2 above, not yet run.
+* The team's PR base, and Member 6's checkpoint, loader and first raw outputs.
 
 ## Real-data rehearsal (stand-in model)
 

@@ -41,6 +41,11 @@ PHASES = (*PHASE_TASK, *CALLER_PHASES, "done")
 CONTRACT_TERMINATIONS = ("recommend", "fallback")
 TERMINATIONS = (*CONTRACT_TERMINATIONS, "budget_exhausted_rank", "failed")
 
+# The ``source`` of an ``explain_recommendations`` event. These two strings are Member 2's, from the
+# "first real validation run" rule in docs/phase2_interface_contract.md on origin/member2-phase2.
+EXPLANATION_SOURCE_MODEL = "model"
+EXPLANATION_SOURCE_FALLBACK = "catalog_metadata_fallback"
+
 
 class StateError(ValueError):
     """Raised when a state object is malformed or violates an invariant."""

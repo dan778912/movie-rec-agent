@@ -43,6 +43,7 @@ would be extra fields, so the output would be rejected.
 | `evaluate_candidates` | `candidate_movie_ids` (the current pool) | controller state |
 | `ask_clarification` | `answer`, `answer_source` | the user or the simulator |
 | `retrieve_candidates` | `added_movie_ids`, `index_version` | the retriever |
+| `explain_recommendations` | `source` (`model` or `catalog_metadata_fallback`), and `explanation_fallback_reason` only when the source is the fallback | controller state (Member 2's rule for the first real validation run) |
 
 The trace keeps the first 50 IDs of the model's ranking. The training records' `injected_movie_ids` is
 training provenance and is never part of a completion or a trace (see A6).
@@ -85,7 +86,7 @@ All are fields of `AgentConfig` (`src/agent/config.py`) and are passed to `decid
 | `exhaustion_policy` | `fallback_b3_order` | The other value, `rank_available_pool`, writes a label the proposed validator rejects (A1). |
 | `reject_repeated_questions` | `true` | Whether a repeated question counts as unusable. |
 | `grounding_policy` | `flag` | `off`, `flag`, `repair` or `reject`. It acts only on explanations that cite evidence not shown. |
-| `explanation_failure_policy` | `fail` | What to do when the explain step has no usable output. `fail` ends the episode as `failed`; `template` writes the ten explanations from each movie's own genres and tags and records that it did (A4). Off by default and unratified. |
+| `explanation_failure_policy` | `fail` | What to do when the explain step has no usable output. `fail` ends the episode as `failed`; `template` keeps the ranking and writes the ten explanations from each movie's own genres and tags, labelled `catalog_metadata_fallback` (A4). Member 2 specified this rule for the first real validation run (2026-11-24), but the default stays `fail`: a run that wants it must set `template` in its config. |
 
 ## 6. When the output is unusable
 
@@ -106,8 +107,21 @@ What happens next, with `max_invalid_actions_per_step` at its default of `0`:
 - At the explain step, by default (`explanation_failure_policy` = `fail`) the episode ends as `failed`. The
   ranking is kept, no trace is produced, and the service answers `{"action": "error", ...}`. The controller
   does not invent explanation text. With `template`, the ranking is kept and the ten explanations are built
-  from each movie's own genres and tags instead; the trace event looks like any other explanation event, and
-  telemetry says `explanation_source: "template_fallback"` (otherwise `"model"`).
+  from each movie's own genres and tags instead, and nothing about it is quiet:
+  - the trace event carries `source: "catalog_metadata_fallback"` and an `explanation_fallback_reason`,
+    `model_error:explain_recommendations` or `invalid_action:explain_recommendations:<code>` (an event the model
+    wrote carries `source: "model"` and no reason);
+  - the failed attempt stays in the decision log with its error and the SHA-256 of the raw output (a timeout
+    has no output to hash);
+  - a rejected output counts in `invalid_action_count`; a timeout counts as a model call only, never as an
+    invalid output;
+  - `termination_reason` does not change: a current-pool ranking stays `recommend`, a B3-order ranking stays
+    `fallback`;
+  - telemetry says `explanation_source` and `explanation_fallback_reason` (`"model"` and null otherwise).
+
+  Model text that the grounding screen flags is never replaced under the default `grounding_policy` of `flag`.
+  It stays as written, marked for the human audit. Member 2's rule for the first run is exactly this, so that
+  run must not use `repair` or `reject`.
 - With a value above `0`, the same step is asked again with the same prompt, up to that many times. No
   error message is added to the prompt.
 
