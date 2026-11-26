@@ -86,6 +86,27 @@ def chroma_client(path="data/indexes/chroma", host=None, port=8000):
     return chromadb.PersistentClient(path=str(path), settings=settings)
 
 
+def close_chroma_client(client):
+    """Stop a local Chroma system and release persistent index file handles.
+
+    Chroma 1.3.5 does not expose a public ``Client.close()`` method. Its local
+    client owns a shared ``System`` whose stop hook drops the Rust bindings;
+    clearing the matching cache entry prevents a stopped system from being
+    reused. This matters on Windows, where open HNSW files prevent temporary
+    index directories from being removed.
+    """
+    identifier = getattr(client, "_identifier", None)
+    systems = getattr(type(client), "_identifier_to_system", None)
+    if identifier is None or not isinstance(systems, dict):
+        return
+    system = systems.get(identifier)
+    if system is None:
+        return  # Already closed, or not a shared-system client.
+    system.stop()
+    if systems.get(identifier) is system:
+        del systems[identifier]
+
+
 def ingest(client, documents, catalog_csv, manifest_path, encoder):
     """Create a new collection; publish its immutable receipt only after complete ingestion."""
     import numpy as np
@@ -94,7 +115,7 @@ def ingest(client, documents, catalog_csv, manifest_path, encoder):
         raise FileExistsError(manifest_path)
     catalog = load_catalog(documents)
     import csv
-    with Path(catalog_csv).open() as source:
+    with Path(catalog_csv).open(encoding="utf-8", newline="") as source:
         ids = [int(r["movie_id"]) for r in csv.DictReader(source)]
     if len(ids) != len(set(ids)) or set(ids) != set(catalog):
         raise ValueError("Catalog CSV and document IDs disagree")

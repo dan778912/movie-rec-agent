@@ -5,7 +5,7 @@ from unittest.mock import patch
 from pathlib import Path
 
 import numpy as np
-from src.retrieval.online import OnlineRetriever, chroma_client, ingest
+from src.retrieval.online import OnlineRetriever, chroma_client, close_chroma_client, ingest
 
 
 class TinyEncoder:
@@ -42,8 +42,10 @@ class OnlineRetrievalTest(unittest.TestCase):
                     "genres": ["Comedy" if i < 4 else "Drama"], "genome_tags": [], "user_tags": []}
                    for i in range(1, 7)]
         self.documents.write_text("\n".join(json.dumps(r) for r in records))
-        self.csv.write_text("movie_id\n" + "\n".join(str(i) for i in range(1, 7)))
+        self.csv.write_text("movie_id,title\n" + "\n".join(
+            f"{i},{'Кино' if i == 1 else f'Movie {i}'}" for i in range(1, 7)), encoding="utf-8")
         self.client = chroma_client(self.root / "chroma")
+        self.addCleanup(close_chroma_client, self.client)
         self.receipt = ingest(self.client, self.documents, self.csv, self.manifest, self.encoder)
         self.retriever = OnlineRetriever(self.client, self.manifest, self.documents, self.encoder, pool_size=2)
 
@@ -53,6 +55,16 @@ class OnlineRetrievalTest(unittest.TestCase):
         more = self.retriever.search(query="Drama", exclude_movie_ids=[1, 2, 3, 999], max_new=50)
         self.assertEqual(more.movie_ids, [4, 5, 6])
         self.assertEqual(more.index_version, pool.index_version)
+
+    def test_close_releases_only_the_target_chroma_system(self):
+        other = chroma_client(self.root / "other-chroma")
+        self.addCleanup(close_chroma_client, other)
+        other_identifier = other._identifier
+        close_chroma_client(self.client)
+        self.assertNotIn(self.client._identifier, type(self.client)._identifier_to_system)
+        self.assertIn(other_identifier, type(other)._identifier_to_system)
+        self.assertIsInstance(other.heartbeat(), int)
+        close_chroma_client(self.client)  # Idempotent cleanup.
 
     def test_clarification_changes_query_and_empty_catalog_remainder_is_explicit(self):
         original = self.encoder.encode
